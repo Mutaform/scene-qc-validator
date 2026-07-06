@@ -30,6 +30,14 @@ jobs:
         shell: pwsh
         run: tools/build_release.ps1
 
+      - name: Check ZIP contents
+        shell: pwsh
+        run: |
+          Expand-Archive -LiteralPath dist/scene_qc_validator_by_mutaform_studio.zip -DestinationPath verify -Force
+          if (-not (Test-Path -LiteralPath "verify/scene_qc_validator/blender_manifest.toml")) {
+            throw "Invalid extension ZIP: missing scene_qc_validator/blender_manifest.toml"
+          }
+
       - name: Download Blender
         shell: pwsh
         run: |
@@ -54,10 +62,16 @@ jobs:
             </head>
             <body>
               <h1>Scene QC Validator by Mutaform Studio</h1>
+              <p><a href="index.json">Blender Extension Repository Index</a></p>
               <p><a href="scene_qc_validator_by_mutaform_studio.zip">Download Blender Extension ZIP</a></p>
             </body>
           </html>
           '@ | Set-Content -Path pages/index.html -Encoding UTF8
+
+          $index = Get-Content -LiteralPath pages/index.json -Raw
+          if ($index -match '"data"\s*:\s*\[\s*\]') {
+            throw "Generated index.json is empty. Blender did not recognize the extension ZIP."
+          }
 
       - name: Publish to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
