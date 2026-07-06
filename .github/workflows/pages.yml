@@ -34,7 +34,7 @@ jobs:
         shell: pwsh
         run: |
           Expand-Archive -LiteralPath dist/scene_qc_validator_by_mutaform_studio.zip -DestinationPath verify -Force
-          if (-not (Test-Path -LiteralPath "verify/scene_qc_validator/blender_manifest.toml")) {
+          if (-not (Test-Path -LiteralPath "verify/blender_manifest.toml")) {
             throw "Invalid extension ZIP: missing scene_qc_validator/blender_manifest.toml"
           }
 
