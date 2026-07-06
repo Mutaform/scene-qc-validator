@@ -19,7 +19,7 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 $stagingAddon = Join-Path $distDir "_stage"
 New-Item -ItemType Directory -Force -Path $stagingAddon | Out-Null
 
-Copy-Item -LiteralPath (Join-Path $addonDir "*") -Destination $stagingAddon -Recurse -Force
+Copy-Item -Path (Join-Path $addonDir "*") -Destination $stagingAddon -Recurse -Force
 
 Get-ChildItem -LiteralPath $stagingAddon -Directory -Recurse -Filter "__pycache__" |
     Remove-Item -Recurse -Force
