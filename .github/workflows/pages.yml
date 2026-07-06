@@ -1,0 +1,51 @@
+name: Publish Blender Extension Repository
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scene_qc_validator/**"
+      - "tools/**"
+      - ".github/workflows/pages.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build extension ZIP
+        shell: pwsh
+        run: tools/build_release.ps1
+
+      - name: Prepare Pages folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path pages | Out-Null
+          Copy-Item -LiteralPath dist/scene_qc_validator_by_mutaform_studio.zip -Destination pages/scene_qc_validator_by_mutaform_studio.zip -Force
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
