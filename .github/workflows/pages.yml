@@ -36,11 +36,21 @@ jobs:
         shell: pwsh
         run: tools/build_release.ps1
 
-      - name: Prepare Pages folder
+      - name: Download Blender
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://download.blender.org/release/Blender4.5/blender-4.5.0-windows-x64.zip" -OutFile blender.zip
+          Expand-Archive -LiteralPath blender.zip -DestinationPath blender -Force
+
+      - name: Prepare Blender Extension Repository
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path pages | Out-Null
           Copy-Item -LiteralPath dist/scene_qc_validator_by_mutaform_studio.zip -Destination pages/scene_qc_validator_by_mutaform_studio.zip -Force
+
+          $blender = Get-ChildItem -Path blender -Recurse -Filter blender.exe | Select-Object -First 1
+          & $blender.FullName --command extension server-generate --repo-dir pages
+
           @'
           <!doctype html>
           <html>
@@ -50,9 +60,7 @@ jobs:
             </head>
             <body>
               <h1>Scene QC Validator by Mutaform Studio</h1>
-              <p>
-                <a href="scene_qc_validator_by_mutaform_studio.zip">Download Blender Extension ZIP</a>
-              </p>
+              <p><a href="scene_qc_validator_by_mutaform_studio.zip">Download Blender Extension ZIP</a></p>
             </body>
           </html>
           '@ | Set-Content -Path pages/index.html -Encoding UTF8
@@ -66,6 +74,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          timeout: 1800000
+          timeout: 600000
           error_count: 60
           reporting_interval: 10000
