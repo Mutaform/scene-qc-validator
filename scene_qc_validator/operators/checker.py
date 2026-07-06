@@ -67,6 +67,10 @@ def _load_checker_image(checker_type):
         image.name = info["image"]
     image.filepath = path
     image.source = 'FILE'
+    try:
+        image.reload()
+    except RuntimeError:
+        pass
     return image
 
 
@@ -267,14 +271,12 @@ def _restore_materials(obj, backup):
     _remove_checker_uv(obj)
     _restore_active_uv(obj, backup)
     materials = backup["materials"]
-    while len(obj.material_slots) < len(materials):
-        obj.data.materials.append(None)
-    while len(obj.material_slots) > len(materials):
-        obj.data.materials.pop(index=len(obj.material_slots) - 1)
-    for index, name in enumerate(materials):
-        obj.material_slots[index].material = bpy.data.materials.get(name) if name else None
+    restored_materials = [bpy.data.materials.get(name) if name else None for name in materials]
+    obj.data.materials.clear()
+    for material in restored_materials:
+        obj.data.materials.append(material)
     material_indices = backup.get("material_indices")
-    if isinstance(material_indices, list):
+    if restored_materials and isinstance(material_indices, list):
         for poly, material_index in zip(obj.data.polygons, material_indices):
             poly.material_index = min(max(int(material_index), 0), max(len(materials) - 1, 0))
     if BACKUP_PROP in obj:

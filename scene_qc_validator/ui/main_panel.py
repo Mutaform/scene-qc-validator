@@ -1,5 +1,7 @@
 from bpy.types import Panel
 
+from .helpers import addon_version
+
 
 class SQC_PT_main(Panel):
     """Top-level panel: always-visible essentials - status, Validate, Export."""
@@ -8,6 +10,12 @@ class SQC_PT_main(Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "QC Validator"
+
+    def draw_header_preset(self, context):
+        version = self.layout.row(align=True)
+        version.alignment = 'RIGHT'
+        version.enabled = False
+        version.label(text=f"ver {addon_version()}")
 
     def draw(self, context):
         layout = self.layout
