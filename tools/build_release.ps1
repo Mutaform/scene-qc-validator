@@ -16,10 +16,10 @@ if (Test-Path -LiteralPath $distDir) {
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
-$stagingRoot = Join-Path $distDir "_stage"
-$stagingAddon = Join-Path $stagingRoot "scene_qc_validator"
-New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
-Copy-Item -LiteralPath $addonDir -Destination $stagingAddon -Recurse -Force
+$stagingAddon = Join-Path $distDir "_stage"
+New-Item -ItemType Directory -Force -Path $stagingAddon | Out-Null
+
+Copy-Item -LiteralPath (Join-Path $addonDir "*") -Destination $stagingAddon -Recurse -Force
 
 Get-ChildItem -LiteralPath $stagingAddon -Directory -Recurse -Filter "__pycache__" |
     Remove-Item -Recurse -Force
@@ -32,7 +32,7 @@ Get-ChildItem -LiteralPath $stagingAddon -File -Recurse |
     } |
     Remove-Item -Force
 
-Compress-Archive -LiteralPath $stagingAddon -DestinationPath $zipPath -Force
-Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+Compress-Archive -Path (Join-Path $stagingAddon "*") -DestinationPath $zipPath -Force
+Remove-Item -LiteralPath $stagingAddon -Recurse -Force
 
 Write-Host "Built $zipPath"
