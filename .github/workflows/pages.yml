@@ -41,6 +41,21 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path pages | Out-Null
           Copy-Item -LiteralPath dist/scene_qc_validator_by_mutaform_studio.zip -Destination pages/scene_qc_validator_by_mutaform_studio.zip -Force
+          @'
+          <!doctype html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Scene QC Validator</title>
+            </head>
+            <body>
+              <h1>Scene QC Validator by Mutaform Studio</h1>
+              <p>
+                <a href="scene_qc_validator_by_mutaform_studio.zip">Download Blender Extension ZIP</a>
+              </p>
+            </body>
+          </html>
+          '@ | Set-Content -Path pages/index.html -Encoding UTF8
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
