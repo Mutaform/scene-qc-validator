@@ -1,8 +1,0 @@
-GPL-3.0-or-later
-
-This repository is currently declared as GPL-3.0-or-later in
-scene_qc_validator/blender_manifest.toml.
-
-Before publishing publicly, replace this file with the full GPL-3.0-or-later
-license text or update both this file and the manifest to the final company
-license chosen for the add-on.
