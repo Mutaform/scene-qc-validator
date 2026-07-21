@@ -1,0 +1,1180 @@
+{
+  "name": "Mutaform_Default",
+  "stages": [
+    {
+      "name": "01_Blockout",
+      "checks": [
+        {
+          "check_id": "geo_has_soft_edges",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_ngons",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_manifold",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_area",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_length",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_planar",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1e-05,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_concave_faces",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_duplicate_faces",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_loose",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_animation_keys",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_unapplied",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "loc,rot,scale",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_world_origin",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_pivot_center",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_missing",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_single_tile",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_names",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_overlap",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 250000,
+          "string_param_1": ".+",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_seams_marked_sharp",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_random_sharp",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "nm_object_pattern",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_missing",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_name",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        }
+      ]
+    },
+    {
+      "name": "02_HighPoly",
+      "checks": [
+        {
+          "check_id": "geo_has_soft_edges",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_ngons",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_manifold",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_area",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_length",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_planar",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-05,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_concave_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_duplicate_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_loose",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_animation_keys",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_unapplied",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "loc,rot,scale",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_world_origin",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_pivot_center",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_missing",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_count",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_single_tile",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_names",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_overlap",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 250000,
+          "string_param_1": ".+",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_seams_marked_sharp",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_random_sharp",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "nm_object_pattern",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_missing",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_name",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        }
+      ]
+    },
+    {
+      "name": "03_LP_UVs",
+      "checks": [
+        {
+          "check_id": "geo_has_soft_edges",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_ngons",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_manifold",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_area",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_length",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_planar",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1e-05,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_concave_faces",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_duplicate_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_loose",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_animation_keys",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_unapplied",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "loc,rot,scale",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_world_origin",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_pivot_center",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_single_tile",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_names",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_overlap",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 250000,
+          "string_param_1": ".+",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_seams_marked_sharp",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_random_sharp",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "nm_object_pattern",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_missing",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_name",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        }
+      ]
+    },
+    {
+      "name": "04_Bake",
+      "checks": [
+        {
+          "check_id": "geo_has_soft_edges",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_ngons",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_manifold",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_area",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_length",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_planar",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-05,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_concave_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_duplicate_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_loose",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_animation_keys",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_unapplied",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "loc,rot,scale",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_world_origin",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_pivot_center",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_single_tile",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_names",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_overlap",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 250000,
+          "string_param_1": ".+",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_seams_marked_sharp",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_random_sharp",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "nm_object_pattern",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_name",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        }
+      ]
+    },
+    {
+      "name": "05_Textures",
+      "checks": [
+        {
+          "check_id": "geo_has_soft_edges",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_ngons",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_manifold",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_area",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_zero_length",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_non_planar",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-05,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_concave_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_duplicate_faces",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_loose",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "geo_animation_keys",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_unapplied",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "loc,rot,scale",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_world_origin",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "tr_pivot_center",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_single_tile",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_set_names",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_overlap",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1e-10,
+          "float_param_2": 0.0,
+          "int_param_1": 250000,
+          "string_param_1": ".+",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_seams_marked_sharp",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_random_sharp",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.001,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "nm_object_pattern",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_name",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        }
+      ]
+    }
+  ]
+}

@@ -95,7 +95,18 @@ def ensure_checks_initialized_for_scene(scene):
         else:
             _add_check_item(s.checks, d)
     if len(s.checks) > 0:
-        presets_mod.ensure_default_preset(s.checks)
+        default_project = presets_mod.ensure_default_project(s.checks)
+        projects = presets_mod.list_projects()
+        if not s.active_project_name or s.active_project_name not in projects:
+            s.active_project_name = default_project
+            s.active_preset_name = default_project
+        stages = presets_mod.project_stage_names(s.active_project_name)
+        if stages and s.active_stage_name not in stages:
+            s.active_stage_name = stages[0]
+        active_key = f"{s.active_project_name}::{s.active_stage_name}"
+        if stages and s.applied_stage_key != active_key:
+            if presets_mod.load_stage(s.active_project_name, s.active_stage_name, s.checks):
+                s.applied_stage_key = active_key
 
 
 def ensure_checks_initialized(context):

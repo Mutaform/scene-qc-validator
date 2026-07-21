@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 
 id = "scene_qc_validator"
-version = "1.1.1"
+version = "1.2.6"
 name = "Scene QC Validator by Mutaform Studio"
 tagline = "Production scene and mesh validation checklist by Mutaform Studio"
 maintainer = "Mutaform Studio"
 type = "add-on"
 
 # Optional link to documentation, support, etc
-tags = ["Mesh", "Import-Export", "Pipeline"]
+tags = ["Mesh", "Pipeline"]
 
 blender_version_min = "4.5.0"
 
@@ -16,7 +16,7 @@ license = [
   "SPDX:GPL-3.0-or-later",
 ]
 
-# This addon only touches scene data already loaded in Blender, no extra permissions needed
-# beyond running FBX export (built-in operator) and reading/writing its own preset files.
+# This addon only touches scene data already loaded in Blender and reads/writes
+# its own preset files.
 [permissions]
 files = "Save and load local checklist presets (JSON) in the addon's user extension folder"

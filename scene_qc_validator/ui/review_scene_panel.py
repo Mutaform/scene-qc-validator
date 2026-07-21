@@ -57,7 +57,7 @@ class SQC_PT_scene_review(Panel):
     bl_category = "QC Validator"
     bl_parent_id = "SQC_PT_main"
     bl_order = 10
-    bl_options = set()
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):

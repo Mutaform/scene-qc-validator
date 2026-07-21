@@ -4,7 +4,7 @@ from .helpers import addon_version
 
 
 class SQC_PT_main(Panel):
-    """Top-level panel: always-visible essentials - status, Validate, Export."""
+    """Top-level panel: always-visible essentials - status and Validate."""
     bl_label = "Scene QC Validator by Mutaform Studio"
     bl_idname = "SQC_PT_main"
     bl_space_type = 'VIEW_3D'
@@ -51,18 +51,3 @@ class SQC_PT_main(Panel):
         col = layout.column(align=True)
         col.scale_y = 1.4
         col.operator("sqc.run_validate", text="Validate")
-
-        layout.separator()
-
-        # --- Export ---
-        col = layout.column(align=True)
-        col.label(text="Export To:")
-        col.prop(s, "export_directory", text="")
-
-        export_row = layout.row()
-        export_row.scale_y = 1.4
-        if s.has_run_validation and not s.last_validation_passed:
-            export_row.enabled = False
-            export_row.operator("sqc.validate_and_export", text="Resolve Fails to Export", icon='CANCEL')
-        else:
-            export_row.operator("sqc.validate_and_export", text="Export", icon='EXPORT')

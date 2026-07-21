@@ -21,8 +21,8 @@ CATEGORY_ITEMS = [
 ]
 
 SEVERITY_ITEMS = [
-    ('FAIL', "Fail", "Blocks export until resolved"),
-    ('INFO', "Info", "Reported but does not block export"),
+    ('FAIL', "Fail", "Reported as a blocking validation issue"),
+    ('INFO', "Info", "Reported as a non-blocking validation note"),
 ]
 
 
@@ -112,7 +112,7 @@ class SQC_ResultItem(PropertyGroup):
     fix_is_destructive: BoolProperty(default=False)
     muted: BoolProperty(
         name="Ignore",
-        description="Ignore this issue for this object (won't block export)",
+        description="Ignore this issue for this object",
         default=False,
         update=_update_result_mute,
     )
@@ -148,13 +148,18 @@ class SQC_Settings(PropertyGroup):
 
     validation_scope: EnumProperty(
         name="Validation Scope",
-        description="Objects that Validate and Validate && Export will process",
+        description="Objects that Validate will process",
         items=VALIDATION_SCOPE_ITEMS,
         default='SELECTION',
     )
 
-    active_preset_name: StringProperty(name="Active Preset", default="Default")
+    active_project_name: StringProperty(name="Active Project", default="Mutaform_Default")
+    active_stage_name: StringProperty(name="Active Stage", default="01_Blockout")
+    applied_stage_key: StringProperty(name="Applied Stage Key", default="")
+    active_preset_name: StringProperty(name="Active Preset", default="Mutaform_Default")
     new_preset_name: StringProperty(name="New Preset Name", default="My Preset")
+    new_project_name: StringProperty(name="New Project Name", default="My Project")
+    new_stage_name: StringProperty(name="New Stage Name", default="New Stage")
 
     checklist_tab: EnumProperty(
         name="Checklist Tab",
@@ -164,12 +169,7 @@ class SQC_Settings(PropertyGroup):
 
     last_validation_passed: BoolProperty(default=False)
     has_run_validation: BoolProperty(default=False)
-
-    export_directory: StringProperty(
-        name="Export Directory",
-        subtype='DIR_PATH',
-        default="//",
-    )
+    show_check_settings: BoolProperty(name="Check Settings", default=False)
 
     uv_checker_tiling: FloatProperty(
         name="Checker Tiling",

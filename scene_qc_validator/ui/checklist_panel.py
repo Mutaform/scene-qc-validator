@@ -1,6 +1,13 @@
 from bpy.types import Panel
 
 from .. import checks as checks_mod
+from .. import presets as presets_mod
+
+
+def _stage_button_text(stage_name):
+    if len(stage_name) > 3 and stage_name[:2].isdigit() and stage_name[2] == "_":
+        return stage_name[3:]
+    return stage_name
 
 
 class SQC_PT_checklist(Panel):
@@ -22,35 +29,67 @@ class SQC_PT_checklist(Panel):
         layout = self.layout
         s = context.scene.sqc_settings
 
-        # Preset row
+        # Project row
         row = layout.row(align=True)
-        row.label(text="Preset:", icon='PRESET')
-        row.menu("SQC_MT_presets", text=s.active_preset_name)
-        row.operator("sqc.save_preset", text="", icon='ADD')
-        row.operator("sqc.import_preset_file", text="", icon='IMPORT')
-        row.operator("sqc.export_preset_file", text="", icon='EXPORT')
+        row.label(text="Project:", icon='PRESET')
+        row.menu("SQC_MT_presets", text=s.active_project_name or "Select Project")
+        row.operator("sqc.save_project", text="", icon='ADD')
+        row.operator("sqc.import_project_file", text="", icon='IMPORT')
+        row.operator("sqc.export_project_file", text="", icon='EXPORT')
 
-        layout.separator()
+        stages = presets_mod.project_stage_names(s.active_project_name)
+        if stages:
+            columns = min(max(len(stages), 1), 5)
+            flow = layout.grid_flow(row_major=True, columns=columns, even_columns=True, even_rows=True, align=True)
+            for stage_name in stages:
+                op = flow.operator(
+                    "sqc.load_stage",
+                    text=_stage_button_text(stage_name),
+                    depress=(stage_name == s.active_stage_name),
+                )
+                op.project_name = s.active_project_name
+                op.stage_name = stage_name
+            tools = layout.row(align=True)
+            tools.alignment = 'RIGHT'
+            tools.scale_y = 0.75
+            tools.operator("sqc.save_stage", text="", icon='FILE_TICK')
+            tools.operator("sqc.save_project", text="", icon='DUPLICATE')
+            if not presets_mod.is_factory_project(s.active_project_name):
+                tools.operator("sqc.delete_stage", text="", icon='X')
+        else:
+            layout.label(text="No stages in selected project", icon='INFO')
 
-        # Category tabs
-        layout.prop(s, "checklist_tab", expand=True)
+        row = layout.row(align=True)
+        row.prop(
+            s,
+            "show_check_settings",
+            text="Check Settings",
+            icon='TRIA_DOWN' if s.show_check_settings else 'TRIA_RIGHT',
+            emboss=False,
+        )
+        if not s.show_check_settings:
+            return
+
+        check_box = layout.box()
+        tabs = check_box.row(align=True)
+        tabs.prop(s, "checklist_tab", expand=True)
 
         allowed = checks_mod.TAB_CATEGORY_MAP.get(s.checklist_tab, set())
         tab_checks = [c for c in s.checks if c.category in allowed]
         tab_enabled = sum(1 for c in tab_checks if c.enabled)
-        layout.label(text=f"{tab_enabled} of {len(tab_checks)} enabled in this tab")
+        check_box.label(text=f"{tab_enabled} of {len(tab_checks)} enabled in this tab")
 
-        row = layout.row(align=True)
+        row = check_box.row(align=True)
         row.operator("sqc.select_all_checks", text="Select All").enable = True
         row.operator("sqc.select_all_checks", text="Deselect All").enable = False
 
-        layout.template_list("SQC_UL_checklist", "", s, "checks", s, "active_check_index", rows=8)
+        check_box.template_list("SQC_UL_checklist", "", s, "checks", s, "active_check_index", rows=8)
 
         if 0 <= s.active_check_index < len(s.checks):
             item = s.checks[s.active_check_index]
-            box = layout.box()
-            box.label(text=item.description, icon='INFO')
-            self._draw_params(box, item)
+            info = check_box.box()
+            info.label(text=item.description, icon='INFO')
+            self._draw_params(info, item)
 
     def _draw_params(self, layout, item):
         cid = item.check_id

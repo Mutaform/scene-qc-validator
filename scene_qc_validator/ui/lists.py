@@ -44,9 +44,12 @@ class SQC_UL_results(UIList):
         row.prop(item, "muted", text="")
         row.alert = (item.severity == 'FAIL' and not item.muted)
         row.label(text="", icon='HIDE_ON' if item.muted else SEVERITY_ICON.get(item.severity, 'DOT'))
-        split = row.split(factor=0.4)
-        split.label(text=item.object_name)
-        split.label(text=item.check_label)
+        split = row.split(factor=0.4, align=True)
+        left = split.row(align=True)
+        left.label(text=item.object_name)
+        right = split.row(align=True)
+        right.separator(factor=0.35)
+        right.label(text=item.check_label)
         row.alert = False
         if item.can_fix and not item.muted:
             op = row.operator("sqc.fix_result", text="", icon='TOOL_SETTINGS')

@@ -1,6 +1,6 @@
 """
 Scene QC Validator by Mutaform LLC
-Pre-export mesh/scene validation checklist with presets and FBX export.
+Mesh/scene validation checklist with presets.
 Developed by Mutaform Studio.
 
 Packaged as a Blender Extension (blender_manifest.toml) for Blender 4.2+ / 5.1.
