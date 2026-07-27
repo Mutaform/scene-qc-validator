@@ -185,7 +185,7 @@
           "bool_param_1": true
         },
         {
-          "check_id": "uv_seams_marked_sharp",
+          "check_id": "uv_no_hard_edge_on_uv_borders",
           "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
@@ -420,7 +420,7 @@
           "bool_param_1": true
         },
         {
-          "check_id": "uv_seams_marked_sharp",
+          "check_id": "uv_no_hard_edge_on_uv_borders",
           "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
@@ -655,7 +655,7 @@
           "bool_param_1": true
         },
         {
-          "check_id": "uv_seams_marked_sharp",
+          "check_id": "uv_no_hard_edge_on_uv_borders",
           "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
@@ -890,7 +890,7 @@
           "bool_param_1": true
         },
         {
-          "check_id": "uv_seams_marked_sharp",
+          "check_id": "uv_no_hard_edge_on_uv_borders",
           "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
@@ -1125,7 +1125,7 @@
           "bool_param_1": true
         },
         {
-          "check_id": "uv_seams_marked_sharp",
+          "check_id": "uv_no_hard_edge_on_uv_borders",
           "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,

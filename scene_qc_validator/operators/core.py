@@ -6,6 +6,7 @@ from .. import presets as presets_mod
 
 CHECK_ID_MIGRATIONS = {
     "mat_allowed_types": "mat_material_name",
+    "uv_seams_marked_sharp": "uv_no_hard_edge_on_uv_borders",
 }
 
 DEPRECATED_CHECK_IDS = {
@@ -217,8 +218,8 @@ def run_validation_logic(context):
                 r.object_name = obj.name
                 r.message = issue.get("message", "")
                 r.element_ref = issue.get("element_ref", "")
-                r.can_fix = check_item.can_fix
-                r.fix_is_destructive = check_item.fix_is_destructive
+                r.can_fix = issue.get("can_fix", check_item.can_fix)
+                r.fix_is_destructive = issue.get("fix_is_destructive", check_item.fix_is_destructive)
                 r.muted = (r.object_name, r.check_id) in muted_keys
                 if check_item.severity == 'FAIL' and not r.muted:
                     any_fail = True

@@ -35,6 +35,7 @@ from .selection import (
     _select_elements,
     select_result_by_index,
 )
+from . import random_sharp_highlight
 
 
 CLASSES = (
@@ -79,5 +80,6 @@ def register():
 
 
 def unregister():
+    random_sharp_highlight.unregister()
     for cls in reversed(CLASSES):
         _safe_unregister_class(cls)

@@ -20,7 +20,7 @@ from .mapping.missing_uv import *
 from .mapping.uv_set_count import *
 from .mapping.uv_set_names import *
 from .mapping.single_uv_tile import *
-from .mapping.seams_is_marked_sharp import *
+from .mapping.no_hard_edge_on_uv_borders import *
 from .mapping.random_sharp import *
 from .mapping.overlapped_uv import *
 
@@ -54,8 +54,9 @@ CHECK_DEFINITIONS = [
          run=check_ngons, fix=fix_ngons, can_fix=True,
          fix_is_destructive=True),
     dict(id="geo_non_manifold", label="Non-Manifold Geometry", category='GEOMETRY',
-         description="Edges shared by other than exactly 2 faces",
-         run=check_non_manifold, fix=None, can_fix=False),
+         description="Fixes invalid topology by splitting face fans, then welding only within each topological island",
+         run=check_non_manifold, fix=fix_non_manifold, can_fix=True,
+         fix_is_destructive=False),
     dict(id="geo_zero_area", label="Zero Area Faces", category='GEOMETRY',
          description="Faces with area below tolerance",
          run=check_zero_area_faces, fix=fix_zero_area_faces, can_fix=True,
@@ -115,9 +116,9 @@ CHECK_DEFINITIONS = [
          description="Faces whose UV shells overlap each other",
          run=check_uv_overlap, fix=None, can_fix=False,
          string_param_1=".+", bool_param_1=True, float_param_1=1e-10, int_param_1=250000),
-    dict(id="uv_seams_marked_sharp", label="SeamsIsMarkedSharp", category='UV',
-         description="Every UV seam edge should also be marked sharp",
-         run=check_seams_is_marked_sharp, fix=fix_seams_is_marked_sharp, can_fix=True,
+    dict(id="uv_no_hard_edge_on_uv_borders", label="NOhardEdgeOnUVBorbders", category='UV',
+         description="Every UV-shell border edge must be marked sharp",
+         run=check_no_hard_edge_on_uv_borders, fix=fix_no_hard_edge_on_uv_borders, can_fix=True,
          fix_is_destructive=False),
     dict(id="uv_random_sharp", label="RandomSharp", category='UV',
          description="Sharp edges should match UV border edges",

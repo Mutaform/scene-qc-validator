@@ -3,6 +3,7 @@ from bpy.props import StringProperty
 from bpy.types import Operator
 
 from .core import _settings, _validation_targets
+from . import random_sharp_highlight
 
 
 def _parse_element_ref(element_ref):
@@ -85,6 +86,11 @@ def select_result_by_index(context, index):
     if not obj:
         return False
     _select_elements(obj, r.element_ref)
+    if r.check_id == "uv_random_sharp":
+        parsed = _parse_element_ref(r.element_ref)
+        random_sharp_highlight.set_highlight(obj, _parse_indices(parsed.get("e", [])))
+    else:
+        random_sharp_highlight.clear_highlight()
     return True
 
 
