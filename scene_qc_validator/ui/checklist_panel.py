@@ -59,6 +59,106 @@ class SQC_PT_checklist(Panel):
         else:
             layout.label(text="No stages in selected project", icon='INFO')
 
+        if "LP_UVs" in s.active_stage_name:
+            from ..operators.overlap_visual import (
+                is_overlap_review_active,
+            )
+            row = layout.row(align=True)
+            row.prop(
+                s,
+                "overlap_visual_use_material_scope",
+                text="",
+            )
+            split = row.split(factor=0.5, align=True)
+            split.operator(
+                "sqc.toggle_overlap_visual",
+                text="Show Overlaps",
+                icon='HIDE_OFF',
+                depress=is_overlap_review_active(),
+            )
+            overlap_controls = split.row(align=True)
+            overlap_controls.alignment = 'RIGHT'
+            overlap_controls.label(text="UV set")
+            overlap_controls.prop(
+                s,
+                "overlap_visual_uv_set_number",
+                text="",
+            )
+            from ..operators.padding_visual import (
+                is_padding_review_active,
+            )
+            padding_item = next(
+                (
+                    item for item in s.checks
+                    if item.check_id == "uv_padding"
+                ),
+                None,
+            )
+            padding_row = layout.row(align=True)
+            padding_row.prop(
+                s,
+                "padding_visual_use_material_scope",
+                text="",
+            )
+            padding_split = padding_row.split(
+                factor=0.5,
+                align=True,
+            )
+            padding_split.operator(
+                "sqc.toggle_padding_visual",
+                text="Show Padding",
+                icon='MOD_UVPROJECT',
+                depress=is_padding_review_active(),
+            )
+            if padding_item is not None:
+                # Right-align a fixed-width number block so it sits flush
+                # against the panel's right edge (matching the UV-set field
+                # above) while keeping the 4096 / value fields comfortably
+                # sized instead of collapsing.
+                padding_controls = padding_split.row(align=True)
+                padding_controls.alignment = 'RIGHT'
+                padding_block = padding_controls.row(align=True)
+                padding_block.ui_units_x = 8.5
+                texture_previous = padding_block.operator(
+                    "sqc.step_padding_value",
+                    text="",
+                    icon='TRIA_LEFT',
+                )
+                texture_previous.target = 'TEXTURE'
+                texture_previous.direction = -1
+                padding_block.prop(
+                    padding_item,
+                    "padding_texture_input",
+                    text="",
+                )
+                texture_next = padding_block.operator(
+                    "sqc.step_padding_value",
+                    text="",
+                    icon='TRIA_RIGHT',
+                )
+                texture_next.target = 'TEXTURE'
+                texture_next.direction = 1
+
+                padding_previous = padding_block.operator(
+                    "sqc.step_padding_value",
+                    text="",
+                    icon='TRIA_LEFT',
+                )
+                padding_previous.target = 'PADDING'
+                padding_previous.direction = -1
+                padding_block.prop(
+                    padding_item,
+                    "padding_value_input",
+                    text="",
+                )
+                padding_next = padding_block.operator(
+                    "sqc.step_padding_value",
+                    text="",
+                    icon='TRIA_RIGHT',
+                )
+                padding_next.target = 'PADDING'
+                padding_next.direction = 1
+
         row = layout.row(align=True)
         row.prop(
             s,
@@ -75,7 +175,14 @@ class SQC_PT_checklist(Panel):
         tabs.prop(s, "checklist_tab", expand=True)
 
         allowed = checks_mod.TAB_CATEGORY_MAP.get(s.checklist_tab, set())
-        tab_checks = [c for c in s.checks if c.category in allowed]
+        tab_checks = [
+            c for c in s.checks
+            if (
+                c.category in allowed
+                and c.check_id
+                not in checks_mod.CHECKLIST_HIDDEN_IDS
+            )
+        ]
         tab_enabled = sum(1 for c in tab_checks if c.enabled)
         check_box.label(text=f"{tab_enabled} of {len(tab_checks)} enabled in this tab")
 
@@ -87,9 +194,10 @@ class SQC_PT_checklist(Panel):
 
         if 0 <= s.active_check_index < len(s.checks):
             item = s.checks[s.active_check_index]
-            info = check_box.box()
-            info.label(text=item.description, icon='INFO')
-            self._draw_params(info, item)
+            if item.check_id not in checks_mod.CHECKLIST_HIDDEN_IDS:
+                info = check_box.box()
+                info.label(text=item.description, icon='INFO')
+                self._draw_params(info, item)
 
     def _draw_params(self, layout, item):
         cid = item.check_id
@@ -102,11 +210,39 @@ class SQC_PT_checklist(Panel):
             sub.prop(item, "string_param_1", text="Flags (loc,rot,scale)")
         elif cid == "uv_set_count":
             sub.prop(item, "int_param_1", text="Max UV Sets")
+        elif cid == "uv_unaligned_edges":
+            sub.prop(
+                item,
+                "float_param_1",
+                text="Angle Tolerance",
+            )
+            sub.prop(
+                item,
+                "float_param_2",
+                text="Rectilinear Ratio",
+            )
+        elif cid == "mat_material_count":
+            sub.prop(
+                item,
+                "int_param_1",
+                text="Max Materials",
+            )
         elif cid == "uv_overlap":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "bool_param_1", text="Required")
             sub.prop(item, "float_param_1", text="Tolerance")
             sub.prop(item, "int_param_1", text="Max Pairs")
+        elif cid == "uv_padding":
+            sub.prop(
+                item,
+                "padding_value_input",
+                text="Padding (px)",
+            )
+            sub.prop(
+                item,
+                "padding_texture_input",
+                text="Texture Size",
+            )
         elif cid == "nm_object_pattern":
             sub.prop(item, "string_param_1", text="Regex Pattern")
         elif cid == "mat_material_name":

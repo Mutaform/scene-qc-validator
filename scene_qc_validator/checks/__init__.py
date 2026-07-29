@@ -23,8 +23,11 @@ from .mapping.single_uv_tile import *
 from .mapping.no_hard_edge_on_uv_borders import *
 from .mapping.random_sharp import *
 from .mapping.overlapped_uv import *
+from .mapping.padding import *
+from .mapping.unaligned_uv_edges import *
 
 from .material.missing_material import *
+from .material.material_count import *
 from .material.material_name import *
 
 
@@ -40,6 +43,10 @@ TAB_CATEGORY_MAP = {
     'OBJECTS': {'TRANSFORM', 'NAMING'},
     'MAPPING': {'UV'},
     'MATERIAL': {'MATERIAL'},
+}
+
+CHECKLIST_HIDDEN_IDS = {
+    "uv_padding",
 }
 
 
@@ -113,9 +120,13 @@ CHECK_DEFINITIONS = [
          run=check_uv_set_names, fix=fix_uv_set_names, can_fix=True,
          fix_is_destructive=False),
     dict(id="uv_overlap", label="Overlapped UV", category='UV',
-         description="Faces whose UV shells overlap each other",
-         run=check_uv_overlap, fix=None, can_fix=False,
+         description="Finds overlapping UVs in UDIM 1001 and expands hits to complete UV islands",
+         run=check_uv_overlap, fix=fix_uv_overlap, can_fix=True,
          string_param_1=".+", bool_param_1=True, float_param_1=1e-10, int_param_1=250000),
+    dict(id="uv_padding", label="Padding", category='UV',
+         description="Interactive UV-island padding preview in the UV Editor",
+         run=check_padding, fix=None, can_fix=False,
+         int_param_1=16, int_param_2=4096),
     dict(id="uv_no_hard_edge_on_uv_borders", label="NOhardEdgeOnUVBorbders", category='UV',
          description="Every UV-shell border edge must be marked sharp",
          run=check_no_hard_edge_on_uv_borders, fix=fix_no_hard_edge_on_uv_borders, can_fix=True,
@@ -124,6 +135,11 @@ CHECK_DEFINITIONS = [
          description="Sharp edges should match UV border edges",
          run=check_random_sharp, fix=fix_random_sharp, can_fix=True,
          fix_is_destructive=False, float_param_1=0.001),
+    dict(id="uv_unaligned_edges", label="Unaligned UV Edges", category='UV',
+         description="Find slightly off-axis borders on predominantly rectilinear UV shells",
+         run=check_unaligned_uv_edges, fix=fix_unaligned_uv_edges, can_fix=True,
+         fix_is_destructive=False,
+         float_param_1=0.1, float_param_2=0.75),
 
     dict(id="nm_object_pattern", label="Object Name Pattern", category='NAMING',
          description="Object name must match a regex pattern",
@@ -132,6 +148,10 @@ CHECK_DEFINITIONS = [
     dict(id="mat_missing", label="Missing Material", category='MATERIAL',
          description="Faces or object without an assigned material",
          run=check_missing_material, fix=None, can_fix=False),
+    dict(id="mat_material_count", label="Material Count", category='MATERIAL',
+         description="Too many materials assigned to one mesh",
+         run=check_material_count, fix=None, can_fix=False,
+         int_param_1=1),
     dict(id="mat_material_name", label="MaterialName", category='MATERIAL',
          description="Material names must match the allowed pattern, for example m_body or m_body_01",
          run=check_material_name, fix=fix_material_name, can_fix=True,

@@ -5,7 +5,7 @@ from .helpers import addon_version
 
 class SQC_PT_main(Panel):
     """Top-level panel: always-visible essentials - status and Validate."""
-    bl_label = "Scene QC Validator by Mutaform Studio"
+    bl_label = "Validator by Mutaform Studio"
     bl_idname = "SQC_PT_main"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'

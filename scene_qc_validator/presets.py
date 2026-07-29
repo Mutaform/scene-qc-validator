@@ -120,6 +120,7 @@ def _serialize_checks(checks_collection):
             "float_param_1": c.float_param_1,
             "float_param_2": c.float_param_2,
             "int_param_1": c.int_param_1,
+            "int_param_2": c.int_param_2,
             "string_param_1": c.string_param_1,
             "bool_param_1": c.bool_param_1,
         }
@@ -144,6 +145,7 @@ def _apply_checks(data, checks_collection):
         c.float_param_1 = float_param_1
         c.float_param_2 = entry.get("float_param_2", c.float_param_2)
         c.int_param_1 = entry.get("int_param_1", c.int_param_1)
+        c.int_param_2 = entry.get("int_param_2", c.int_param_2)
         c.string_param_1 = entry.get("string_param_1", c.string_param_1)
         c.bool_param_1 = entry.get("bool_param_1", c.bool_param_1)
 

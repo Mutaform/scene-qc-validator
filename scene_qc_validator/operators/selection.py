@@ -31,6 +31,85 @@ def _activate_uv_layer(obj, uv_layer_name):
         obj.data.uv_layers.active_index = uv_index
 
 
+def _parse_uv_segments(values):
+    segments = []
+    for value in values:
+        for encoded_segment in value.split("|"):
+            if not encoded_segment:
+                continue
+            face_index, edge_index = encoded_segment.split(",", 1)
+            segments.append((int(face_index), int(edge_index)))
+    return segments
+
+
+def _select_uv_segments(obj, uv_layer_name, encoded_segments):
+    segments = set(_parse_uv_segments(encoded_segments))
+    if not segments:
+        return
+
+    bpy.context.scene.tool_settings.use_uv_select_sync = False
+    bpy.context.scene.tool_settings.uv_select_mode = 'EDGE'
+    mesh = obj.data
+    attributes = mesh.attributes
+
+    uv_vertex_selection = attributes.get(".uv_select_vert")
+    if uv_vertex_selection is None:
+        uv_vertex_selection = attributes.new(
+            ".uv_select_vert",
+            'BOOLEAN',
+            'CORNER',
+        )
+    uv_edge_selection = attributes.get(".uv_select_edge")
+    if uv_edge_selection is None:
+        uv_edge_selection = attributes.new(
+            ".uv_select_edge",
+            'BOOLEAN',
+            'CORNER',
+        )
+    uv_face_selection = attributes.get(".uv_select_face")
+    if uv_face_selection is None:
+        uv_face_selection = attributes.new(
+            ".uv_select_face",
+            'BOOLEAN',
+            'FACE',
+        )
+
+    uv_vertex_selection.data.foreach_set(
+        "value",
+        [False] * len(uv_vertex_selection.data),
+    )
+    uv_edge_selection.data.foreach_set(
+        "value",
+        [False] * len(uv_edge_selection.data),
+    )
+    uv_face_selection.data.foreach_set(
+        "value",
+        [False] * len(uv_face_selection.data),
+    )
+
+    for polygon in mesh.polygons:
+        polygon.select = False
+
+    for face_index, edge_index in segments:
+        if face_index >= len(mesh.polygons):
+            continue
+        polygon = mesh.polygons[face_index]
+        polygon.select = True
+        loop_indices = polygon.loop_indices
+        loop_count = len(loop_indices)
+        for offset, loop_index in enumerate(loop_indices):
+            if mesh.loops[loop_index].edge_index != edge_index:
+                continue
+            next_loop_index = loop_indices[
+                (offset + 1) % loop_count
+            ]
+            uv_vertex_selection.data[loop_index].value = True
+            uv_vertex_selection.data[next_loop_index].value = True
+            uv_edge_selection.data[loop_index].value = True
+            break
+    mesh.update()
+
+
 def _select_elements(obj, element_ref):
     if obj.mode != 'OBJECT':
         try:
@@ -52,7 +131,21 @@ def _select_elements(obj, element_ref):
             obj.data.uv_layers.active_index = uv_index
 
     kinds = set(parsed.keys())
-    select_mode = 'FACE' if 'f' in kinds else ('EDGE' if 'e' in kinds else 'VERT')
+    is_uv_segment_result = "uvseg" in kinds
+    if is_uv_segment_result:
+        _select_uv_segments(
+            obj,
+            uv_layer_name,
+            parsed.get("uvseg", []),
+        )
+        bpy.ops.object.mode_set(mode='EDIT')
+        return
+
+    select_mode = (
+        'FACE'
+        if 'f' in kinds
+        else ('EDGE' if 'e' in kinds else 'VERT')
+    )
 
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_mode(type=select_mode)
@@ -85,6 +178,16 @@ def select_result_by_index(context, index):
     obj = context.scene.objects.get(r.object_name)
     if not obj:
         return False
+    from . import overlap_visual
+    if r.check_id == "uv_overlap":
+        random_sharp_highlight.clear_highlight()
+        parsed = _parse_element_ref(r.element_ref)
+        uv_layer_name = parsed.get("uv", [""])[0]
+        return overlap_visual.toggle_result_overlap_review(
+            context, obj, uv_layer_name
+        )
+    if overlap_visual.is_overlap_review_active():
+        overlap_visual.restore_overlap_review(context)
     _select_elements(obj, r.element_ref)
     if r.check_id == "uv_random_sharp":
         parsed = _parse_element_ref(r.element_ref)

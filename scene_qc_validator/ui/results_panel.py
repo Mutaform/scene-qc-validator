@@ -31,7 +31,13 @@ class SQC_PT_results(Panel):
         row.prop(s, "result_filter", text="")
         has_fixable = any(r.can_fix for r in s.results)
         if has_fixable:
-            row.operator("sqc.fix_all", text="Fix All", icon='TOOL_SETTINGS')
+            fix_all_row = row.row(align=True)
+            fix_all_row.enabled = not s.fix_in_progress
+            fix_all_row.operator(
+                "sqc.fix_all",
+                text="Fix All",
+                icon='TOOL_SETTINGS',
+            )
 
         if len(s.results) == 0:
             row = layout.row(align=True)
@@ -47,6 +53,13 @@ class SQC_PT_results(Panel):
         layout.label(text=f"{len(filtered_count)} issue(s) shown")
         layout.template_list("SQC_UL_results", "", s, "results", s, "active_result_index", rows=8)
 
+        if s.fix_in_progress:
+            layout.progress(
+                factor=s.fix_progress,
+                type='BAR',
+                text=s.fix_progress_text,
+            )
+
         if 0 <= s.active_result_index < len(s.results):
             r = s.results[s.active_result_index]
             info = layout.box()
@@ -54,6 +67,7 @@ class SQC_PT_results(Panel):
             info_row.alert = (r.severity == 'FAIL' and not r.muted)
             info_row.label(text=r.message, icon='HIDE_ON' if r.muted else SEVERITY_ICON.get(r.severity, 'DOT'))
             row = info.row(align=True)
+            row.enabled = not s.fix_in_progress
             mute_op = row.operator("sqc.toggle_result_mute", text="Restore" if r.muted else "Ignore", icon='HIDE_OFF' if r.muted else 'HIDE_ON')
             mute_op.result_index = s.active_result_index
             row.operator("sqc.select_result", text="Select", icon='RESTRICT_SELECT_OFF')

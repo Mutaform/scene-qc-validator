@@ -55,6 +55,7 @@ def _add_check_item(collection, definition):
     item.float_param_1 = definition.get("float_param_1", 0.0)
     item.float_param_2 = definition.get("float_param_2", 0.0)
     item.int_param_1 = definition.get("int_param_1", 0)
+    item.int_param_2 = definition.get("int_param_2", 0)
     item.string_param_1 = definition.get("string_param_1", "")
     item.bool_param_1 = definition.get("bool_param_1", True)
     return item
@@ -75,6 +76,26 @@ def ensure_checks_initialized_for_scene(scene):
             item.float_param_1 = defaults["float_param_1"]
         if "float_param_1" in defaults and item.float_param_1 <= 0:
             item.float_param_1 = defaults["float_param_1"]
+        if (
+            item.check_id == "uv_padding"
+            and item.int_param_2 <= 0
+        ):
+            item.int_param_1 = 16
+            item.padding_last_texture_size = 4096
+            item.int_param_2 = 4096
+        elif (
+            item.check_id == "uv_padding"
+            and item.int_param_2 == 4096
+            and item.int_param_1 == 32
+        ):
+            item.int_param_1 = 16
+        if item.check_id == "uv_padding":
+            item.padding_input_syncing = True
+            try:
+                item.padding_texture_input = str(item.int_param_2)
+                item.padding_value_input = str(item.int_param_1)
+            finally:
+                item.padding_input_syncing = False
     seen = set()
     for index in range(len(s.checks) - 1, -1, -1):
         check_id = s.checks[index].check_id
@@ -159,6 +180,61 @@ def _scope_empty_message(scope):
     return "No mesh objects in scene"
 
 
+def _enabled_checks(settings):
+    enabled = []
+    for check_item in settings.checks:
+        if not check_item.enabled:
+            continue
+        definition = checks_mod.get_check_definition(
+            check_item.check_id
+        )
+        if definition:
+            enabled.append((check_item, definition))
+    return enabled
+
+
+def _run_validation_check(
+    settings,
+    muted_keys,
+    obj,
+    check_item,
+    definition,
+):
+    try:
+        issues = definition["run"](obj, check_item) or []
+    except Exception as error:
+        issues = [{
+            "message": f"Check error: {error}",
+            "element_ref": "",
+        }]
+
+    any_fail = False
+    for issue in issues:
+        result = settings.results.add()
+        result.check_id = check_item.check_id
+        result.check_label = check_item.label
+        result.category = check_item.category
+        result.severity = check_item.severity
+        result.object_name = obj.name
+        result.message = issue.get("message", "")
+        result.element_ref = issue.get("element_ref", "")
+        result.can_fix = issue.get(
+            "can_fix",
+            check_item.can_fix,
+        )
+        result.fix_is_destructive = issue.get(
+            "fix_is_destructive",
+            check_item.fix_is_destructive,
+        )
+        result.muted = (
+            result.object_name,
+            result.check_id,
+        ) in muted_keys
+        if check_item.severity == 'FAIL' and not result.muted:
+            any_fail = True
+    return any_fail
+
+
 def _select_only(context, objects):
     previous_active = context.view_layer.objects.active
     previous_selection = list(context.selected_objects)
@@ -194,35 +270,18 @@ def run_validation_logic(context):
         return False, False
 
     muted_keys = _muted_keys(s)
-    enabled_checks = []
-    for check_item in s.checks:
-        if not check_item.enabled:
-            continue
-        d = checks_mod.get_check_definition(check_item.check_id)
-        if d:
-            enabled_checks.append((check_item, d))
+    enabled_checks = _enabled_checks(s)
 
     any_fail = False
     for obj in targets:
         for check_item, d in enabled_checks:
-            try:
-                issues = d["run"](obj, check_item) or []
-            except Exception as e:
-                issues = [{"message": f"Check error: {e}", "element_ref": ""}]
-            for issue in issues:
-                r = s.results.add()
-                r.check_id = check_item.check_id
-                r.check_label = check_item.label
-                r.category = check_item.category
-                r.severity = check_item.severity
-                r.object_name = obj.name
-                r.message = issue.get("message", "")
-                r.element_ref = issue.get("element_ref", "")
-                r.can_fix = issue.get("can_fix", check_item.can_fix)
-                r.fix_is_destructive = issue.get("fix_is_destructive", check_item.fix_is_destructive)
-                r.muted = (r.object_name, r.check_id) in muted_keys
-                if check_item.severity == 'FAIL' and not r.muted:
-                    any_fail = True
+            any_fail |= _run_validation_check(
+                s,
+                muted_keys,
+                obj,
+                check_item,
+                d,
+            )
 
     s.has_run_validation = True
     s.last_validation_passed = not any_fail

@@ -21,7 +21,13 @@ class SQC_UL_checklist(UIList):
         s = context.scene.sqc_settings
         allowed = checks_mod.TAB_CATEGORY_MAP.get(s.checklist_tab, set())
         flt_flags = [
-            self.bitflag_filter_item if item.category in allowed else 0
+            self.bitflag_filter_item
+            if (
+                item.category in allowed
+                and item.check_id
+                not in checks_mod.CHECKLIST_HIDDEN_IDS
+            )
+            else 0
             for item in items
         ]
         flt_neworder = []

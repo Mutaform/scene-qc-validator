@@ -36,9 +36,21 @@ from .selection import (
     select_result_by_index,
 )
 from . import random_sharp_highlight
+from ..checks.mapping import overlapped_uv
+from ..checks.mapping import padding
+from . import overlap_visual
+from .overlap_visual import (
+    SQC_OT_toggle_overlap_visual,
+)
+from . import padding_visual
+from .padding_visual import (
+    SQC_OT_TogglePaddingVisual,
+)
 
 
 CLASSES = (
+    *overlapped_uv.OVERLAP_VISUAL_CLASSES,
+    *padding.PADDING_VISUAL_CLASSES,
     SQC_OT_init_checks,
     SQC_OT_select_all_checks,
     SQC_OT_run_validate,
@@ -56,6 +68,9 @@ CLASSES = (
     SQC_OT_import_preset_file,
     SQC_OT_select_material_users,
     SQC_OT_toggle_uv_checker,
+    SQC_OT_toggle_overlap_visual,
+    SQC_OT_TogglePaddingVisual,
+    padding.SQC_OT_StepPaddingValue,
 )
 
 
@@ -81,5 +96,9 @@ def register():
 
 def unregister():
     random_sharp_highlight.unregister()
+    overlap_visual.unregister_overlap_review()
+    padding_visual.unregister_padding_review()
+    overlapped_uv.unregister_overlap_visual()
+    padding.unregister_padding_visual()
     for cls in reversed(CLASSES):
         _safe_unregister_class(cls)

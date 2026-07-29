@@ -62,6 +62,96 @@ def _update_uv_checker_tiling(self, context):
         print(f"[Scene QC Validator] UV checker tiling update failed: {ex}")
 
 
+def _update_overlap_visual_uv_set(self, context):
+    try:
+        from .operators import overlap_visual
+        overlap_visual.refresh_material_overlap_review(
+            context,
+            self.overlap_visual_uv_set_number,
+        )
+    except Exception as ex:
+        print(
+            "[Scene QC Validator] Overlap UV set update failed: "
+            f"{ex}"
+        )
+
+
+def _refresh_padding_visual(self, context):
+    if self.check_id != "uv_padding":
+        return
+    try:
+        from .checks.mapping import padding
+        padding.refresh_padding_visual(
+            context,
+            self.int_param_1,
+            self.int_param_2,
+        )
+    except Exception as ex:
+        print(
+            "[Scene QC Validator] Padding update failed: "
+            f"{ex}"
+        )
+
+
+def _sync_padding_input_fields(self):
+    if self.check_id != "uv_padding":
+        return
+    self.padding_input_syncing = True
+    try:
+        self.padding_texture_input = str(self.int_param_2)
+        self.padding_value_input = str(self.int_param_1)
+    finally:
+        self.padding_input_syncing = False
+
+
+def _update_int_param_1(self, context):
+    _sync_padding_input_fields(self)
+    _refresh_padding_visual(self, context)
+
+
+def _update_int_param_2(self, context):
+    if self.check_id == "uv_padding":
+        previous_size = max(
+            1, self.padding_last_texture_size
+        )
+        current_size = max(1, self.int_param_2)
+        if current_size != previous_size:
+            self.int_param_1 = max(
+                0,
+                int(round(
+                    self.int_param_1
+                    * current_size
+                    / previous_size
+                )),
+            )
+        self.padding_last_texture_size = current_size
+    _sync_padding_input_fields(self)
+    _refresh_padding_visual(self, context)
+
+
+def _update_padding_texture_input(self, context):
+    if self.check_id != "uv_padding" or self.padding_input_syncing:
+        return
+    try:
+        value = int(self.padding_texture_input.strip())
+    except ValueError:
+        return
+    if value > 0 and value != self.int_param_2:
+        self.int_param_2 = value
+
+
+def _update_padding_value_input(self, context):
+    if self.check_id != "uv_padding" or self.padding_input_syncing:
+        return
+    try:
+        value = int(self.padding_value_input.strip())
+    except ValueError:
+        return
+    value = max(0, value)
+    if value != self.int_param_1:
+        self.int_param_1 = value
+
+
 VALIDATION_SCOPE_ITEMS = [
     ('SELECTION', "Selection", "Validate only selected mesh objects"),
     ('VISIBLE_SCENE', "Visible Scene", "Validate every visible mesh object in the active scene"),
@@ -91,7 +181,34 @@ class SQC_CheckItem(PropertyGroup):
     # Generic parameter slots so we don't need a bespoke PropertyGroup per check.
     float_param_1: FloatProperty(name="Param 1", default=0.0)
     float_param_2: FloatProperty(name="Param 2", default=0.0)
-    int_param_1: IntProperty(name="Param 1", default=0)
+    int_param_1: IntProperty(
+        name="Param 1",
+        default=0,
+        update=_update_int_param_1,
+    )
+    int_param_2: IntProperty(
+        name="Param 2",
+        default=0,
+        update=_update_int_param_2,
+    )
+    padding_last_texture_size: IntProperty(
+        default=4096,
+        options={'HIDDEN'},
+    )
+    padding_texture_input: StringProperty(
+        name="Texture Size",
+        default="4096",
+        update=_update_padding_texture_input,
+    )
+    padding_value_input: StringProperty(
+        name="Padding",
+        default="16",
+        update=_update_padding_value_input,
+    )
+    padding_input_syncing: BoolProperty(
+        default=False,
+        options={'HIDDEN'},
+    )
     string_param_1: StringProperty(
         name="Param 1",
         description="Comma separated list of allowed prefixes/suffixes, or a regex pattern",
@@ -169,7 +286,43 @@ class SQC_Settings(PropertyGroup):
 
     last_validation_passed: BoolProperty(default=False)
     has_run_validation: BoolProperty(default=False)
+    fix_in_progress: BoolProperty(default=False)
+    fix_progress: FloatProperty(
+        default=0.0,
+        min=0.0,
+        max=1.0,
+        subtype='FACTOR',
+    )
+    fix_progress_text: StringProperty(default="")
     show_check_settings: BoolProperty(name="Check Settings", default=False)
+    overlap_visual_use_material_scope: BoolProperty(
+        name="Check All Material Users",
+        description=(
+            "When enabled, Show Overlaps includes every visible mesh "
+            "using the active object's material. When disabled, it "
+            "reviews only the active object"
+        ),
+        default=False,
+    )
+    padding_visual_use_material_scope: BoolProperty(
+        name="Check All Material Users",
+        description=(
+            "When enabled, Show Padding includes every visible mesh "
+            "using the active object's material. When disabled, it "
+            "reviews only the active object"
+        ),
+        default=False,
+    )
+    overlap_visual_uv_set_number: IntProperty(
+        name="UV Set",
+        description=(
+            "One-based UV set number used by Show Overlaps"
+        ),
+        default=1,
+        min=1,
+        max=64,
+        update=_update_overlap_visual_uv_set,
+    )
 
     uv_checker_tiling: FloatProperty(
         name="Checker Tiling",

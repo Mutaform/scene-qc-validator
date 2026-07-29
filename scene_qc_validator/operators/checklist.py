@@ -30,11 +30,16 @@ class SQC_OT_select_all_checks(Operator):
         if self.current_tab_only:
             allowed = checks_mod.TAB_CATEGORY_MAP.get(s.checklist_tab, set())
             for c in s.checks:
-                if c.category in allowed:
+                if (
+                    c.category in allowed
+                    and c.check_id
+                    not in checks_mod.CHECKLIST_HIDDEN_IDS
+                ):
                     c.enabled = self.enable
         else:
             for c in s.checks:
-                c.enabled = self.enable
+                if c.check_id not in checks_mod.CHECKLIST_HIDDEN_IDS:
+                    c.enabled = self.enable
         return {'FINISHED'}
 
 
