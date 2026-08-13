@@ -313,6 +313,14 @@ class SQC_Settings(PropertyGroup):
         ),
         default=False,
     )
+    texel_density_visual_use_material_scope: BoolProperty(
+        name="Check All Material Users",
+        description=(
+            "When enabled, Show Texel Density includes every visible mesh "
+            "using the active object's material"
+        ),
+        default=False,
+    )
     overlap_visual_uv_set_number: IntProperty(
         name="UV Set",
         description=(

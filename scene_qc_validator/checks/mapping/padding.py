@@ -127,11 +127,13 @@ def _loops_fold_across_edge(loop_a, loop_b, uv_layer):
     return side_a * side_b > 0.0
 
 
-def _collect_uv_border_edges(bm, uv_layer, uv_sync):
-    """Return the set of visible UV-shell border edges.
+def _collect_uv_border_edges(bm, uv_layer, _uv_sync):
+    """Return the set of non-hidden UV-shell border edges.
 
     An edge is a border when its UV winding breaks between its two faces; it is
-    kept when at least one of those faces is currently shown in the UV Editor.
+    kept when at least one of those faces is not hidden. Selection is deliberately
+    ignored so the preview can inspect the whole UV map without changing the
+    artist's current component selection.
     Iterating edges once (instead of every face's edges, twice per border edge)
     keeps this cheap on dense meshes. The winding is no longer stored here — it
     is read per loop from its own face in :func:`_segment_normal`.
@@ -143,7 +145,7 @@ def _collect_uv_border_edges(bm, uv_layer, uv_sync):
             continue
         for loop in loops:
             face = loop.face
-            if not (face.hide or (not uv_sync and not face.select)):
+            if not face.hide:
                 border_edges.add(edge)
                 break
     return border_edges
@@ -175,11 +177,8 @@ def _segment_normal(loop, uv_layer, face_flip=None):
     return normal
 
 
-def _loop_is_visible(loop, uv_sync):
-    return (
-        (uv_sync and not loop.face.hide)
-        or (loop.face.select and loop.link_loop_next.face.select)
-    )
+def _loop_is_visible(loop, _uv_sync):
+    return not loop.face.hide
 
 
 def _next_border_loop(loop, border_edges):

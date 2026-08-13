@@ -38,24 +38,41 @@ def _checker_targets(context):
 
 def _switch_to_object_mode(context):
     active = context.view_layer.objects.active
+    name = active.name if active else ""
     mode = active.mode if active else 'OBJECT'
     if active and mode != 'OBJECT':
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
         except RuntimeError:
             pass
-    return active, mode
+    return name, mode
 
 
 def _restore_mode(context, snapshot):
-    active, mode = snapshot
-    if active and context.scene.objects.get(active.name):
-        context.view_layer.objects.active = active
-    if active and mode != 'OBJECT':
+    name, mode = snapshot
+    obj = context.scene.objects.get(name) if name else None
+    if obj:
+        context.view_layer.objects.active = obj
+    if obj and mode != 'OBJECT':
         try:
             bpy.ops.object.mode_set(mode=mode)
         except RuntimeError:
             pass
+
+
+def _tag_texture_viewports():
+    """Redraw every 3D viewport and switch SOLID shading to texture colour so
+    the checker material is visible."""
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type != 'VIEW_3D':
+                continue
+            if area.spaces.active.shading.type == 'SOLID':
+                try:
+                    area.spaces.active.shading.color_type = 'TEXTURE'
+                except TypeError:
+                    pass
+            area.tag_redraw()
 
 
 def _load_checker_image(checker_type):
@@ -106,28 +123,12 @@ def _tag_checker_update(material):
     for obj in bpy.data.objects:
         if obj.type == 'MESH' and any(slot.material == material for slot in obj.material_slots):
             obj.data.update_tag()
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            if area.type == 'VIEW_3D':
-                if area.spaces.active.shading.type == 'SOLID':
-                    try:
-                        area.spaces.active.shading.color_type = 'TEXTURE'
-                    except TypeError:
-                        pass
-                area.tag_redraw()
+    _tag_texture_viewports()
 
 
 def _tag_object_update(obj):
     obj.data.update_tag()
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            if area.type == 'VIEW_3D':
-                if area.spaces.active.shading.type == 'SOLID':
-                    try:
-                        area.spaces.active.shading.color_type = 'TEXTURE'
-                    except TypeError:
-                        pass
-                area.tag_redraw()
+    _tag_texture_viewports()
 
 
 def _set_mapping_tiling(material, tiling):
@@ -295,6 +296,20 @@ def _assign_checker(obj, checker_type, material, backup=None):
     obj[BACKUP_PROP] = json.dumps(backup)
 
 
+def _purge_unused_checker_materials():
+    """Drop checker material/image datablocks that no object references any
+    more, so toggling the checker off leaves no leftovers in the scene. A
+    checker still applied to another object keeps a non-zero user count and is
+    left untouched."""
+    for info in CHECKER_TYPES.values():
+        material = bpy.data.materials.get(info["material"])
+        if material is not None and material.users == 0:
+            bpy.data.materials.remove(material)
+        image = bpy.data.images.get(info["image"])
+        if image is not None and image.users == 0:
+            bpy.data.images.remove(image)
+
+
 class SQC_OT_toggle_uv_checker(Operator):
     bl_idname = "sqc.toggle_uv_checker"
     bl_label = "Toggle UV Checker"
@@ -331,6 +346,8 @@ class SQC_OT_toggle_uv_checker(Operator):
                     applied += 1
         finally:
             _restore_mode(context, mode_snapshot)
+
+        _purge_unused_checker_materials()
 
         if applied and restored:
             self.report({'INFO'}, f"Applied checker to {applied}, restored {restored}")

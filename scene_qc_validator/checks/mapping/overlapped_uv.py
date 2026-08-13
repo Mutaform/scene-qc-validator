@@ -768,10 +768,10 @@ def fix_uv_overlap(obj, item, result):
 
 
 _OVERLAP_VISUAL_COLOR = (
-    0x41 / 255.0,
-    0xF2 / 255.0,
-    0x38 / 255.0,
-    0.30,
+    0xF8 / 255.0,
+    0xFC / 255.0,
+    0x5A / 255.0,
+    0xA6 / 255.0,
 )
 _OVERLAP_VISUAL_BUILD_DELAY = 0.08
 _OVERLAP_VISUAL_MODAL_RETRY_DELAY = 0.05
@@ -885,23 +885,50 @@ class _OverlapSelectionState:
                 loop = face.loops[loop_index]
                 loop.uv_select_vert = select_vert
                 loop.uv_select_edge = select_edge
-        bm.select_flush_mode()
+        # All mesh and UV component flags come from the same captured state,
+        # so flushing is unnecessary. More importantly, Blender's selection
+        # flush expands UV vertex/edge flags to linked loops and would visibly
+        # change the artist's UV selection after an overlap preview rebuild.
 
 
 class _NativeOverlapSelection:
     def __init__(self, context, objects):
         self.objects = tuple(objects)
+        self.tool_settings = context.tool_settings
         self.uv_select_sync = (
-            context.tool_settings.use_uv_select_sync
+            self.tool_settings.use_uv_select_sync
         )
         self.captured_selections = {
             obj.name: _OverlapSelectionState.capture(obj)
             for obj in self.objects
         }
-        if bpy.ops.uv.select_all.poll():
-            bpy.ops.uv.select_all(action='DESELECT')
-        if bpy.ops.uv.select_overlap.poll():
-            bpy.ops.uv.select_overlap(extend=False)
+        try:
+            # The native overlap operator only sees UVs belonging to selected
+            # mesh faces when UV selection sync is disabled. Make every visible
+            # face available only for the duration of this build; restore() puts
+            # the artist's mesh and UV selections back immediately afterwards.
+            self.tool_settings.use_uv_select_sync = False
+            for obj in self.objects:
+                bm = bmesh.from_edit_mesh(obj.data)
+                for vert in bm.verts:
+                    if not vert.hide:
+                        vert.select = True
+                for edge in bm.edges:
+                    if not edge.hide:
+                        edge.select = True
+                for face in bm.faces:
+                    if not face.hide:
+                        face.select = True
+                bmesh.update_edit_mesh(
+                    obj.data, loop_triangles=False, destructive=False
+                )
+            if bpy.ops.uv.select_all.poll():
+                bpy.ops.uv.select_all(action='DESELECT')
+            if bpy.ops.uv.select_overlap.poll():
+                bpy.ops.uv.select_overlap(extend=False)
+        except Exception:
+            self.restore()
+            raise
 
     def restore(self):
         if bpy.ops.uv.select_all.poll():
@@ -910,6 +937,15 @@ class _NativeOverlapSelection:
             snapshot = self.captured_selections.get(obj.name)
             if snapshot is not None and obj.mode == 'EDIT':
                 _OverlapSelectionState.restore(obj, snapshot)
+        # Reassigning False after the native UV operator makes Blender run a
+        # UV-selection synchronization pass even though the value is unchanged,
+        # expanding the restored selection to linked UV loops. Only touch the
+        # setting when it genuinely needs to change.
+        if (
+            self.tool_settings.use_uv_select_sync
+            != self.uv_select_sync
+        ):
+            self.tool_settings.use_uv_select_sync = self.uv_select_sync
 
 
 class SQC_GT_OverlapUVVisual(bpy.types.Gizmo):
@@ -986,6 +1022,18 @@ class SQC_GGT_OverlapUVVisual(bpy.types.GizmoGroup):
         try:
             context = bpy.context
             if self.poll(context):
+                # When Texel Density is active in this UV Editor it owns the
+                # combined draw pass and calls this gizmo after its own fill,
+                # guaranteeing that overlaps stay on top without double-drawing.
+                from ...operators import texel_density_visual
+                texel_gizmo = texel_density_visual._review.gizmos.get(
+                    context.area.as_pointer()
+                )
+                if (
+                    texel_density_visual._review.active
+                    and texel_gizmo is not None
+                ):
+                    return
                 self.visual_gizmo.draw_overlay(context)
         except ReferenceError:
             draw_handle = _overlap_visual.draw_handles.pop(

@@ -10,7 +10,7 @@ _DEFAULT_ANGLE_TOLERANCE = 0.1
 _DEFAULT_RECTILINEAR_RATIO = 0.75
 _MAX_FIX_LENGTH_CHANGE = 0.04
 _MAX_FIX_AREA_CHANGE = 0.04
-_MAX_FIX_TEXEL_DISPLACEMENT = 8.0
+_MAX_FIX_TEXEL_DISPLACEMENT = 16.0
 _DEFAULT_FIX_TEXTURE_SIZE = 4096
 MAX_FIX_PASSES = 4
 
@@ -520,51 +520,70 @@ def _straighten_layer_segments(
 def check_unaligned_uv_edges(obj, item):
     if not obj.data.uv_layers:
         return []
+
+    mesh = obj.data
+    temporary_mesh = None
     if obj.data.is_editmode:
-        try:
-            obj.update_from_editmode()
-        except RuntimeError:
-            pass
-
-    angle_tolerance = (
-        item.float_param_1
-        if item.float_param_1 > 0.0
-        else _DEFAULT_ANGLE_TOLERANCE
-    )
-    rectilinear_ratio = (
-        item.float_param_2
-        if 0.0 < item.float_param_2 <= 1.0
-        else _DEFAULT_RECTILINEAR_RATIO
-    )
-
-    issues = []
-    for layer in obj.data.uv_layers:
-        if layer.name.startswith("SQC_"):
-            continue
-        bad_segments, checked_islands = _unaligned_edges_for_layer(
-            obj.data,
-            layer,
-            angle_tolerance,
-            rectilinear_ratio,
+        edit_bmesh = bmesh.from_edit_mesh(obj.data)
+        edit_bmesh.verts.index_update()
+        edit_bmesh.edges.index_update()
+        edit_bmesh.faces.index_update()
+        snapshot_bmesh = edit_bmesh.copy()
+        temporary_mesh = bpy.data.meshes.new(
+            "SQC_UnalignedUVSnapshot"
         )
-        if not bad_segments:
-            continue
-        ordered_segments = sorted(bad_segments)
-        issues.append({
-            "message": (
-                f"{len(ordered_segments)} UV border edge(s) are slightly "
-                f"off-axis on {layer.name} "
-                f"({checked_islands} rectilinear shell(s) checked)"
-            ),
-            "element_ref": (
-                f"uv:{layer.name};uvseg:"
-                + "|".join(
-                    f"{face_index},{edge_index}"
-                    for face_index, edge_index in ordered_segments
+        try:
+            snapshot_bmesh.to_mesh(temporary_mesh)
+        finally:
+            snapshot_bmesh.free()
+        mesh = temporary_mesh
+
+    try:
+        angle_tolerance = (
+            item.float_param_1
+            if item.float_param_1 > 0.0
+            else _DEFAULT_ANGLE_TOLERANCE
+        )
+        rectilinear_ratio = (
+            item.float_param_2
+            if 0.0 < item.float_param_2 <= 1.0
+            else _DEFAULT_RECTILINEAR_RATIO
+        )
+
+        issues = []
+        for layer in mesh.uv_layers:
+            if layer.name.startswith("SQC_"):
+                continue
+            bad_segments, checked_islands = (
+                _unaligned_edges_for_layer(
+                    mesh,
+                    layer,
+                    angle_tolerance,
+                    rectilinear_ratio,
                 )
-            ),
-        })
-    return issues
+            )
+            if not bad_segments:
+                continue
+            ordered_segments = sorted(bad_segments)
+            issues.append({
+                "message": (
+                    f"{len(ordered_segments)} UV border edge(s) are "
+                    f"slightly off-axis on {layer.name} "
+                    f"({checked_islands} rectilinear shell(s) checked)"
+                ),
+                "element_ref": (
+                    f"uv:{layer.name};uvseg:"
+                    + "|".join(
+                        f"{face_index},{edge_index}"
+                        for face_index, edge_index
+                        in ordered_segments
+                    )
+                ),
+            })
+        return issues
+    finally:
+        if temporary_mesh is not None:
+            bpy.data.meshes.remove(temporary_mesh)
 
 
 def unaligned_fix_texture_size():

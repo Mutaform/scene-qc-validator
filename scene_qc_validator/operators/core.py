@@ -286,3 +286,30 @@ def run_validation_logic(context):
     s.has_run_validation = True
     s.last_validation_passed = not any_fail
     return True, any_fail
+
+
+def revalidate_object_check(context, object_name, check_id):
+    """Re-run a single check on one object and refresh only its results.
+
+    Used after a successful Fix so the fixed issue disappears from the list
+    immediately, without a full re-validate (which, under SELECTION scope,
+    would collapse the results to whatever is currently selected). Other
+    objects' results are left untouched.
+    """
+    s = _settings(context)
+    for index in range(len(s.results) - 1, -1, -1):
+        r = s.results[index]
+        if r.object_name == object_name and r.check_id == check_id:
+            s.results.remove(index)
+
+    obj = context.scene.objects.get(object_name)
+    definition = checks_mod.get_check_definition(check_id)
+    check_item = next(
+        (c for c in s.checks if c.check_id == check_id),
+        None,
+    )
+    if obj is not None and definition is not None and check_item is not None:
+        _run_validation_check(s, _muted_keys(s), obj, check_item, definition)
+    _refresh_pass_state(s)
+    if s.active_result_index >= len(s.results):
+        s.active_result_index = max(0, len(s.results) - 1)

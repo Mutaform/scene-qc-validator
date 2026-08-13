@@ -60,19 +60,28 @@ def check_material_name(obj, item):
 def fix_material_name(obj, item, result):
     fixed = False
     suffix_re = re.compile(r"^(?P<base>.+)\.\d{3}$")
+
+    # Pass 1: collapse Blender's auto-numbered duplicates (Material.001,
+    # Material.002, ...) back onto their parent material wherever it still
+    # exists. This must finish before any renaming, otherwise renaming the
+    # parent first makes the `.001/.002` slots fail to find it and they end up
+    # split into separate materials instead of merged.
     for slot in obj.material_slots:
         mat = slot.material
         if not mat:
             continue
-
         match = suffix_re.match(mat.name)
         if match:
             base = bpy.data.materials.get(match.group("base"))
             if base and base != mat:
                 slot.material = base
                 fixed = True
-                continue
 
+    # Pass 2: rename each remaining material to its QC-compliant name.
+    for slot in obj.material_slots:
+        mat = slot.material
+        if not mat:
+            continue
         target_name = _material_qc_name(mat)
         if mat.name != target_name:
             mat.name = target_name

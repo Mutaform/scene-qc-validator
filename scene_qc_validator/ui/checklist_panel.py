@@ -10,6 +10,26 @@ def _stage_button_text(stage_name):
     return stage_name
 
 
+def _overlay_toggle_row(
+    layout, settings, scope_prop, op_id, text, icon, depress,
+    with_controls=True,
+):
+    """A UV-overlay toggle row: a material-scope checkbox, the toggle button,
+    and (optionally) a right-aligned controls area returned to the caller so
+    each overlay can add its own fields. Keeps the three overlay rows visually
+    consistent."""
+    row = layout.row(align=True)
+    row.prop(settings, scope_prop, text="")
+    if not with_controls:
+        row.operator(op_id, text=text, icon=icon, depress=depress)
+        return None
+    split = row.split(factor=0.5, align=True)
+    split.operator(op_id, text=text, icon=icon, depress=depress)
+    controls = split.row(align=True)
+    controls.alignment = 'RIGHT'
+    return controls
+
+
 class SQC_PT_checklist(Panel):
     """Sub-panel: preset management + the full checklist configuration."""
     bl_label = "Checklist"
@@ -60,33 +80,22 @@ class SQC_PT_checklist(Panel):
             layout.label(text="No stages in selected project", icon='INFO')
 
         if "LP_UVs" in s.active_stage_name:
-            from ..operators.overlap_visual import (
-                is_overlap_review_active,
+            from ..operators.overlap_visual import is_overlap_review_active
+            from ..operators.padding_visual import is_padding_review_active
+            from ..operators.texel_density_visual import (
+                is_texel_density_review_active,
             )
-            row = layout.row(align=True)
-            row.prop(
-                s,
-                "overlap_visual_use_material_scope",
-                text="",
+
+            overlap_controls = _overlay_toggle_row(
+                layout, s, "overlap_visual_use_material_scope",
+                "sqc.toggle_overlap_visual", "Show Overlaps", 'HIDE_OFF',
+                is_overlap_review_active(),
             )
-            split = row.split(factor=0.5, align=True)
-            split.operator(
-                "sqc.toggle_overlap_visual",
-                text="Show Overlaps",
-                icon='HIDE_OFF',
-                depress=is_overlap_review_active(),
-            )
-            overlap_controls = split.row(align=True)
-            overlap_controls.alignment = 'RIGHT'
             overlap_controls.label(text="UV set")
             overlap_controls.prop(
-                s,
-                "overlap_visual_uv_set_number",
-                text="",
+                s, "overlap_visual_uv_set_number", text="",
             )
-            from ..operators.padding_visual import (
-                is_padding_review_active,
-            )
+
             padding_item = next(
                 (
                     item for item in s.checks
@@ -94,29 +103,14 @@ class SQC_PT_checklist(Panel):
                 ),
                 None,
             )
-            padding_row = layout.row(align=True)
-            padding_row.prop(
-                s,
-                "padding_visual_use_material_scope",
-                text="",
-            )
-            padding_split = padding_row.split(
-                factor=0.5,
-                align=True,
-            )
-            padding_split.operator(
-                "sqc.toggle_padding_visual",
-                text="Show Padding",
-                icon='MOD_UVPROJECT',
-                depress=is_padding_review_active(),
+            padding_controls = _overlay_toggle_row(
+                layout, s, "padding_visual_use_material_scope",
+                "sqc.toggle_padding_visual", "Show Padding", 'MOD_UVPROJECT',
+                is_padding_review_active(),
             )
             if padding_item is not None:
-                # Right-align a fixed-width number block so it sits flush
-                # against the panel's right edge (matching the UV-set field
-                # above) while keeping the 4096 / value fields comfortably
-                # sized instead of collapsing.
-                padding_controls = padding_split.row(align=True)
-                padding_controls.alignment = 'RIGHT'
+                # Fixed-width number block, flush right, keeps the 4096 /
+                # value fields comfortably sized instead of collapsing.
                 padding_block = padding_controls.row(align=True)
                 padding_block.ui_units_x = 8.5
                 texture_previous = padding_block.operator(
@@ -158,6 +152,13 @@ class SQC_PT_checklist(Panel):
                 )
                 padding_next.target = 'PADDING'
                 padding_next.direction = 1
+
+            _overlay_toggle_row(
+                layout, s, "texel_density_visual_use_material_scope",
+                "sqc.toggle_texel_density_visual", "Show Texel Density",
+                'IMAGE_DATA', is_texel_density_review_active(),
+                with_controls=False,
+            )
 
         row = layout.row(align=True)
         row.prop(

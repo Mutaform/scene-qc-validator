@@ -1,34 +1,44 @@
 """Check registry for Scene QC Validator."""
 
-from .mesh.ngons import *
-from .mesh.non_manifold import *
-from .mesh.zero_area import *
-from .mesh.zero_length import *
-from .mesh.has_soft_edges import *
-from .mesh.non_planar import *
-from .mesh.concave_faces import *
-from .mesh.duplicate_faces import *
-from .mesh.loose_geometry import *
-from .mesh.animation import *
+from .mesh.ngons import check_ngons, fix_ngons
+from .mesh.non_manifold import check_non_manifold, fix_non_manifold
+from .mesh.zero_area import check_zero_area_faces, fix_zero_area_faces
+from .mesh.zero_length import check_zero_length_edges, fix_zero_length_edges
+from .mesh.has_soft_edges import check_has_soft_edges, fix_has_soft_edges
+from .mesh.non_planar import check_non_planar_faces, fix_non_planar_faces
+from .mesh.concave_faces import check_concave_faces, fix_concave_faces
+from .mesh.duplicate_faces import check_duplicate_faces, fix_duplicate_faces
+from .mesh.loose_geometry import check_loose_geometry, fix_loose_geometry
+from .mesh.animation import check_animation_keys, fix_animation_keys
 
-from .objects.unapplied_transform import *
-from .objects.pivot_world_origin import *
-from .objects.pivot_center import *
-from .objects.object_name_pattern import *
+from .objects.unapplied_transform import (
+    check_unapplied_transform, fix_unapplied_transform,
+)
+from .objects.pivot_world_origin import (
+    check_pivot_world_origin, fix_pivot_world_origin,
+)
+from .objects.pivot_center import check_pivot_center
+from .objects.object_name_pattern import (
+    check_object_name_pattern, fix_object_name_pattern,
+)
 
-from .mapping.missing_uv import *
-from .mapping.uv_set_count import *
-from .mapping.uv_set_names import *
-from .mapping.single_uv_tile import *
-from .mapping.no_hard_edge_on_uv_borders import *
-from .mapping.random_sharp import *
-from .mapping.overlapped_uv import *
-from .mapping.padding import *
-from .mapping.unaligned_uv_edges import *
+from .mapping.missing_uv import check_missing_uv
+from .mapping.uv_set_count import check_uv_set_count
+from .mapping.uv_set_names import check_uv_set_names, fix_uv_set_names
+from .mapping.single_uv_tile import check_single_uv_tile
+from .mapping.no_hard_edge_on_uv_borders import (
+    check_no_hard_edge_on_uv_borders, fix_no_hard_edge_on_uv_borders,
+)
+from .mapping.random_sharp import check_random_sharp, fix_random_sharp
+from .mapping.overlapped_uv import check_uv_overlap, fix_uv_overlap
+from .mapping.padding import check_padding
+from .mapping.unaligned_uv_edges import (
+    check_unaligned_uv_edges, fix_unaligned_uv_edges,
+)
 
-from .material.missing_material import *
-from .material.material_count import *
-from .material.material_name import *
+from .material.missing_material import check_missing_material
+from .material.material_count import check_material_count
+from .material.material_name import check_material_name, fix_material_name
 
 
 TAB_ITEMS = [
@@ -111,11 +121,11 @@ CHECK_DEFINITIONS = [
     dict(id="uv_set_count", label="UV Sets Count", category='UV',
          description="Too many UV maps on one mesh",
          run=check_uv_set_count, fix=None, can_fix=False, int_param_1=1),
-    dict(id="uv_single_tile", label="HaveShelsOutsideSquare", category='UV',
+    dict(id="uv_single_tile", label="Shells Outside 0-1 Square", category='UV',
          description="Every UV set must keep all UV shells inside the first 0-1 UDIM square",
          run=check_single_uv_tile, fix=None, can_fix=False,
          float_param_1=0.001),
-    dict(id="uv_set_names", label="UVSetsNames", category='UV',
+    dict(id="uv_set_names", label="UV Set Names", category='UV',
          description="Replace Blender default UVMap names with map1, map2, ...",
          run=check_uv_set_names, fix=fix_uv_set_names, can_fix=True,
          fix_is_destructive=False),
@@ -127,11 +137,11 @@ CHECK_DEFINITIONS = [
          description="Interactive UV-island padding preview in the UV Editor",
          run=check_padding, fix=None, can_fix=False,
          int_param_1=16, int_param_2=4096),
-    dict(id="uv_no_hard_edge_on_uv_borders", label="NOhardEdgeOnUVBorbders", category='UV',
+    dict(id="uv_no_hard_edge_on_uv_borders", label="No Hard Edge On UV Borders", category='UV',
          description="Every UV-shell border edge must be marked sharp",
          run=check_no_hard_edge_on_uv_borders, fix=fix_no_hard_edge_on_uv_borders, can_fix=True,
          fix_is_destructive=False),
-    dict(id="uv_random_sharp", label="RandomSharp", category='UV',
+    dict(id="uv_random_sharp", label="Random Sharp", category='UV',
          description="Sharp edges should match UV border edges",
          run=check_random_sharp, fix=fix_random_sharp, can_fix=True,
          fix_is_destructive=False, float_param_1=0.001),
@@ -152,7 +162,7 @@ CHECK_DEFINITIONS = [
          description="Too many materials assigned to one mesh",
          run=check_material_count, fix=None, can_fix=False,
          int_param_1=1),
-    dict(id="mat_material_name", label="MaterialName", category='MATERIAL',
+    dict(id="mat_material_name", label="Material Name", category='MATERIAL',
          description="Material names must match the allowed pattern, for example m_body or m_body_01",
          run=check_material_name, fix=fix_material_name, can_fix=True,
          fix_is_destructive=False,

@@ -46,11 +46,14 @@ from . import padding_visual
 from .padding_visual import (
     SQC_OT_TogglePaddingVisual,
 )
+from . import texel_density_visual
+from .texel_density_visual import SQC_OT_ToggleTexelDensityVisual
 
 
 CLASSES = (
     *overlapped_uv.OVERLAP_VISUAL_CLASSES,
     *padding.PADDING_VISUAL_CLASSES,
+    *texel_density_visual.TEXEL_DENSITY_VISUAL_CLASSES,
     SQC_OT_init_checks,
     SQC_OT_select_all_checks,
     SQC_OT_run_validate,
@@ -70,6 +73,7 @@ CLASSES = (
     SQC_OT_toggle_uv_checker,
     SQC_OT_toggle_overlap_visual,
     SQC_OT_TogglePaddingVisual,
+    SQC_OT_ToggleTexelDensityVisual,
     padding.SQC_OT_StepPaddingValue,
 )
 
@@ -98,6 +102,7 @@ def unregister():
     random_sharp_highlight.unregister()
     overlap_visual.unregister_overlap_review()
     padding_visual.unregister_padding_review()
+    texel_density_visual.unregister_texel_density_review()
     overlapped_uv.unregister_overlap_visual()
     padding.unregister_padding_visual()
     for cls in reversed(CLASSES):

@@ -1,7 +1,13 @@
 import bpy
 from bpy.types import Operator
 
-from .core import _scope_empty_message, _settings, checks_mod, run_validation_logic
+from .core import (
+    _scope_empty_message,
+    _settings,
+    checks_mod,
+    revalidate_object_check,
+    run_validation_logic,
+)
 from ..checks.mapping import unaligned_uv_edges
 
 
@@ -102,6 +108,11 @@ class SQC_OT_fix_result(Operator):
         settings.fix_in_progress = False
         settings.fix_progress = 0.0 if cancelled else 1.0
         settings.fix_progress_text = ""
+
+        if not cancelled and self._check_item is not None:
+            revalidate_object_check(
+                context, self._object_name, self._check_item.check_id
+            )
         self._redraw(context)
 
         if cancelled:
@@ -260,12 +271,18 @@ class SQC_OT_fix_result(Operator):
             self.report({'WARNING'}, "This issue has no automatic fix")
             return {'CANCELLED'}
         r, d, check_item, obj = result_context
+        check_id = r.check_id
+        check_label = r.check_label
+        object_name = obj.name
         try:
             d["fix"](obj, check_item, r)
         except Exception as e:
             self.report({'ERROR'}, f"Fix failed: {e}")
             return {'CANCELLED'}
-        self.report({'INFO'}, f"Fixed: {r.check_label} on {obj.name}")
+        # Refresh just this object+check so the fixed issue leaves the list
+        # right away instead of lingering until the next manual Validate.
+        revalidate_object_check(context, object_name, check_id)
+        self.report({'INFO'}, f"Fixed: {check_label} on {object_name}")
         return {'FINISHED'}
 
     def cancel(self, context):
