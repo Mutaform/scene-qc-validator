@@ -18,6 +18,7 @@ CATEGORY_ITEMS = [
     ('UV', "UV", "UV mapping checks"),
     ('NAMING', "Naming", "Object / material naming checks"),
     ('MATERIAL', "Material", "Material assignment checks"),
+    ('NANITE', "Nanite", "Unreal Nanite ingestion checks"),
 ]
 
 SEVERITY_ITEMS = [

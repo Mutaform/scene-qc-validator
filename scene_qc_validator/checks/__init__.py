@@ -21,6 +21,7 @@ from .objects.pivot_center import check_pivot_center
 from .objects.object_name_pattern import (
     check_object_name_pattern, fix_object_name_pattern,
 )
+from .objects.nanite_closed_geometry import check_nanite_closed_geometry
 
 from .mapping.missing_uv import check_missing_uv
 from .mapping.uv_set_count import check_uv_set_count
@@ -50,7 +51,7 @@ TAB_ITEMS = [
 
 TAB_CATEGORY_MAP = {
     'MESH': {'GEOMETRY'},
-    'OBJECTS': {'TRANSFORM', 'NAMING'},
+    'OBJECTS': {'TRANSFORM', 'NAMING', 'NANITE'},
     'MAPPING': {'UV'},
     'MATERIAL': {'MATERIAL'},
 }
@@ -150,6 +151,13 @@ CHECK_DEFINITIONS = [
          run=check_unaligned_uv_edges, fix=fix_unaligned_uv_edges, can_fix=True,
          fix_is_destructive=False,
          float_param_1=0.1, float_param_2=0.75),
+
+    dict(id="obj_nanite_closed_geometry", label="Nanite Closed Geometry",
+         category='NANITE',
+         description="Open shells must be embedded in other geometry so Nanite sees no gaps or holes",
+         run=check_nanite_closed_geometry, fix=None, can_fix=False,
+         float_param_1=1.0, bool_param_1=True,
+         string_param_1=r"^(UCX|UBX|USP|UCP)_"),
 
     dict(id="nm_object_pattern", label="Object Name Pattern", category='NAMING',
          description="Object name must match a regex pattern",

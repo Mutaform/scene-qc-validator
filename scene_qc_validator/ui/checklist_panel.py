@@ -244,6 +244,10 @@ class SQC_PT_checklist(Panel):
                 "padding_texture_input",
                 text="Texture Size",
             )
+        elif cid == "obj_nanite_closed_geometry":
+            sub.prop(item, "float_param_1", text="Gap Tolerance (mm)")
+            sub.prop(item, "bool_param_1", text="Use Scene Geometry")
+            sub.prop(item, "string_param_1", text="Ignore Objects Regex")
         elif cid == "nm_object_pattern":
             sub.prop(item, "string_param_1", text="Regex Pattern")
         elif cid == "mat_material_name":

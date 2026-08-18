@@ -5,4 +5,5 @@ CATEGORY_ICON = {
     'UV': 'UV',
     'NAMING': 'SORTALPHA',
     'MATERIAL': 'MATERIAL',
+    'NANITE': 'MOD_SOLIDIFY',
 }
