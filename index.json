@@ -1,0 +1,29 @@
+{
+  "version": "v1",
+  "blocklist": [],
+  "data": [
+    {
+      "schema_version": "1.0.0",
+      "id": "scene_qc_validator",
+      "name": "Scene QC Validator by Mutaform Studio",
+      "tagline": "Production scene and mesh validation checklist by Mutaform Studio",
+      "version": "1.9.2",
+      "type": "add-on",
+      "maintainer": "Mutaform Studio",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.5.0",
+      "permissions": {
+        "files": "Save and load local checklist presets (JSON) in the addon's user extension folder"
+      },
+      "tags": [
+        "Mesh",
+        "Pipeline"
+      ],
+      "archive_url": "./scene_qc_validator_by_mutaform_studio.zip",
+      "archive_size": 108221,
+      "archive_hash": "sha256:b2ced40094aadb5c489e079d9172c781e7d71ada355a96e56f7c2c48e5daf373"
+    }
+  ]
+}
