@@ -19,6 +19,7 @@ from . import uv_review_session
 class _PaddingReviewRuntime:
     active: bool = False
     source_object_name: str = ""
+    scope: str = 'OBJECT'
 
 
 _padding_review = _PaddingReviewRuntime()
@@ -30,9 +31,11 @@ def is_padding_review_active():
 
 def restore_padding_review(context):
     padding.disable_padding_visual()
+    uv_review_session.stop_following_active_material('PADDING')
     restored = uv_review_session.release(context, 'PADDING')
     _padding_review.active = False
     _padding_review.source_object_name = ""
+    _padding_review.scope = 'OBJECT'
     return restored
 
 
@@ -43,6 +46,8 @@ def _begin_padding_review(
     uv_layer_names,
     padding_px,
     texture_size,
+    material=None,
+    scope='OBJECT',
 ):
     if _padding_review.active:
         restore_padding_review(context)
@@ -53,13 +58,24 @@ def _begin_padding_review(
         uv_review_session.enter_review_edit(
             context, 'PADDING', source_object, targets, uv_layer_names
         )
+        # Padding belongs to a texture set, so the band follows the reviewed
+        # material's footprint and the UV Editor keeps to its islands.
+        material_slots = uv_review_session.material_slot_map(
+            targets, material
+        )
+        if material is not None:
+            uv_review_session.isolate_material_faces(context, material)
         if not padding.enable_padding_visual(
-            context, padding_px, texture_size
+            context, padding_px, texture_size, material_slots
         ):
             raise RuntimeError("Could not enable padding visual")
 
         _padding_review.active = True
         _padding_review.source_object_name = source_object.name
+        _padding_review.scope = scope
+        uv_review_session.follow_active_material(
+            'PADDING', source_object, material, refresh_review_material
+        )
         return True
     except (ReferenceError, RuntimeError) as error:
         restore_padding_review(context)
@@ -73,33 +89,16 @@ def _begin_padding_review(
 def begin_material_padding_review(
     context, source_object, uv_set_number, padding_px, texture_size
 ):
-    targets, material = uv_review_session.material_targets(
-        context, source_object
+    (
+        matching_targets,
+        uv_layer_names,
+        material,
+        error,
+    ) = uv_review_session.material_review_targets(
+        context, source_object, uv_set_number
     )
-    if material is None:
-        return False, "Active object has no active material"
-    if not targets:
-        return False, (
-            "No visible UV meshes use the active material"
-        )
-    uv_layer_index = uv_set_number - 1
-    if len(source_object.data.uv_layers) <= uv_layer_index:
-        return False, (
-            f"UV set {uv_set_number} is missing on the active mesh"
-        )
-    matching_targets = [
-        obj for obj in targets
-        if len(obj.data.uv_layers) > uv_layer_index
-    ]
-    if not matching_targets:
-        return False, (
-            f"UV set {uv_set_number} is missing on all visible "
-            "material users"
-        )
-    uv_layer_names = {
-        obj.name: obj.data.uv_layers[uv_layer_index].name
-        for obj in matching_targets
-    }
+    if error:
+        return False, error
     if not _begin_padding_review(
         context,
         source_object,
@@ -107,11 +106,13 @@ def begin_material_padding_review(
         uv_layer_names,
         padding_px,
         texture_size,
+        material,
+        'MATERIAL',
     ):
         return False, "Could not start padding review"
     return True, (
-        f"Previewing padding on {len(matching_targets)} object(s) "
-        f"using UV set {uv_set_number}"
+        f"Previewing padding on {material.name} across "
+        f"{len(matching_targets)} object(s) using UV set {uv_set_number}"
     )
 
 
@@ -126,6 +127,9 @@ def begin_object_padding_review(
     uv_layer_name = source_object.data.uv_layers[
         uv_layer_index
     ].name
+    # A multi-material mesh is previewed one texture set at a time, so a single
+    # object review still follows the active material slot.
+    material = uv_review_session.multi_material_scope(source_object)
     if not _begin_padding_review(
         context,
         source_object,
@@ -133,11 +137,68 @@ def begin_object_padding_review(
         {source_object.name: uv_layer_name},
         padding_px,
         texture_size,
+        material,
+        'OBJECT',
     ):
         return False, "Could not start padding review"
+    subject = (
+        f"{source_object.name} / {material.name}"
+        if material is not None
+        else source_object.name
+    )
     return True, (
-        f"Previewing padding on {source_object.name} using "
-        f"UV set {uv_set_number}"
+        f"Previewing padding on {subject} using UV set {uv_set_number}"
+    )
+
+
+def refresh_review_material(context, material):
+    """Re-aim the running preview at the object's newly active material slot.
+
+    Stays inside the open Edit Mode whenever the same meshes carry the new
+    material; only a different set of material users forces a restart.
+    """
+    if not _padding_review.active:
+        return
+    source_object = context.scene.objects.get(
+        _padding_review.source_object_name
+    )
+    if source_object is None or source_object.type != 'MESH':
+        return
+    settings = context.scene.sqc_settings
+    uv_set_number = settings.overlap_visual_uv_set_number
+    if _padding_review.scope == 'MATERIAL':
+        targets, _names, _material, error = (
+            uv_review_session.material_review_targets(
+                context, source_object, uv_set_number
+            )
+        )
+        if error:
+            restore_padding_review(context)
+            return
+    else:
+        targets = [source_object]
+
+    material_slots = uv_review_session.rescope_material(
+        context, targets, material
+    )
+    if material_slots is None:
+        item = _padding_check_item(context)
+        begin_review = (
+            begin_material_padding_review
+            if _padding_review.scope == 'MATERIAL'
+            else begin_object_padding_review
+        )
+        begin_review(
+            context,
+            source_object,
+            uv_set_number,
+            item.int_param_1 if item else 16,
+            item.int_param_2 if item else 4096,
+        )
+        return
+    padding.rescope_padding_visual(material_slots)
+    uv_review_session.follow_active_material(
+        'PADDING', source_object, material, refresh_review_material
     )
 
 
@@ -160,7 +221,11 @@ def _padding_check_item(context):
 class SQC_OT_TogglePaddingVisual(Operator):
     bl_idname = "sqc.toggle_padding_visual"
     bl_label = "Show Padding"
-    bl_description = "Preview UV-island padding in the UV Editor"
+    bl_description = (
+        "Preview UV-island padding in the UV Editor. On a multi-material "
+        "mesh it covers the active material slot and follows it when you "
+        "pick another"
+    )
 
     def execute(self, context):
         obj = context.active_object

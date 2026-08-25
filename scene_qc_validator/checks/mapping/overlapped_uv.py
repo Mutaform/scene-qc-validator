@@ -781,6 +781,9 @@ _OVERLAP_VISUAL_MODAL_RETRY_DELAY = 0.05
 class _OverlapVisualRuntime:
     enabled: bool = False
     targets: dict = field(default_factory=dict)
+    # {object name: frozenset of material slot indices} while the review is
+    # limited to one material; None while whole meshes are under review.
+    material_slots: dict = None
     build_pending: bool = False
     building: bool = False
     depsgraph_handler_registered: bool = False
@@ -891,9 +894,29 @@ class _OverlapSelectionState:
         # change the artist's UV selection after an overlap preview rebuild.
 
 
+def _face_in_material_scope(face, slot_indices):
+    """True when ``face`` belongs to the material a review is limited to.
+
+    ``slot_indices`` is ``None`` for an unlimited (whole-mesh) review.
+    """
+    return slot_indices is None or face.material_index in slot_indices
+
+
+def _object_slot_indices(material_slots, obj):
+    """Slot indices in scope for ``obj``; ``None`` for a whole-mesh review.
+
+    A mesh that is in Edit Mode without being part of a material review (another
+    overlay may have opened it) has no slot in scope, so nothing of it counts.
+    """
+    if not material_slots:
+        return None
+    return material_slots.get(obj.name, frozenset())
+
+
 class _NativeOverlapSelection:
-    def __init__(self, context, objects):
+    def __init__(self, context, objects, material_slots=None):
         self.objects = tuple(objects)
+        self.material_slots = material_slots
         self.tool_settings = context.tool_settings
         self.uv_select_sync = (
             self.tool_settings.use_uv_select_sync
@@ -905,20 +928,30 @@ class _NativeOverlapSelection:
         try:
             # The native overlap operator only sees UVs belonging to selected
             # mesh faces when UV selection sync is disabled. Make every visible
-            # face available only for the duration of this build; restore() puts
-            # the artist's mesh and UV selections back immediately afterwards.
+            # face in scope available only for the duration of this build;
+            # restore() puts the artist's mesh and UV selections back
+            # immediately afterwards. Faces outside the reviewed material stay
+            # deselected so their islands are not measured against it - a
+            # second material is a second texture set, free to sit anywhere.
             self.tool_settings.use_uv_select_sync = False
             for obj in self.objects:
+                slot_indices = _object_slot_indices(
+                    self.material_slots, obj
+                )
                 bm = bmesh.from_edit_mesh(obj.data)
                 for vert in bm.verts:
-                    if not vert.hide:
-                        vert.select = True
+                    vert.select = False
                 for edge in bm.edges:
-                    if not edge.hide:
-                        edge.select = True
+                    edge.select = False
                 for face in bm.faces:
-                    if not face.hide:
-                        face.select = True
+                    face.select = False
+                for face in bm.faces:
+                    if face.hide or not _face_in_material_scope(
+                        face, slot_indices
+                    ):
+                        continue
+                    face.select_set(True)
+                bm.select_flush(True)
                 bmesh.update_edit_mesh(
                     obj.data, loop_triangles=False, destructive=False
                 )
@@ -1058,11 +1091,12 @@ def is_overlap_visual_enabled():
     return _overlap_visual.enabled
 
 
-def enable_overlap_visual(obj, uv_layer_name):
+def enable_overlap_visual(obj, uv_layer_name, material_slots=None):
     if not obj or obj.type != 'MESH':
         return False
     _overlap_visual.invalidate_pending_builds()
     _overlap_visual.enabled = True
+    _overlap_visual.material_slots = material_slots
     edit_objects = tuple(
         edit_object
         for edit_object in bpy.context.objects_in_mode_unique_data
@@ -1088,6 +1122,17 @@ def enable_overlap_visual(obj, uv_layer_name):
     return True
 
 
+def rescope_overlap_visual(material_slots):
+    """Point a running overlap review at another material's faces."""
+    if not _overlap_visual.enabled:
+        return False
+    _overlap_visual.invalidate_pending_builds()
+    _overlap_visual.material_slots = material_slots
+    _request_overlap_visual_rebuild()
+    _tag_uv_editor_redraw()
+    return True
+
+
 def _request_overlap_visual_rebuild():
     for area_pointer, visual_gizmo in list(
         _overlap_visual.gizmos.items()
@@ -1102,6 +1147,7 @@ def disable_overlap_visual():
     _overlap_visual.invalidate_pending_builds()
     _overlap_visual.enabled = False
     _overlap_visual.targets.clear()
+    _overlap_visual.material_slots = None
     for area_pointer, visual_gizmo in list(
         _overlap_visual.gizmos.items()
     ):
@@ -1173,10 +1219,13 @@ def _build_overlap_visual_batch(context, visual_gizmo):
     overlap_selection = None
     try:
         overlap_selection = _NativeOverlapSelection(
-            context, edit_objects
+            context, edit_objects, _overlap_visual.material_slots
         )
         visual_gizmo.shapes.clear()
         for obj in edit_objects:
+            slot_indices = _object_slot_indices(
+                _overlap_visual.material_slots, obj
+            )
             bm = bmesh.from_edit_mesh(obj.data)
             bm.faces.ensure_lookup_table()
             uv_layer = (
@@ -1193,6 +1242,9 @@ def _build_overlap_visual_batch(context, visual_gizmo):
                 if (
                     triangle[0].face.hide
                     or not triangle[0].face.select
+                    or not _face_in_material_scope(
+                        triangle[0].face, slot_indices
+                    )
                     or (
                         not overlap_selection.uv_select_sync
                         and not all(

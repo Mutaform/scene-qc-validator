@@ -11,7 +11,7 @@ CHECKER_BACKUP_PROP = "_sqc_uv_checker_backup"
 
 def _material_usage_for_scope(context):
     materials = {}
-    targets = operators_mod._validation_targets(context)
+    targets = operators_mod.review_scope_objects(context)
     for obj in targets:
         seen_on_object = set()
         for slot in obj.material_slots:
@@ -77,17 +77,38 @@ class SQC_PT_scene_review(Panel):
         elif not material_entries:
             layout.label(text="No materials assigned", icon='INFO')
         else:
+            reviewed = operators_mod.isolated_material_name(context)
             box = layout.box()
             for entry in material_entries:
                 mat = entry["material"]
                 objects = sorted(entry["objects"], key=str.casefold)
                 row = box.row(align=True)
                 split = row.split(factor=0.68, align=True)
-                split.label(text=mat.name, icon='MATERIAL')
+                name = split.row(align=True)
+                name.alignment = 'LEFT'
+                select_op = name.operator(
+                    "sqc.select_material_objects",
+                    text=mat.name,
+                    icon='MATERIAL',
+                    emboss=False,
+                )
+                select_op.material_name = mat.name
                 right = split.row(align=True)
                 right.label(text=f"{len(objects)} obj / {entry['slot_count']} slot")
-                op = right.operator("sqc.select_material_users", text="", icon='RESTRICT_SELECT_OFF')
+                op = right.operator(
+                    "sqc.select_material_users",
+                    text="",
+                    icon='UV',
+                    depress=(reviewed == mat.name),
+                )
                 op.material_name = mat.name
+            if reviewed:
+                note = box.row()
+                note.enabled = False
+                note.label(
+                    text=f"Reviewing UVs of {reviewed}",
+                    icon='INFO',
+                )
 
         layout.separator()
         checker = layout.box()

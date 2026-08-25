@@ -41,6 +41,9 @@ class _PaddingRuntime:
     enabled: bool = False
     margin_uv: float = 0.0
     targets: dict = field(default_factory=dict)
+    # {object name: frozenset of material slot indices} while the preview is
+    # limited to one material; None while whole meshes are previewed.
+    material_slots: dict = None
     gizmos: dict = field(default_factory=dict)
     draw_handles: dict = field(default_factory=dict)
     build_pending: bool = False
@@ -127,13 +130,16 @@ def _loops_fold_across_edge(loop_a, loop_b, uv_layer):
     return side_a * side_b > 0.0
 
 
-def _collect_uv_border_edges(bm, uv_layer, _uv_sync):
+def _collect_uv_border_edges(bm, uv_layer, _uv_sync, slot_indices=None):
     """Return the set of non-hidden UV-shell border edges.
 
     An edge is a border when its UV winding breaks between its two faces; it is
     kept when at least one of those faces is not hidden. Selection is deliberately
     ignored so the preview can inspect the whole UV map without changing the
     artist's current component selection.
+    When ``slot_indices`` limits the preview to one material, the edge where its
+    faces meet another material's counts as a border too: padding surrounds that
+    material's footprint, not the mesh it happens to share.
     Iterating edges once (instead of every face's edges, twice per border edge)
     keeps this cheap on dense meshes. The winding is no longer stored here — it
     is read per loop from its own face in :func:`_segment_normal`.
@@ -141,13 +147,21 @@ def _collect_uv_border_edges(bm, uv_layer, _uv_sync):
     border_edges = set()
     for edge in bm.edges:
         loops = edge.link_loops
-        if not loops or not _edge_is_uv_border(edge, uv_layer):
+        if not loops:
             continue
-        for loop in loops:
-            face = loop.face
-            if not face.hide:
-                border_edges.add(edge)
-                break
+        visible = sum(1 for loop in loops if not loop.face.hide)
+        if not visible:
+            continue
+        in_scope = sum(
+            1 for loop in loops if _loop_in_scope(loop, slot_indices)
+        )
+        if not in_scope:
+            continue
+        if in_scope < visible:
+            border_edges.add(edge)
+            continue
+        if _edge_is_uv_border(edge, uv_layer):
+            border_edges.add(edge)
     return border_edges
 
 
@@ -177,8 +191,15 @@ def _segment_normal(loop, uv_layer, face_flip=None):
     return normal
 
 
-def _loop_is_visible(loop, _uv_sync):
-    return not loop.face.hide
+def _loop_in_scope(loop, slot_indices=None):
+    """True when a loop's face is visible and inside the previewed material.
+
+    ``slot_indices`` is ``None`` when the whole mesh is previewed.
+    """
+    face = loop.face
+    if face.hide:
+        return False
+    return slot_indices is None or face.material_index in slot_indices
 
 
 def _next_border_loop(loop, border_edges):
@@ -248,7 +269,9 @@ def _miter_point(position, normal_a, normal_b, margin_uv):
     return position + miter * margin_uv
 
 
-def _padding_strip_geometry(bm, uv_layer, border_edges, margin_uv, uv_sync):
+def _padding_strip_geometry(
+    bm, uv_layer, border_edges, margin_uv, uv_sync, slot_indices=None
+):
     """Build a continuous padding band along the UV-shell borders.
 
     Each border edge becomes a strip offset outward by ``margin_uv``. Where two
@@ -273,7 +296,7 @@ def _padding_strip_geometry(bm, uv_layer, border_edges, margin_uv, uv_sync):
         if edge not in border_edges:
             continue
         for loop in edge.link_loops:
-            if not _loop_is_visible(loop, uv_sync):
+            if not _loop_in_scope(loop, slot_indices):
                 continue
             seg = {
                 "loop": loop,
@@ -348,7 +371,9 @@ def _padding_strip_geometry(bm, uv_layer, border_edges, margin_uv, uv_sync):
     return coordinates, triangle_indices
 
 
-def _padding_batch_for_object(obj, uv_layer_name, margin_uv):
+def _padding_batch_for_object(
+    obj, uv_layer_name, margin_uv, slot_indices=None
+):
     bm = bmesh.from_edit_mesh(obj.data)
     bm.edges.ensure_lookup_table()
     bm.verts.ensure_lookup_table()
@@ -358,12 +383,14 @@ def _padding_batch_for_object(obj, uv_layer_name, margin_uv):
         return None
 
     uv_sync = bpy.context.scene.tool_settings.use_uv_select_sync
-    border_edges = _collect_uv_border_edges(bm, uv_layer, uv_sync)
+    border_edges = _collect_uv_border_edges(
+        bm, uv_layer, uv_sync, slot_indices
+    )
     if not border_edges:
         return None
 
     coordinates, triangle_indices = _padding_strip_geometry(
-        bm, uv_layer, border_edges, margin_uv, uv_sync
+        bm, uv_layer, border_edges, margin_uv, uv_sync, slot_indices
     )
     if not coordinates:
         return None
@@ -472,7 +499,9 @@ PADDING_VISUAL_CLASSES = (
 )
 
 
-def enable_padding_visual(context, padding_px, texture_size):
+def enable_padding_visual(
+    context, padding_px, texture_size, material_slots=None
+):
     edit_objects = tuple(
         obj
         for obj in context.objects_in_mode_unique_data
@@ -483,6 +512,7 @@ def enable_padding_visual(context, padding_px, texture_size):
 
     _padding.invalidate()
     _padding.enabled = True
+    _padding.material_slots = material_slots
     _padding.margin_uv = _margin_uv(padding_px, texture_size)
     _padding.targets = {
         obj.name: (
@@ -498,10 +528,22 @@ def enable_padding_visual(context, padding_px, texture_size):
     return True
 
 
+def rescope_padding_visual(material_slots):
+    """Point a running padding preview at another material's faces."""
+    if not _padding.enabled:
+        return False
+    _padding.invalidate()
+    _padding.material_slots = material_slots
+    _request_rebuild()
+    _tag_uv_editor_redraw()
+    return True
+
+
 def disable_padding_visual():
     _padding.invalidate()
     _padding.enabled = False
     _padding.targets.clear()
+    _padding.material_slots = None
     for area_pointer, gizmo in list(_padding.gizmos.items()):
         try:
             gizmo.shapes.clear()
@@ -573,6 +615,11 @@ def _build_visual(visual_gizmo):
                 obj,
                 uv_layer_name,
                 _padding.margin_uv,
+                (
+                    _padding.material_slots.get(object_name, frozenset())
+                    if _padding.material_slots
+                    else None
+                ),
             )
             if shape is not None:
                 visual_gizmo.shapes.append(shape)

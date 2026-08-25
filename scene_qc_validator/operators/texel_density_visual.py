@@ -18,7 +18,11 @@ from . import uv_review_session
 class _Runtime:
     active: bool = False
     source_object_name: str = ""
+    scope: str = 'OBJECT'
     targets: dict = field(default_factory=dict)
+    # {object name: frozenset of material slot indices} while the preview is
+    # limited to one material; None while whole meshes are previewed.
+    material_slots: dict = None
     gizmos: dict = field(default_factory=dict)
     draw_handles: dict = field(default_factory=dict)
     build_pending: bool = False
@@ -64,6 +68,16 @@ def _face_selected(face, uv_layer, uv_sync):
     if uv_sync:
         return face.select
     return all(loop.uv_select_vert for loop in face.loops)
+
+
+def _face_in_scope(face, slot_indices):
+    """True when ``face`` belongs to the material the preview is limited to.
+
+    A second material is a second texture set: measuring its faces would drag
+    the average density - the green reference the colours are read against -
+    towards a scale that has nothing to do with the one under review.
+    """
+    return slot_indices is None or face.material_index in slot_indices
 
 
 def _selection_signature():
@@ -119,7 +133,14 @@ def _build_shapes(objects):
         )
         if not uv:
             continue
+        slot_indices = (
+            _review.material_slots.get(obj.name, frozenset())
+            if _review.material_slots
+            else None
+        )
         for face in bm.faces:
+            if not _face_in_scope(face, slot_indices):
+                continue
             world = face.calc_area()
             area = abs(sum(
                 loop[uv].uv.cross(loop.link_loop_next[uv].uv)
@@ -136,18 +157,25 @@ def _build_shapes(objects):
                         loop[uv].uv.to_3d(),
                         loop.link_loop_next[uv].uv.to_3d(),
                     ))
-        # A mesh boundary or a UV discontinuity is the outline of a UV island.
+        # A mesh boundary or a UV discontinuity is the outline of a UV island;
+        # so is the edge where the previewed material meets another one.
         for edge in bm.edges:
             loops = edge.link_loops
             if not loops:
                 continue
-            is_border = len(loops) == 1
+            scoped_loops = [
+                loop for loop in loops
+                if _face_in_scope(loop.face, slot_indices)
+            ]
+            if not scoped_loops:
+                continue
+            is_border = len(scoped_loops) < len(loops) or len(loops) == 1
             if not is_border:
                 first = loops[0]
                 across = first.link_loop_radial_next.link_loop_next
                 is_border = first[uv].uv != across[uv].uv
             if is_border:
-                for loop in loops:
+                for loop in scoped_loops:
                     border_edges.extend((
                         loop[uv].uv.to_3d(),
                         loop.link_loop_next[uv].uv.to_3d(),
@@ -476,6 +504,7 @@ def _ensure_handlers():
 def _disable_overlay():
     _review.invalidate()
     _review.targets.clear()
+    _review.material_slots = None
     _review.selection_signature = ()
     for gizmo in _review.gizmos.values():
         try:
@@ -488,18 +517,103 @@ def _disable_overlay():
 
 def restore_texel_density_review(context):
     _disable_overlay()
+    uv_review_session.stop_following_active_material('TEXEL_DENSITY')
     restored = uv_review_session.release(context, 'TEXEL_DENSITY')
     _review.active = False
     _review.source_object_name = ""
+    _review.scope = 'OBJECT'
     _tag_redraw()
     return restored
+
+
+def _review_targets(context, source):
+    """``(targets, material, scope)`` for a preview started on ``source``."""
+    settings = context.scene.sqc_settings
+    material = source.active_material
+    if (
+        not settings.texel_density_visual_use_material_scope
+        or material is None
+    ):
+        # A multi-material mesh is previewed one texture set at a time, so a
+        # single object preview still follows the active material slot.
+        return [source], uv_review_session.multi_material_scope(source), 'OBJECT'
+    targets, _material = uv_review_session.material_targets(context, source)
+    return targets, material, 'MATERIAL'
+
+
+def begin_texel_density_review(context, source):
+    """Start the preview on ``source``. Returns ``(success, message)``."""
+    targets, material, scope = _review_targets(context, source)
+    if not targets:
+        return False, 'No visible UV meshes to preview'
+    try:
+        uv_review_session.enter_review_edit(
+            context, 'TEXEL_DENSITY', source, targets
+        )
+        # Density is read against the average of the faces in scope, so a
+        # second material must neither be measured nor drawn over.
+        _review.material_slots = uv_review_session.material_slot_map(
+            targets, material
+        )
+        if material is not None:
+            uv_review_session.isolate_material_faces(context, material)
+        _review.targets = {
+            obj.name: obj.data.uv_layers.active.name for obj in targets
+        }
+        _review.active = True
+        _review.source_object_name = source.name
+        _review.scope = scope
+        _review.selection_signature = _selection_signature()
+        uv_review_session.follow_active_material(
+            'TEXEL_DENSITY', source, material, refresh_review_material
+        )
+        _ensure_handlers()
+        _request_rebuild()
+        _tag_redraw()
+        return True, ''
+    except RuntimeError as error:
+        restore_texel_density_review(context)
+        return False, str(error)
+
+
+def refresh_review_material(context, material):
+    """Re-aim the running preview at the object's newly active material slot.
+
+    Stays inside the open Edit Mode whenever the same meshes carry the new
+    material; only a different set of material users forces a restart.
+    """
+    if not _review.active:
+        return
+    source = context.scene.objects.get(_review.source_object_name)
+    if source is None or source.type != 'MESH':
+        return
+    targets = (
+        uv_review_session.material_targets(context, source)[0]
+        if _review.scope == 'MATERIAL'
+        else [source]
+    )
+    material_slots = uv_review_session.rescope_material(
+        context, targets, material
+    )
+    if material_slots is None:
+        begin_texel_density_review(context, source)
+        return
+    _review.material_slots = material_slots
+    _review.selection_signature = _selection_signature()
+    uv_review_session.follow_active_material(
+        'TEXEL_DENSITY', source, material, refresh_review_material
+    )
+    _request_rebuild()
+    _tag_redraw()
 
 
 class SQC_OT_ToggleTexelDensityVisual(Operator):
     bl_idname = 'sqc.toggle_texel_density_visual'
     bl_label = 'Show Texel Density'
     bl_description = (
-        'Preview UV scale: green is average, red is smaller and blue is larger'
+        'Preview UV scale: green is average, red is smaller and blue is '
+        'larger. On a multi-material mesh it covers the active material '
+        'slot and follows it when you pick another'
     )
 
     def execute(self, context):
@@ -523,40 +637,16 @@ class SQC_OT_ToggleTexelDensityVisual(Operator):
             self.report({'WARNING'}, 'Select a mesh with an active UV map')
             return {'CANCELLED'}
 
-        settings = context.scene.sqc_settings
-        material = source.active_material
-        if not settings.texel_density_visual_use_material_scope or material is None:
-            targets = [source]
-        else:
-            targets, _material = uv_review_session.material_targets(
-                context, source
-            )
-        if not targets:
-            self.report({'WARNING'}, 'No visible UV meshes to preview')
+        success, message = begin_texel_density_review(context, source)
+        if not success:
+            self.report({'WARNING'}, message)
             return {'CANCELLED'}
-
-        try:
-            uv_review_session.enter_review_edit(
-                context, 'TEXEL_DENSITY', source, targets
-            )
-            _review.targets = {
-                obj.name: obj.data.uv_layers.active.name for obj in targets
-            }
-            _review.active = True
-            _review.source_object_name = source.name
-            _review.selection_signature = _selection_signature()
-            _ensure_handlers()
-            _request_rebuild()
-            _tag_redraw()
-            return {'FINISHED'}
-        except RuntimeError as error:
-            self.report({'WARNING'}, str(error))
-            restore_texel_density_review(context)
-            return {'CANCELLED'}
+        return {'FINISHED'}
 
 
 def unregister_texel_density_review():
     _disable_overlay()
+    uv_review_session.stop_following_active_material('TEXEL_DENSITY')
     _review.active = False
     _review.source_object_name = ""
     if (

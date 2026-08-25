@@ -10,6 +10,20 @@ def _stage_button_text(stage_name):
     return stage_name
 
 
+def _reviewed_material_name(context):
+    """Material the running UV overlays are scoped to, or "".
+
+    The overlays follow the active material slot, so naming it here tells the
+    artist both what they are looking at and how to get to the next one.
+    """
+    from ..operators import uv_review_session
+
+    material = uv_review_session.followed_material_name()
+    if not material or context.mode != 'EDIT_MESH':
+        return ""
+    return material
+
+
 def _overlay_toggle_row(
     layout, settings, scope_prop, op_id, text, icon, depress,
     with_controls=True,
@@ -159,6 +173,12 @@ class SQC_PT_checklist(Panel):
                 'IMAGE_DATA', is_texel_density_review_active(),
                 with_controls=False,
             )
+
+            reviewed = _reviewed_material_name(context)
+            if reviewed:
+                note = layout.row()
+                note.enabled = False
+                note.label(text=f"Reviewing {reviewed}", icon='MATERIAL')
 
         row = layout.row(align=True)
         row.prop(

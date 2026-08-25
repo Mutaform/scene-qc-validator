@@ -30,10 +30,16 @@ from .preset_files import (
 )
 from .results import SQC_OT_toggle_result_mute
 from .selection import (
-    SQC_OT_select_material_users,
+    SQC_OT_select_material_objects,
     SQC_OT_select_result,
     _select_elements,
     select_result_by_index,
+)
+from . import material_uv_review
+from .material_uv_review import (
+    SQC_OT_select_material_users,
+    isolated_material_name,
+    review_scope_objects,
 )
 from . import random_sharp_highlight
 from ..checks.mapping import overlapped_uv
@@ -69,6 +75,7 @@ CLASSES = (
     SQC_OT_delete_stage,
     SQC_OT_export_preset_file,
     SQC_OT_import_preset_file,
+    SQC_OT_select_material_objects,
     SQC_OT_select_material_users,
     SQC_OT_toggle_uv_checker,
     SQC_OT_toggle_overlap_visual,

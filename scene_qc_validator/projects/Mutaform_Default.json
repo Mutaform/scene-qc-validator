@@ -6,11 +6,12 @@
       "checks": [
         {
           "check_id": "geo_has_soft_edges",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -21,16 +22,18 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_non_manifold",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -41,6 +44,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -51,6 +55,7 @@
           "float_param_1": 0.0001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -61,26 +66,29 @@
           "float_param_1": 1e-05,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_concave_faces",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_duplicate_faces",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -91,16 +99,18 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_animation_keys",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -111,6 +121,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "loc,rot,scale",
           "bool_param_1": true
         },
@@ -121,6 +132,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -131,6 +143,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -141,26 +154,29 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "uv_set_count",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 1,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "uv_single_tile",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -171,6 +187,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -181,6 +198,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 250000,
+          "int_param_2": 0,
           "string_param_1": ".+",
           "bool_param_1": true
         },
@@ -191,6 +209,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -201,6 +220,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -211,6 +231,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
           "bool_param_1": true
         },
@@ -221,6 +242,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -231,7 +253,52 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
-          "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "int_param_2": 0,
+          "string_param_1": "^mi_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_padding",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 16,
+          "int_param_2": 4096,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_unaligned_edges",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.1,
+          "float_param_2": 0.75,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "obj_nanite_closed_geometry",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "^(UCX|UBX|USP|UCP)_",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "int_param_2": 0,
+          "string_param_1": "",
           "bool_param_1": true
         }
       ]
@@ -241,11 +308,12 @@
       "checks": [
         {
           "check_id": "geo_has_soft_edges",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -256,56 +324,62 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_non_manifold",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_zero_area",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_zero_length",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_non_planar",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 1e-05,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_concave_faces",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -316,16 +390,18 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_loose",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -336,6 +412,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -346,6 +423,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "loc,rot,scale",
           "bool_param_1": true
         },
@@ -356,6 +434,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -366,6 +445,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -376,6 +456,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -386,6 +467,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 1,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -396,6 +478,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -406,6 +489,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -416,6 +500,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 250000,
+          "int_param_2": 0,
           "string_param_1": ".+",
           "bool_param_1": true
         },
@@ -426,6 +511,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -436,6 +522,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -446,6 +533,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
           "bool_param_1": true
         },
@@ -456,17 +544,63 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "mat_material_name",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_padding",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 16,
+          "int_param_2": 4096,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_unaligned_edges",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.1,
+          "float_param_2": 0.75,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "obj_nanite_closed_geometry",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "^(UCX|UBX|USP|UCP)_",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "int_param_2": 0,
+          "string_param_1": "",
           "bool_param_1": true
         }
       ]
@@ -476,11 +610,12 @@
       "checks": [
         {
           "check_id": "geo_has_soft_edges",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -491,6 +626,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -501,6 +637,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -511,6 +648,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -521,6 +659,7 @@
           "float_param_1": 0.0001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -531,16 +670,18 @@
           "float_param_1": 1e-05,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_concave_faces",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -551,6 +692,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -561,6 +703,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -571,6 +714,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -581,6 +725,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "loc,rot,scale",
           "bool_param_1": true
         },
@@ -591,6 +736,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -601,6 +747,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -611,6 +758,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -621,6 +769,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 1,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -631,6 +780,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -641,16 +791,18 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "uv_overlap",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 250000,
+          "int_param_2": 0,
           "string_param_1": ".+",
           "bool_param_1": true
         },
@@ -661,6 +813,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -671,6 +824,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -681,27 +835,74 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
           "bool_param_1": true
         },
         {
           "check_id": "mat_missing",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "mat_material_name",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_padding",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 16,
+          "int_param_2": 4096,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_unaligned_edges",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.1,
+          "float_param_2": 0.75,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "obj_nanite_closed_geometry",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "^(UCX|UBX|USP|UCP)_",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "int_param_2": 0,
+          "string_param_1": "",
           "bool_param_1": true
         }
       ]
@@ -711,11 +912,12 @@
       "checks": [
         {
           "check_id": "geo_has_soft_edges",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -726,6 +928,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -736,6 +939,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -746,6 +950,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -756,16 +961,18 @@
           "float_param_1": 0.0001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_non_planar",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 1e-05,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -776,6 +983,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -786,6 +994,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -796,6 +1005,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -806,6 +1016,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -816,6 +1027,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "loc,rot,scale",
           "bool_param_1": true
         },
@@ -826,16 +1038,18 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "tr_pivot_center",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -846,6 +1060,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -856,6 +1071,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 1,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -866,6 +1082,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -876,6 +1093,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -886,6 +1104,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 250000,
+          "int_param_2": 0,
           "string_param_1": ".+",
           "bool_param_1": true
         },
@@ -896,6 +1115,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -906,6 +1126,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -916,6 +1137,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
           "bool_param_1": true
         },
@@ -926,6 +1148,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -936,7 +1159,52 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_padding",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 16,
+          "int_param_2": 4096,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_unaligned_edges",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.1,
+          "float_param_2": 0.75,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "obj_nanite_closed_geometry",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 1.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "^(UCX|UBX|USP|UCP)_",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "int_param_2": 0,
+          "string_param_1": "",
           "bool_param_1": true
         }
       ]
@@ -951,6 +1219,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -961,6 +1230,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -971,6 +1241,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -981,6 +1252,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -991,16 +1263,18 @@
           "float_param_1": 0.0001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "geo_non_planar",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 1e-05,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1011,6 +1285,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1021,6 +1296,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1031,6 +1307,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1041,6 +1318,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1051,6 +1329,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "loc,rot,scale",
           "bool_param_1": true
         },
@@ -1061,16 +1340,18 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
         {
           "check_id": "tr_pivot_center",
-          "enabled": true,
+          "enabled": false,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1081,6 +1362,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1091,6 +1373,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 1,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1101,6 +1384,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1111,6 +1395,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1121,6 +1406,7 @@
           "float_param_1": 1e-10,
           "float_param_2": 0.0,
           "int_param_1": 250000,
+          "int_param_2": 0,
           "string_param_1": ".+",
           "bool_param_1": true
         },
@@ -1131,6 +1417,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1141,6 +1428,7 @@
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1151,6 +1439,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^(SM|SK)_[A-Za-z0-9_]+$",
           "bool_param_1": true
         },
@@ -1161,6 +1450,7 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "",
           "bool_param_1": true
         },
@@ -1171,7 +1461,52 @@
           "float_param_1": 0.0,
           "float_param_2": 0.0,
           "int_param_1": 0,
+          "int_param_2": 0,
           "string_param_1": "^m_[A-Za-z0-9_]+(?:_\\d{2})?$",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_padding",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 16,
+          "int_param_2": 4096,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "uv_unaligned_edges",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.1,
+          "float_param_2": 0.75,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "obj_nanite_closed_geometry",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 1.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "^(UCX|UBX|USP|UCP)_",
+          "bool_param_1": true
+        },
+        {
+          "check_id": "mat_material_count",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 1,
+          "int_param_2": 0,
+          "string_param_1": "",
           "bool_param_1": true
         }
       ]

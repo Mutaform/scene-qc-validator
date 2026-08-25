@@ -2,8 +2,10 @@ import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator
 
-from .core import _settings, _validation_targets
+from .core import _settings
+from . import material_uv_review
 from . import random_sharp_highlight
+from . import uv_review_session
 
 
 def _parse_element_ref(element_ref):
@@ -211,34 +213,67 @@ class SQC_OT_select_result(Operator):
         return {'FINISHED'}
 
 
-class SQC_OT_select_material_users(Operator):
-    bl_idname = "sqc.select_material_users"
+class SQC_OT_select_material_objects(Operator):
+    bl_idname = "sqc.select_material_objects"
     bl_label = "Select Material Users"
-    bl_description = "Select all validated-scope mesh objects that use this material"
+    bl_description = (
+        "Select every object in the scene that uses this material, "
+        "whatever the validation scope is"
+    )
 
     material_name: StringProperty()
 
     def execute(self, context):
-        mat = bpy.data.materials.get(self.material_name)
-        if not mat:
+        material = bpy.data.materials.get(self.material_name)
+        if material is None:
             self.report({'WARNING'}, "Material no longer exists")
             return {'CANCELLED'}
-        targets = [
-            obj for obj in _validation_targets(context)
-            if any(slot.material == mat for slot in obj.material_slots)
-        ]
+
+        # Picking objects is an Object Mode answer, so an open UV review has to
+        # hand the scene back first.
+        if material_uv_review.isolated_material_name(context):
+            material_uv_review.stop_isolation(context)
+
+        targets = []
+        skipped = 0
+        for obj in context.scene.objects:
+            if not any(
+                slot.material == material for slot in obj.material_slots
+            ):
+                continue
+            if (
+                obj.name not in context.view_layer.objects
+                or not obj.visible_get(view_layer=context.view_layer)
+                or obj.hide_select
+            ):
+                skipped += 1
+                continue
+            targets.append(obj)
         if not targets:
-            self.report({'WARNING'}, "No objects in current scope use this material")
+            self.report(
+                {'WARNING'},
+                "No selectable object in the scene uses this material",
+            )
             return {'CANCELLED'}
-        if context.object and context.object.mode != 'OBJECT':
+
+        active = context.view_layer.objects.active
+        if active and active.mode != 'OBJECT':
             try:
                 bpy.ops.object.mode_set(mode='OBJECT')
             except RuntimeError:
                 pass
-        for obj in context.selected_objects:
+        for obj in list(context.selected_objects):
             obj.select_set(False)
         for obj in targets:
             obj.select_set(True)
+            # The overlay reviews scope themselves to the active material, so
+            # picking a material here also arms Show Overlaps / Padding /
+            # Texel Density for it.
+            uv_review_session.activate_material_slot(obj, material)
         context.view_layer.objects.active = targets[0]
-        self.report({'INFO'}, f"Selected {len(targets)} object(s) using {mat.name}")
+
+        message = f"Selected {len(targets)} object(s) using {material.name}"
+        if skipped:
+            message += f", {skipped} hidden or unselectable user(s) skipped"
+        self.report({'INFO'}, message)
         return {'FINISHED'}
