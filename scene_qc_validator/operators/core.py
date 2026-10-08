@@ -1,3 +1,6 @@
+import json
+import re
+
 import bpy
 
 from .. import checks as checks_mod
@@ -57,7 +60,9 @@ def _add_check_item(collection, definition):
     item.int_param_1 = definition.get("int_param_1", 0)
     item.int_param_2 = definition.get("int_param_2", 0)
     item.string_param_1 = definition.get("string_param_1", "")
+    item.string_param_2 = definition.get("string_param_2", "")
     item.bool_param_1 = definition.get("bool_param_1", True)
+    item.bool_param_2 = definition.get("bool_param_2", True)
     return item
 
 
@@ -127,7 +132,9 @@ def ensure_checks_initialized_for_scene(scene):
             s.active_stage_name = stages[0]
         active_key = f"{s.active_project_name}::{s.active_stage_name}"
         if stages and s.applied_stage_key != active_key:
-            if presets_mod.load_stage(s.active_project_name, s.active_stage_name, s.checks):
+            if presets_mod.load_stage(
+                s.active_project_name, s.active_stage_name, s.checks, s
+            ):
                 s.applied_stage_key = active_key
 
 
@@ -160,6 +167,26 @@ def _refresh_pass_state(settings):
     )
 
 
+def _ignored_object_matcher(settings):
+    """Predicate for the names a project never validates, or None.
+
+    Collision and proxy meshes break almost every rule a render mesh must keep
+    - no UVs, no material, an origin of their own - so a project states once
+    which names to leave alone instead of muting the same rows on every asset.
+    """
+    pattern = settings.ignore_objects_regex.strip()
+    if not pattern:
+        return None
+    try:
+        return re.compile(pattern).match
+    except re.error as error:
+        print(
+            "[Scene QC Validator] Ignore Objects regex "
+            f"'{pattern}' is not usable: {error}"
+        )
+        return None
+
+
 def _validation_targets(context, scope=None):
     s = _settings(context)
     scope = scope or s.validation_scope
@@ -169,7 +196,11 @@ def _validation_targets(context, scope=None):
         objects = [o for o in context.scene.objects if o.visible_get()]
     else:
         objects = context.scene.objects
-    return [o for o in objects if o.type == 'MESH']
+    is_ignored = _ignored_object_matcher(s)
+    return [
+        o for o in objects
+        if o.type == 'MESH' and not (is_ignored and is_ignored(o.name))
+    ]
 
 
 def _scope_empty_message(scope):
@@ -191,6 +222,38 @@ def _enabled_checks(settings):
         if definition:
             enabled.append((check_item, definition))
     return enabled
+
+
+def _flush_edit_mesh(obj):
+    """Write an object's live edit data back into its Mesh datablock.
+
+    Checks read `obj.data`, which an open Edit Mode leaves behind: its UV
+    layers report zero entries against a full loop count, so a mesh the artist
+    happens to be editing fails checks it actually passes. Flushing costs one
+    copy per validated object and keeps Edit Mode open.
+    """
+    if obj.mode == 'EDIT':
+        try:
+            obj.update_from_editmode()
+        except (AttributeError, RuntimeError):
+            pass
+
+
+def _values_json(values):
+    """Замер находки в JSON. Нечитаемый замер - не повод уронить проверку.
+
+    Пустая строка значит «замера не было»: так приходит находка от упавшей
+    проверки. Это не то же самое, что пустой словарь, и отчёт обязан их
+    различать - иначе он соберёт предложение из нулей вместо «Check error».
+    """
+    if values is None:
+        return ""
+    if isinstance(values, str):
+        return values          # уже готовый JSON: находка пришла из прошлого прогона
+    try:
+        return json.dumps(values, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return ""
 
 
 def _run_validation_check(
@@ -218,6 +281,7 @@ def _run_validation_check(
         result.object_name = obj.name
         result.message = issue.get("message", "")
         result.element_ref = issue.get("element_ref", "")
+        result.values_json = _values_json(issue.get("values"))
         result.can_fix = issue.get(
             "can_fix",
             check_item.can_fix,
@@ -257,13 +321,19 @@ def _restore_selection(context, snapshot):
         context.view_layer.objects.active = previous_active
 
 
-def run_validation_logic(context):
-    """Run enabled checks and return (targets_found, any_fail)."""
+def run_validation_logic(context, targets=None):
+    """Run enabled checks and return (targets_found, any_fail).
+
+    `targets` pins the objects to validate. The browser report passes the list
+    it was built from: clicking a finding selects one object, and a re-validate
+    off the live selection would shrink the report to that object alone.
+    """
     ensure_checks_initialized(context)
     s = _settings(context)
     s.results.clear()
 
-    targets = _validation_targets(context)
+    if targets is None:
+        targets = _validation_targets(context)
     if not targets:
         s.has_run_validation = True
         s.last_validation_passed = False
@@ -274,6 +344,7 @@ def run_validation_logic(context):
 
     any_fail = False
     for obj in targets:
+        _flush_edit_mesh(obj)
         for check_item, d in enabled_checks:
             any_fail |= _run_validation_check(
                 s,
@@ -309,6 +380,7 @@ def revalidate_object_check(context, object_name, check_id):
         None,
     )
     if obj is not None and definition is not None and check_item is not None:
+        _flush_edit_mesh(obj)
         _run_validation_check(s, _muted_keys(s), obj, check_item, definition)
     _refresh_pass_state(s)
     if s.active_result_index >= len(s.results):

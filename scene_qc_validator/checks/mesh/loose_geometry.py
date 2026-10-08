@@ -20,6 +20,7 @@ def check_loose_geometry(obj, item):
         return [{
             "message": " and ".join(parts),
             "element_ref": ";".join(ref),
+            "values": {"verts": len(loose_verts), "edges": len(loose_edges)},
         }]
     return []
 

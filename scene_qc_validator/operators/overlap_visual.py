@@ -38,6 +38,19 @@ def is_overlap_result_active(object_name, uv_layer_name):
     )
 
 
+def _limit_to_bake_udim(context):
+    """Whether the overlay stays inside the bake tile, as the check is set."""
+    item = next(
+        (
+            check
+            for check in context.scene.sqc_settings.checks
+            if check.check_id == "uv_overlap"
+        ),
+        None,
+    )
+    return True if item is None else item.bool_param_2
+
+
 def restore_overlap_review(context):
     overlapped_uv.disable_overlap_visual()
     uv_review_session.stop_following_active_material('OVERLAP')
@@ -78,7 +91,10 @@ def _begin_overlap_review(
         if uv_layer is None:
             raise RuntimeError("Active mesh has no UV map")
         if not overlapped_uv.enable_overlap_visual(
-            source_object, uv_layer.name, material_slots
+            source_object,
+            uv_layer.name,
+            material_slots,
+            _limit_to_bake_udim(context),
         ):
             raise RuntimeError("Could not enable overlap visual")
 
@@ -203,31 +219,6 @@ def refresh_review_material(context, material):
     )
 
 
-def refresh_material_overlap_review(context, uv_set_number):
-    if (
-        not _overlap_review.active
-        or _overlap_review.source != 'MATERIAL'
-    ):
-        return True
-
-    source_object = context.scene.objects.get(
-        _overlap_review.target_object_name
-    )
-    if (
-        source_object is None
-        or source_object.type != 'MESH'
-        or len(source_object.data.uv_layers) < uv_set_number
-    ):
-        return False
-
-    success, _message = begin_material_overlap_review(
-        context,
-        source_object,
-        uv_set_number,
-    )
-    return success
-
-
 def toggle_result_overlap_review(
     context, source_object, uv_layer_name
 ):
@@ -282,9 +273,13 @@ class SQC_OT_toggle_overlap_visual(Operator):
             return {'CANCELLED'}
 
         settings = context.scene.sqc_settings
+        # "Check All Material Users" has nothing to gather on a mesh that
+        # carries no material yet, so review that mesh alone rather than
+        # refusing - the same fallback Show Texel Density already makes.
         begin_review = (
             begin_material_overlap_review
             if settings.overlap_visual_use_material_scope
+            and obj.active_material is not None
             else begin_object_overlap_review
         )
         success, message = begin_review(

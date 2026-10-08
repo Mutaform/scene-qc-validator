@@ -26,6 +26,7 @@ def check_no_hard_edge_on_uv_borders(obj, item):
         return [{
             "message": f"{len(bad)} UV-shell border edge(s) are not marked sharp",
             "element_ref": "e:" + ",".join(map(str, bad)),
+            "values": {"edges": len(bad), "uvs": [uv.name for uv in obj.data.uv_layers]},
         }]
     return []
 

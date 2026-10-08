@@ -16,5 +16,7 @@ def check_material_count(obj, item):
                 f"is {max_count}"
             ),
             "element_ref": "",
+            "values": {"count": count, "max": max_count,
+                       "names": sorted(m.name for m in materials)},
         }]
     return []

@@ -40,6 +40,7 @@ def check_non_planar_faces(obj, item):
         return [{
             "message": f"{len(bad)} non-planar face(s) found",
             "element_ref": "f:" + ",".join(map(str, bad)),
+            "values": {"faces": len(bad), "tolerance": tolerance},
         }]
     return []
 

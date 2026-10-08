@@ -65,8 +65,8 @@ def _update_uv_checker_tiling(self, context):
 
 def _update_overlap_visual_uv_set(self, context):
     try:
-        from .operators import overlap_visual
-        overlap_visual.refresh_material_overlap_review(
+        from .operators import uv_review_session
+        uv_review_session.refresh_uv_set(
             context,
             self.overlap_visual_uv_set_number,
         )
@@ -215,7 +215,13 @@ class SQC_CheckItem(PropertyGroup):
         description="Comma separated list of allowed prefixes/suffixes, or a regex pattern",
         default="",
     )
+    string_param_2: StringProperty(
+        name="Param 2",
+        description="Second text slot: a name template, a secondary pattern, ...",
+        default="",
+    )
     bool_param_1: BoolProperty(name="Param 1", default=True)
+    bool_param_2: BoolProperty(name="Param 2", default=True)
 
 
 class SQC_ResultItem(PropertyGroup):
@@ -236,6 +242,11 @@ class SQC_ResultItem(PropertyGroup):
     )
     # indices of mesh elements to (re)select on the target object, stored as "v:1,2,3;e:4,5;f:6"
     element_ref: StringProperty(default="")
+    # the measurement behind `message`, as JSON: which UV set, how many faces,
+    # what the limit was. The English message is for diffing runs between
+    # artists; the readable Russian line is built from these numbers instead of
+    # being parsed back out of the sentence. See `explain.text`.
+    values_json: StringProperty(default="")
 
 
 class SQC_MutedItem(PropertyGroup):
@@ -249,6 +260,11 @@ class SQC_Settings(PropertyGroup):
     checks: CollectionProperty(type=SQC_CheckItem)
     results: CollectionProperty(type=SQC_ResultItem)
     muted: CollectionProperty(type=SQC_MutedItem)
+
+    # объекты, по которым собран открытый отчёт: имена через \n. Кнопки на
+    # странице перепроверяют именно их, а не то, что выделено в Blender сейчас -
+    # клик по находке выделение меняет (см. operators/stage_check.run_action)
+    report_targets: StringProperty(default="")
 
     active_check_index: IntProperty(default=0)
     active_result_index: IntProperty(default=0, update=_update_active_result_selection)
@@ -271,6 +287,15 @@ class SQC_Settings(PropertyGroup):
         default='SELECTION',
     )
 
+    ignore_objects_regex: StringProperty(
+        name="Ignore Objects",
+        description=(
+            "Objects whose name matches this regex are left out of every "
+            "check - collision meshes, proxies and the like. Comes from the "
+            "project and is saved back into it"
+        ),
+        default="",
+    )
     active_project_name: StringProperty(name="Active Project", default="Mutaform_Default")
     active_stage_name: StringProperty(name="Active Stage", default="01_Blockout")
     applied_stage_key: StringProperty(name="Applied Stage Key", default="")

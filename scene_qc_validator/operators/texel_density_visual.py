@@ -576,6 +576,20 @@ def begin_texel_density_review(context, source):
         return False, str(error)
 
 
+def retarget_review(uv_layer_names):
+    """Point a running density preview at another UV set."""
+    if not _review.active:
+        return False
+    _review.invalidate()
+    for object_name, uv_layer_name in uv_layer_names.items():
+        if object_name in _review.targets:
+            _review.targets[object_name] = uv_layer_name
+    _review.selection_signature = _selection_signature()
+    _request_rebuild()
+    _tag_redraw()
+    return True
+
+
 def refresh_review_material(context, material):
     """Re-aim the running preview at the object's newly active material slot.
 

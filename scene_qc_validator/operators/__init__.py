@@ -29,6 +29,7 @@ from .preset_files import (
     SQC_OT_save_stage,
 )
 from .results import SQC_OT_toggle_result_mute
+from .stage_check import SQC_OT_check_stage, SQC_OT_open_report
 from .selection import (
     SQC_OT_select_material_objects,
     SQC_OT_select_result,
@@ -75,6 +76,8 @@ CLASSES = (
     SQC_OT_delete_stage,
     SQC_OT_export_preset_file,
     SQC_OT_import_preset_file,
+    SQC_OT_check_stage,
+    SQC_OT_open_report,
     SQC_OT_select_material_objects,
     SQC_OT_select_material_users,
     SQC_OT_toggle_uv_checker,

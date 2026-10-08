@@ -9,5 +9,6 @@ def check_pivot_center(obj, item):
         return [{
             "message": f"Object origin is not centered on geometry (offset {local_bbox_center.length:.4f})",
             "element_ref": "",
+            "values": {"offset": round(local_bbox_center.length, 4)},
         }]
     return []

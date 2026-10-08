@@ -10,6 +10,7 @@ def check_duplicate_faces(obj, item):
         return [{
             "message": f"{len(bad)} duplicate face(s) found",
             "element_ref": "f:" + ",".join(map(str, bad)),
+            "values": {"faces": len(bad)},
         }]
     return []
 

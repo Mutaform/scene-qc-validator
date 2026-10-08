@@ -23,8 +23,7 @@ def _material_qc_base_name(name):
     return f"m_{name or 'material'}"
 
 
-def _material_qc_name(mat):
-    desired = _material_qc_base_name(mat.name)
+def _unique_material_name(desired, mat):
     if mat.name == desired:
         return desired
     if bpy.data.materials.get(desired) is None:
@@ -36,6 +35,28 @@ def _material_qc_name(mat):
         if existing is None or existing == mat:
             return candidate
         index += 1
+
+
+def _material_qc_name(mat):
+    return _unique_material_name(_material_qc_base_name(mat.name), mat)
+
+
+def _template_material_name(template, obj, mat):
+    """Build a material name from the object it sits on.
+
+    A project can name materials after the asset rather than after whatever the
+    material happened to be called: ARDENA wants
+    `S_TAR_DK_Estate_GuestRoom_Bed_01` to carry `MI_TAR_DK_Estate_GuestRoom_Bed_01`,
+    which is the template `MI_{asset}`.
+
+    * ``{object}`` - the object's own name;
+    * ``{asset}``  - that name without its leading type token (`S_`, `SM_`, ...).
+    """
+    asset = re.sub(r"^[A-Za-z]+_", "", obj.name, count=1)
+    desired = template.format(object=obj.name, asset=asset).strip()
+    if not desired:
+        return None
+    return _unique_material_name(desired, mat)
 
 
 def check_material_name(obj, item):
@@ -53,6 +74,7 @@ def check_material_name(obj, item):
         return [{
             "message": f"Disallowed material name(s): {', '.join(sorted(set(bad)))}",
             "element_ref": "",
+            "values": {"names": sorted(set(bad)), "allowed": list(allowed)},
         }]
     return []
 
@@ -78,11 +100,23 @@ def fix_material_name(obj, item, result):
                 fixed = True
 
     # Pass 2: rename each remaining material to its QC-compliant name.
+    template = item.string_param_2.strip()
     for slot in obj.material_slots:
         mat = slot.material
         if not mat:
             continue
-        target_name = _material_qc_name(mat)
+        target_name = None
+        if template:
+            try:
+                target_name = _template_material_name(template, obj, mat)
+            except (KeyError, IndexError, ValueError) as error:
+                print(
+                    "[Scene QC Validator] Material name template "
+                    f"'{template}' is not usable: {error}"
+                )
+                return fixed
+        if target_name is None:
+            target_name = _material_qc_name(mat)
         if mat.name != target_name:
             mat.name = target_name
             fixed = True

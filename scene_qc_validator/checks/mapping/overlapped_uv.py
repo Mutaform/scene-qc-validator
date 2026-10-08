@@ -211,14 +211,19 @@ def _uv_points_match(first, second, tolerance):
 def _expand_faces_to_uv_islands(
     obj, uv_layer_name, seed_face_indices, tolerance=1e-5
 ):
+    """Grow the reported faces to the whole UV islands they belong to.
+
+    Returns the islands one by one rather than a single set: an artist needs to
+    hear "six shells are stacked", not "4494 faces are involved".
+    """
     if not seed_face_indices:
-        return set()
+        return []
 
     bm = bmesh.from_edit_mesh(obj.data)
     bm.faces.ensure_lookup_table()
     uv_layer = bm.loops.layers.uv.get(uv_layer_name)
     if uv_layer is None:
-        return set(seed_face_indices)
+        return [set(seed_face_indices)]
 
     connected_faces = {face.index: set() for face in bm.faces}
     for edge in bm.edges:
@@ -246,21 +251,29 @@ def _expand_faces_to_uv_islands(
             connected_faces[first_face.index].add(second_face.index)
             connected_faces[second_face.index].add(first_face.index)
 
-    island_face_indices = set(seed_face_indices)
-    pending_face_indices = list(seed_face_indices)
-    while pending_face_indices:
-        face_index = pending_face_indices.pop()
-        for connected_face_index in connected_faces.get(face_index, ()):
-            if connected_face_index not in island_face_indices:
-                island_face_indices.add(connected_face_index)
-                pending_face_indices.append(connected_face_index)
+    islands = []
+    visited = set()
+    for seed_face_index in seed_face_indices:
+        if seed_face_index in visited:
+            continue
+        island = {seed_face_index}
+        visited.add(seed_face_index)
+        pending_face_indices = [seed_face_index]
+        while pending_face_indices:
+            face_index = pending_face_indices.pop()
+            for connected_face_index in connected_faces.get(face_index, ()):
+                if connected_face_index not in visited:
+                    visited.add(connected_face_index)
+                    island.add(connected_face_index)
+                    pending_face_indices.append(connected_face_index)
+        islands.append(island)
 
-    for face_index in island_face_indices:
+    for face_index in visited:
         bm.faces[face_index].select = True
     bmesh.update_edit_mesh(
         obj.data, loop_triangles=False, destructive=False
     )
-    return island_face_indices
+    return islands
 
 
 def _uv_islands_from_faces(
@@ -518,7 +531,8 @@ def _uv_island_faces_to_shift(bm, uv_layer, face_indices):
 
 
 def _native_overlap_issues(
-    obj, uv_name_pattern, uv_map_required, expand_uv_islands=True
+    obj, uv_name_pattern, uv_map_required, expand_uv_islands=True,
+    limit_to_bake_udim=True,
 ):
     context = bpy.context
     view_layer = context.view_layer
@@ -579,25 +593,43 @@ def _native_overlap_issues(
             bpy.ops.uv.select_all(action='DESELECT')
             bpy.ops.uv.select_overlap(extend=False)
             overlap_face_indices = _selected_edit_face_indices(obj)
-            overlap_face_indices = _faces_intersecting_bake_udim(
-                obj, uv_layer_name, overlap_face_indices
-            )
-            if expand_uv_islands:
-                overlap_face_indices = _expand_faces_to_uv_islands(
+            if limit_to_bake_udim:
+                overlap_face_indices = _faces_intersecting_bake_udim(
                     obj, uv_layer_name, overlap_face_indices
                 )
+            island_count = 0
+            if expand_uv_islands:
+                islands = _expand_faces_to_uv_islands(
+                    obj, uv_layer_name, overlap_face_indices
+                )
+                island_count = len(islands)
+                overlap_face_indices = set().union(*islands) if islands else set()
             sorted_face_indices = sorted(overlap_face_indices)
             if sorted_face_indices:
-                issues.append({
-                    "message": (
+                where = " inside UDIM 1001" if limit_to_bake_udim else ""
+                if island_count:
+                    message = (
+                        f"{island_count} UV island(s) overlap another"
+                        f"{where} on UV set {uv_layer_name} "
+                        f"({len(sorted_face_indices)} face(s))"
+                    )
+                else:
+                    message = (
                         f"{len(sorted_face_indices)} face(s) with "
-                        "overlapping UVs in UDIM 1001 on UV set: "
-                        f"{uv_layer_name}"
-                    ),
+                        f"overlapping UVs{where} on UV set {uv_layer_name}"
+                    )
+                issues.append({
+                    "message": message,
                     "element_ref": (
                         f"uv:{uv_layer_name};f:"
                         + ",".join(map(str, sorted_face_indices))
                     ),
+                    "values": {
+                        "uv": uv_layer_name,
+                        "islands": island_count,
+                        "faces": len(sorted_face_indices),
+                        "udim_only": bool(limit_to_bake_udim),
+                    },
                 })
 
         bpy.ops.mesh.select_all(action='DESELECT')
@@ -653,6 +685,8 @@ def _native_overlap_issues(
                 f"'{uv_name_pattern.pattern}'"
             ),
             "element_ref": "",
+            "values": {"regex": uv_name_pattern.pattern,
+                       "uvs": [uv.name for uv in obj.data.uv_layers]},
         })
     return issues
 
@@ -670,6 +704,7 @@ def check_uv_overlap(obj, item):
                 f"Invalid UV set regex '{uv_name_expression}': {error}"
             ),
             "element_ref": "",
+            "values": {"regex": uv_name_expression, "error": str(error)},
         }]
 
     try:
@@ -678,20 +713,30 @@ def check_uv_overlap(obj, item):
             uv_name_pattern,
             item.bool_param_1,
             expand_uv_islands=True,
+            limit_to_bake_udim=item.bool_param_2,
         )
     except Exception as error:
         return [{
             "message": f"Native UV overlap check failed: {error}",
             "element_ref": "",
+            "values": {"error": str(error)},
         }]
 
 
 def fix_uv_overlap(obj, item, result):
-    """Keep one UV island from each overlap stack in UDIM 1001."""
+    """Keep one UV island from each overlap stack in UDIM 1001.
+
+    NOT wired into the check (2026-10-08, studio decision). Shoving the extra
+    islands past the first UDIM resolves the overlap on paper and leaves the
+    artist with an unpacked UV set to redo by hand, which is more work than
+    doing it right in the first place. Kept for a future fix that repacks
+    instead of shoving.
+    """
     issues = (
         [{
             "message": result.message,
             "element_ref": result.element_ref,
+            "values": result.values_json,
         }]
         if result is not None and result.element_ref
         else check_uv_overlap(obj, item)
@@ -784,6 +829,9 @@ class _OverlapVisualRuntime:
     # {object name: frozenset of material slot indices} while the review is
     # limited to one material; None while whole meshes are under review.
     material_slots: dict = None
+    # Draw only what falls inside the bake tile, as the check's own
+    # "Only UDIM 1001" says.
+    limit_to_bake_udim: bool = True
     build_pending: bool = False
     building: bool = False
     depsgraph_handler_registered: bool = False
@@ -1091,12 +1139,15 @@ def is_overlap_visual_enabled():
     return _overlap_visual.enabled
 
 
-def enable_overlap_visual(obj, uv_layer_name, material_slots=None):
+def enable_overlap_visual(
+    obj, uv_layer_name, material_slots=None, limit_to_bake_udim=True
+):
     if not obj or obj.type != 'MESH':
         return False
     _overlap_visual.invalidate_pending_builds()
     _overlap_visual.enabled = True
     _overlap_visual.material_slots = material_slots
+    _overlap_visual.limit_to_bake_udim = limit_to_bake_udim
     edit_objects = tuple(
         edit_object
         for edit_object in bpy.context.objects_in_mode_unique_data
@@ -1119,6 +1170,19 @@ def enable_overlap_visual(obj, uv_layer_name, material_slots=None):
     _ensure_overlap_visual_update_handler()
     _tag_uv_editor_redraw()
     _request_overlap_visual_rebuild()
+    return True
+
+
+def retarget_overlap_visual(uv_layer_names):
+    """Point a running overlap review at another UV set."""
+    if not _overlap_visual.enabled:
+        return False
+    _overlap_visual.invalidate_pending_builds()
+    for object_name, uv_layer_name in uv_layer_names.items():
+        if object_name in _overlap_visual.targets:
+            _overlap_visual.targets[object_name] = uv_layer_name
+    _request_overlap_visual_rebuild()
+    _tag_uv_editor_redraw()
     return True
 
 
@@ -1148,6 +1212,7 @@ def disable_overlap_visual():
     _overlap_visual.enabled = False
     _overlap_visual.targets.clear()
     _overlap_visual.material_slots = None
+    _overlap_visual.limit_to_bake_udim = True
     for area_pointer, visual_gizmo in list(
         _overlap_visual.gizmos.items()
     ):
@@ -1254,22 +1319,21 @@ def _build_overlap_visual_batch(context, visual_gizmo):
                     )
                 ):
                     continue
-                clipped_polygon = _clip_uv_polygon_to_bake_udim(
-                    [loop[uv_layer].uv for loop in triangle]
-                )
-                if (
-                    _uv_polygon_area(clipped_polygon)
-                    <= _BAKE_UDIM_AREA_EPSILON
-                ):
+                polygon = [loop[uv_layer].uv for loop in triangle]
+                if _overlap_visual.limit_to_bake_udim:
+                    # Cutting the drawn shape at the square keeps the overlay
+                    # on the bake tile. A project whose UV set is laid out
+                    # beyond 0-1 needs to see the rest of it, so leave the
+                    # triangle whole instead.
+                    polygon = _clip_uv_polygon_to_bake_udim(polygon)
+                if _uv_polygon_area(polygon) <= _BAKE_UDIM_AREA_EPSILON:
                     continue
-                first_point = clipped_polygon[0]
-                for point_index in range(
-                    1, len(clipped_polygon) - 1
-                ):
+                first_point = polygon[0]
+                for point_index in range(1, len(polygon) - 1):
                     uv_coordinates.extend((
                         first_point,
-                        clipped_polygon[point_index],
-                        clipped_polygon[point_index + 1],
+                        polygon[point_index],
+                        polygon[point_index + 1],
                     ))
 
             if uv_coordinates:

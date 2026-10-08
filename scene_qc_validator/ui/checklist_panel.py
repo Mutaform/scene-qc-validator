@@ -93,7 +93,13 @@ class SQC_PT_checklist(Panel):
         else:
             layout.label(text="No stages in selected project", icon='INFO')
 
-        if "LP_UVs" in s.active_stage_name:
+        ignore = layout.row(align=True)
+        ignore.prop(s, "ignore_objects_regex", text="", icon='CANCEL')
+
+        # Any stage whose name ends in "_UVs" is a UV stage, whatever the
+        # project calls its meshes: Mutaform's own "03_LP_UVs", ARDENA's
+        # "03_MP_UVs", or a client's "_HP_UVs".
+        if s.active_stage_name.endswith("_UVs"):
             from ..operators.overlap_visual import is_overlap_review_active
             from ..operators.padding_visual import is_padding_review_active
             from ..operators.texel_density_visual import (
@@ -225,8 +231,13 @@ class SQC_PT_checklist(Panel):
         sub = layout.column()
         sub.use_property_split = True
         sub.use_property_decorate = False
-        if cid in ("geo_zero_area", "geo_zero_length", "geo_non_planar", "tr_world_origin", "uv_single_tile", "uv_random_sharp"):
+        if cid in ("geo_zero_area", "geo_zero_length", "geo_non_planar", "tr_world_origin", "uv_random_sharp"):
             sub.prop(item, "float_param_1", text="Tolerance")
+        elif cid == "uv_single_tile":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "float_param_1", text="Tolerance")
+        elif cid == "uv_set_names":
+            sub.prop(item, "string_param_1", text="Expected Names")
         elif cid == "tr_unapplied":
             sub.prop(item, "string_param_1", text="Flags (loc,rot,scale)")
         elif cid == "uv_set_count":
@@ -251,6 +262,7 @@ class SQC_PT_checklist(Panel):
         elif cid == "uv_overlap":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "bool_param_1", text="Required")
+            sub.prop(item, "bool_param_2", text="Only UDIM 1001")
             sub.prop(item, "float_param_1", text="Tolerance")
             sub.prop(item, "int_param_1", text="Max Pairs")
         elif cid == "uv_padding":
@@ -272,3 +284,4 @@ class SQC_PT_checklist(Panel):
             sub.prop(item, "string_param_1", text="Regex Pattern")
         elif cid == "mat_material_name":
             sub.prop(item, "string_param_1", text="Allowed Patterns")
+            sub.prop(item, "string_param_2", text="Fix Name Template")

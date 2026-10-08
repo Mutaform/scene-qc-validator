@@ -82,6 +82,8 @@ def check_random_sharp(obj, item):
             return [{
                 "message": f"Object {obj.name} has sharp edges that are not UV borders",
                 "element_ref": "e:" + ",".join(map(str, bad)),
+                "values": {"edges": len(bad),
+                           "uvs": [uv.name for uv in obj.data.uv_layers]},
             }]
         return []
 
@@ -91,6 +93,8 @@ def check_random_sharp(obj, item):
         return [{
             "message": f"Object {obj.name} has sharp edges that are not UV borders",
             "element_ref": "e:" + ",".join(map(str, bad)),
+            "values": {"edges": len(bad),
+                       "uvs": [uv.name for uv in obj.data.uv_layers]},
         }]
     return []
 

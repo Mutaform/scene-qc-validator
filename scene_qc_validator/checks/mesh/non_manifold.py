@@ -172,18 +172,21 @@ def check_non_manifold(obj, item):
             "message": f"{len(non_manifold_edges)} edge(s) shared by 3 or more faces",
             "element_ref": "e:" + ",".join(map(str, non_manifold_edges)),
             "can_fix": True,
+            "values": {"kind": "edges", "edges": len(non_manifold_edges)},
         })
     if non_manifold_vertices:
         issues.append({
             "message": f"{len(non_manifold_vertices)} vertex/vertices with disconnected face fans",
             "element_ref": "v:" + ",".join(map(str, non_manifold_vertices)),
             "can_fix": True,
+            "values": {"kind": "fans", "verts": len(non_manifold_vertices)},
         })
     if coincident_vertices:
         issues.append({
             "message": f"Unwelded geometry: {len(coincident_vertices)} vertex/vertices share positions",
             "element_ref": "v:" + ",".join(map(str, coincident_vertices)),
             "can_fix": True,
+            "values": {"kind": "coincident", "verts": len(coincident_vertices)},
         })
     return issues
 

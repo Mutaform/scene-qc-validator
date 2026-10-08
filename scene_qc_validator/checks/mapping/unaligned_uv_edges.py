@@ -566,6 +566,8 @@ def check_unaligned_uv_edges(obj, item):
                 continue
             ordered_segments = sorted(bad_segments)
             issues.append({
+                "values": {"uv": layer.name, "edges": len(ordered_segments),
+                           "islands": checked_islands},
                 "message": (
                     f"{len(ordered_segments)} UV border edge(s) are "
                     f"slightly off-axis on {layer.name} "
@@ -701,6 +703,7 @@ def fix_unaligned_uv_edges(obj, item, result):
             [{
                 "message": result.message,
                 "element_ref": result.element_ref,
+                "values": result.values_json,
             }]
             if result is not None and result.element_ref
             else check_unaligned_uv_edges(obj, item)

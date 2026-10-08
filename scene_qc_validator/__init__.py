@@ -8,6 +8,8 @@ Packaged as a Blender Extension (blender_manifest.toml) for Blender 4.2+ / 5.1.
 
 import bpy
 
+from . import checks
+from . import live
 from . import properties
 from . import operators
 from . import ui
@@ -40,12 +42,17 @@ def _on_load_post(dummy):
 def register():
     for m in _MODULES:
         m.register()
+    # таблицы описаний сведены руками: расхождение с определениями проверок
+    # проявилось бы в отчёте у художника, поэтому сверяем на старте
+    checks.warn_registry_mismatch()
     bpy.app.timers.register(_timer_init, first_interval=0.1)
     if _on_load_post not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_on_load_post)
 
 
 def unregister():
+    # приёмник держит порт и фоновый поток - гасим раньше всего остального
+    live.unregister()
     if _on_load_post in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_on_load_post)
     for m in reversed(_MODULES):

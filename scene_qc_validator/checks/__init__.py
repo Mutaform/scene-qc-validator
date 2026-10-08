@@ -37,7 +37,7 @@ from .mapping.unaligned_uv_edges import (
     check_unaligned_uv_edges, fix_unaligned_uv_edges,
 )
 
-from .material.missing_material import check_missing_material
+from .material.missing_material import check_missing_material, fix_missing_material
 from .material.material_count import check_material_count
 from .material.material_name import check_material_name, fix_material_name
 
@@ -123,17 +123,18 @@ CHECK_DEFINITIONS = [
          description="Too many UV maps on one mesh",
          run=check_uv_set_count, fix=None, can_fix=False, int_param_1=1),
     dict(id="uv_single_tile", label="Shells Outside 0-1 Square", category='UV',
-         description="Every UV set must keep all UV shells inside the first 0-1 UDIM square",
+         description="The UV sets matching the regex must keep all shells inside the first 0-1 UDIM square",
          run=check_single_uv_tile, fix=None, can_fix=False,
-         float_param_1=0.001),
+         string_param_1=".+", float_param_1=0.001),
     dict(id="uv_set_names", label="UV Set Names", category='UV',
-         description="Replace Blender default UVMap names with map1, map2, ...",
+         description="UV sets must carry the expected names in order; empty means only Blender's own UVMap names are rejected",
          run=check_uv_set_names, fix=fix_uv_set_names, can_fix=True,
-         fix_is_destructive=False),
+         fix_is_destructive=False, string_param_1=""),
     dict(id="uv_overlap", label="Overlapped UV", category='UV',
-         description="Finds overlapping UVs in UDIM 1001 and expands hits to complete UV islands",
-         run=check_uv_overlap, fix=fix_uv_overlap, can_fix=True,
-         string_param_1=".+", bool_param_1=True, float_param_1=1e-10, int_param_1=250000),
+         description="Finds overlapping UVs and expands hits to complete UV islands",
+         run=check_uv_overlap, fix=None, can_fix=False,
+         string_param_1=".+", bool_param_1=True, bool_param_2=True,
+         float_param_1=1e-10, int_param_1=250000),
     dict(id="uv_padding", label="Padding", category='UV',
          description="Interactive UV-island padding preview in the UV Editor",
          run=check_padding, fix=None, can_fix=False,
@@ -165,7 +166,8 @@ CHECK_DEFINITIONS = [
          fix_is_destructive=False, string_param_1=r"^(SM|SK)_[A-Za-z0-9_]+$"),
     dict(id="mat_missing", label="Missing Material", category='MATERIAL',
          description="Faces or object without an assigned material",
-         run=check_missing_material, fix=None, can_fix=False),
+         run=check_missing_material, fix=fix_missing_material, can_fix=True,
+         fix_is_destructive=False),
     dict(id="mat_material_count", label="Material Count", category='MATERIAL',
          description="Too many materials assigned to one mesh",
          run=check_material_count, fix=None, can_fix=False,
@@ -174,8 +176,21 @@ CHECK_DEFINITIONS = [
          description="Material names must match the allowed pattern, for example m_body or m_body_01",
          run=check_material_name, fix=fix_material_name, can_fix=True,
          fix_is_destructive=False,
-         string_param_1=r"^m_[A-Za-z0-9_]+(?:_\d{2})?$"),
+         string_param_1=r"^m_[A-Za-z0-9_]+(?:_\d{2})?$",
+         string_param_2=""),
 ]
+
+
+def warn_registry_mismatch():
+    """Сверить реестр описаний с определениями проверок и напечатать расхождения."""
+    try:
+        from .. import explain
+    except ImportError:
+        return []
+    problems = explain.inconsistent({d["id"]: d for d in CHECK_DEFINITIONS})
+    for line in problems:
+        print("[Scene QC Validator] реестр описаний: %s" % line)
+    return problems
 
 
 def get_check_definition(check_id):

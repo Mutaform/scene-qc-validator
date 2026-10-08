@@ -249,9 +249,12 @@ class SQC_OT_TogglePaddingVisual(Operator):
         padding_px = item.int_param_1 if item else 16
         texture_size = item.int_param_2 if item else 4096
         settings = context.scene.sqc_settings
+        # No material to gather users of: preview this mesh alone instead of
+        # refusing, as Show Texel Density already does.
         begin_review = (
             begin_material_padding_review
             if settings.padding_visual_use_material_scope
+            and obj.active_material is not None
             else begin_object_padding_review
         )
         success, message = begin_review(

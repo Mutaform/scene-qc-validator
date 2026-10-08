@@ -9,6 +9,9 @@ LEGACY_FLOAT_PARAMS = {
     },
 }
 
+# The studio checklist. Other bundled projects are client ones.
+FACTORY_DEFAULT_PROJECT = "Mutaform_Default"
+
 
 def _addon_dir():
     return os.path.dirname(__file__)
@@ -122,7 +125,9 @@ def _serialize_checks(checks_collection):
             "int_param_1": c.int_param_1,
             "int_param_2": c.int_param_2,
             "string_param_1": c.string_param_1,
+            "string_param_2": c.string_param_2,
             "bool_param_1": c.bool_param_1,
+            "bool_param_2": c.bool_param_2,
         }
         for c in checks_collection
     ]
@@ -134,6 +139,13 @@ def _apply_checks(data, checks_collection):
         c = lookup.get(entry.get("check_id"))
         if not c:
             continue
+        if c.check_id == "uv_padding" and "int_param_2" in entry:
+            # Padding rescales itself when the texture size changes, so that an
+            # artist switching 4096 -> 2048 in the panel keeps the same relative
+            # border. A preset states both numbers outright, so point the item
+            # at the size it is arriving from and let the two values land as
+            # written - otherwise "16 px at 2048" loads as 8 px.
+            c.padding_last_texture_size = entry["int_param_2"]
         legacy_float_params = LEGACY_FLOAT_PARAMS.get(c.check_id, {})
         c.enabled = entry.get("enabled", c.enabled)
         c.severity = entry.get("severity", c.severity)
@@ -147,27 +159,42 @@ def _apply_checks(data, checks_collection):
         c.int_param_1 = entry.get("int_param_1", c.int_param_1)
         c.int_param_2 = entry.get("int_param_2", c.int_param_2)
         c.string_param_1 = entry.get("string_param_1", c.string_param_1)
+        # Projects written before this slot existed simply keep their default.
+        c.string_param_2 = entry.get("string_param_2", c.string_param_2)
         c.bool_param_1 = entry.get("bool_param_1", c.bool_param_1)
+        c.bool_param_2 = entry.get("bool_param_2", c.bool_param_2)
 
 
-def load_stage(project_name, stage_name, checks_collection):
+def project_ignore_objects(project_name):
+    """Regex of object names this project never validates (collisions, proxies)."""
+    data = _read_project(project_name)
+    return (data or {}).get("ignore_objects", "")
+
+
+def load_stage(project_name, stage_name, checks_collection, settings=None):
     data = _read_project(project_name)
     if not data:
         return False
     for stage in data.get("stages", []):
         if stage.get("name") == stage_name:
             _apply_checks(stage, checks_collection)
+            if settings is not None:
+                # Always written, blank included: switching to a project that
+                # ignores nothing must drop the previous project's rule.
+                settings.ignore_objects_regex = data.get("ignore_objects", "")
             return True
     return False
 
 
-def save_project(project_name, stage_name, checks_collection):
+def save_project(project_name, stage_name, checks_collection, ignore_objects=None):
     project_name = project_name.strip()
     stage_name = stage_name.strip()
     if not project_name or not stage_name:
         return False
     data = _read_project(project_name) or {"name": project_name, "stages": []}
     data["name"] = project_name
+    if ignore_objects is not None:
+        data["ignore_objects"] = ignore_objects
     checks = _serialize_checks(checks_collection)
     for stage in data["stages"]:
         if stage.get("name") == stage_name:
@@ -243,7 +270,15 @@ def import_project_file(filepath):
 
 
 def ensure_default_project(checks_collection):
+    """Project a scene falls back to when its own one is gone.
+
+    The studio checklist wins over the alphabet: bundling a project whose name
+    sorts before it (ARDENA) must not turn that client's rules into the default
+    every new scene starts with.
+    """
     names = list_projects()
+    if FACTORY_DEFAULT_PROJECT in names:
+        return FACTORY_DEFAULT_PROJECT
     return names[0] if names else ""
 
 
@@ -251,11 +286,11 @@ def list_presets():
     return list_projects()
 
 
-def load_preset(name, checks_collection):
+def load_preset(name, checks_collection, settings=None):
     stages = project_stage_names(name)
     if not stages:
         return False
-    return load_stage(name, stages[0], checks_collection)
+    return load_stage(name, stages[0], checks_collection, settings)
 
 
 def save_preset(name, checks_collection):

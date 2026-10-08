@@ -11,6 +11,7 @@ def check_zero_length_edges(obj, item):
             return [{
                 "message": f"{len(bad)} edge(s) shorter than {threshold}",
                 "element_ref": "e:" + ",".join(map(str, bad)),
+                "values": {"edges": len(bad), "threshold": threshold},
             }]
         return []
 
@@ -21,6 +22,7 @@ def check_zero_length_edges(obj, item):
         return [{
             "message": f"{len(bad)} edge(s) shorter than {threshold}",
             "element_ref": "e:" + ",".join(map(str, bad)),
+            "values": {"edges": len(bad), "threshold": threshold},
         }]
     return []
 

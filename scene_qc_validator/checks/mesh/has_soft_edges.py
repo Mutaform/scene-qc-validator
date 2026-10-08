@@ -32,6 +32,7 @@ def check_has_soft_edges(obj, item):
         return [{
             "message": "Object has marked sharp edges only",
             "element_ref": "e:" + ",".join(map(str, sharp_edges)) if sharp_edges else "",
+            "values": {"sharp": len(sharp_edges)},
         }]
     return []
 

@@ -1,0 +1,419 @@
+# -*- coding: utf-8 -*-
+"""Реестр находок: русская метка, русский текст с замером и способ починки.
+
+Устроено как `ardena_codes.py` в ARDENA Tools, и намеренно: проверяющий смотрит
+отчёты двух инструментов подряд, и находка должна читаться одинаково - короткая
+метка, одна строка с замером, под ней строка «чем чинится». Поэтому здесь те же
+три таблицы и те же четыре вида починки (AUTO / BUTTON / MANUAL / NOTE).
+
+Почему текст собирается из `values`, а не берётся из сообщения проверки.
+Сообщение проверки - машинное («1 UV island(s) overlap another on UV set UV3»):
+оно нужно, чтобы сравнивать прогоны, и меняться не должно. Художнику нужен тот
+же замер по-русски и с конкретикой: какой канал, сколько граней, какой был
+предел. Числа приходят из проверки полями (`values`), и строка собирается здесь -
+разбирать обратно английское предложение было бы гаданием.
+
+Правило для текстов: называть вещи, а не рассуждать о них. «Канал UV1: 3026
+граней за квадратом 0-1» - да; «развёртка выходит за пределы, что приведёт к
+неприятностям на бейке» - нет.
+"""
+
+# --- вид починки (те же четыре, что в ARDENA Tools)
+AUTO = "auto"       # снимает кнопка «Исправить» в отчёте или Fix в панели
+BUTTON = "button"   # отдельная кнопка: правка заметная, сама собой не делается
+MANUAL = "manual"   # руками, с короткой подсказкой, что именно сделать
+NOTE = "note"       # чинить нечего: это сведение
+
+FIX_LABEL = {AUTO: "авто", BUTTON: "кнопкой", MANUAL: "руками", NOTE: "к сведению"}
+
+# BUTTON - это правка, которую нельзя делать заодно: переименование объектов и
+# материалов. Общая кнопка «Исправить автоматически» их не трогает (см.
+# `operators/stage_check._auto_check_ids`), у каждой находки своя кнопка.
+
+AUTO_TEXT = "«Исправить» в отчёте или Fix у строки в панели валидатора"
+
+# id проверки -> короткая русская метка. Реестр: панель, отчёт и документация
+# называют одно правило одинаково.
+CODES = {
+    # --- геометрия
+    "geo_has_soft_edges":   "все рёбра - hard edges",
+    "geo_ngons":            "n-гоны",
+    "geo_non_manifold":     "non manifold геометрия",
+    "geo_zero_area":        "грани нулевой площади",
+    "geo_zero_length":      "рёбра нулевой длины",
+    "geo_non_planar":       "неплоские грани",
+    "geo_concave_faces":    "вогнутые грани",
+    "geo_duplicate_faces":  "задвоенные грани",
+    "geo_loose":            "болтающаяся геометрия",
+    "geo_animation_keys":   "анимационные ключи",
+    # --- объект
+    "tr_unapplied":         "трансформация не применена",
+    "tr_world_origin":      "пивот не в нуле сцены",
+    "tr_pivot_center":      "пивот не в центре габарита",
+    "nm_object_pattern":    "имя объекта не по шаблону",
+    "obj_nanite_closed_geometry": "открытая геометрия для Nanite",
+    # --- развёртка
+    "uv_missing":           "нет UV-развёртки",
+    "uv_set_count":         "лишние UV-каналы",
+    "uv_single_tile":       "шеллы за квадратом 0-1",
+    "uv_set_names":         "имена UV-каналов не те",
+    "uv_overlap":           "шеллы наложены друг на друга",
+    "uv_padding":           "паддинг между шеллами",
+    "uv_no_hard_edge_on_uv_borders": "шов без hard edge",
+    "uv_random_sharp":      "hard edges не по швам",
+    "uv_unaligned_edges":   "границы шеллов завалены",
+    # --- материал
+    "mat_missing":          "нет материала",
+    "mat_material_count":   "слишком много материалов",
+    "mat_material_name":    "имя материала не по шаблону",
+}
+
+# id проверки -> (вид, что сделать). Строка под находкой: лид сразу видит, что
+# уйдёт кнопкой, а что возвращать художнику.
+FIX = {
+    "geo_has_soft_edges":   (AUTO, "снять hard edge со всех рёбер; расставить заново там, где нужны"),
+    "geo_ngons":            (AUTO, "триангулировать найденные грани"),
+    "geo_non_manifold":     (AUTO, "разрезать «веера» граней и сварить каждый остров по отдельности; "
+                                   "после правки посмотреть на меш глазами"),
+    "geo_zero_area":        (AUTO, "растворить вырожденную геометрию (Dissolve Degenerate)"),
+    "geo_zero_length":      (AUTO, "сварить вершины ближе допуска (Merge by Distance)"),
+    "geo_non_planar":       (AUTO, "триангулировать: дальше форма не зависит от того, кто режет"),
+    "geo_concave_faces":    (AUTO, "триангулировать вогнутые грани"),
+    "geo_duplicate_faces":  (AUTO, "удалить дубликаты, оставив по одной грани"),
+    "geo_loose":            (AUTO, "удалить вершины и рёбра без граней"),
+    "geo_animation_keys":   (AUTO, "очистить анимационные данные объекта, меша и шейп-кейсов"),
+    "tr_unapplied":         (AUTO, "применить перечисленное (Apply). У FBX из Maya поворот 90° и "
+                                   "масштаб 0.01 - след импорта: применение переведёт сантиметры в "
+                                   "метры, и пороги длины и площади разойдутся в 100 и 10 000 раз"),
+    "tr_world_origin":      (AUTO, "перенести пивот в мировой ноль, компенсируя сдвиг геометрией"),
+    "tr_pivot_center":      (MANUAL, "Object → Set Origin → Origin to Geometry. Если по проекту пивот "
+                                     "стоит иначе (у ARDENA - внизу, Z = 0), выключить проверку в этапе"),
+    "nm_object_pattern":    (BUTTON, "«Исправить» у этой строки знает только студийную схему: "
+                                     "переименует в «SM_<имя>» (скелетные - «SK_»). У проекта своя "
+                                     "схема - переименовывать руками"),
+    "obj_nanite_closed_geometry": (MANUAL, "утопить открытый край внутрь соседней геометрии или закрыть "
+                                           "оболочку: это правка формы, автофикса нет"),
+    "uv_missing":           (MANUAL, "развернуть меш и добавить нужные каналы"),
+    "uv_set_count":         (MANUAL, "удалить лишние каналы (Object Data → UV Maps)"),
+    "uv_single_tile":       (MANUAL, "уложить шеллы внутрь 0-1. Если канал уходит за квадрат законно "
+                                     "(как UV3 у ARDENA), исключить его в «UV Set Regex» этой проверки"),
+    "uv_set_names":         (AUTO, "переименовать каналы по порядку в заданные («Expected Names»)"),
+    "uv_overlap":           (MANUAL, "разложить канал заново, без наложений. Автофикса нет намеренно: "
+                                     "сдвинуть лишние острова за UDIM - значит отдать художнику "
+                                     "нераспакованную развёртку, это дольше, чем разложить сразу"),
+    "uv_padding":           (NOTE, "это предпросмотр отступов, а не проверка: смотреть кнопкой Show Padding"),
+    "uv_no_hard_edge_on_uv_borders": (AUTO, "поставить hard edge ровно на границы шеллов, остальные швы не трогая"),
+    "uv_random_sharp":      (AUTO, "снять hard edge со всех рёбер, кроме границ шеллов"),
+    "uv_unaligned_edges":   (AUTO, "выпрямить границы, сдвигая UV не больше чем на 16 текселей; где нужен "
+                                   "сдвиг больше, кнопка молча не сделает ничего - такие шеллы руками"),
+    "mat_missing":          (AUTO, "создать материал по правилу проекта и закрыть им пустые слоты"),
+    "mat_material_count":   (MANUAL, "свести к разрешённому числу и удалить пустые слоты"),
+    "mat_material_name":    (BUTTON, "«Исправить» у этой строки переименует по шаблону проекта "
+                                     "и схлопнет дубли «.001» обратно на родителя. Общая кнопка "
+                                     "«Исправить автоматически» переименованием не занимается"),
+}
+
+
+def _n(count, one, few, many):
+    """«3 грани», «21 грань», «15 граней»."""
+    n10, n100 = count % 10, count % 100
+    word = (one if (n10 == 1 and n100 != 11)
+            else few if (2 <= n10 <= 4 and not 12 <= n100 <= 14)
+            else many)
+    return "%d %s" % (count, word)
+
+
+def _g(value):
+    """Число без хвоста нулей: 0.001, а не 0.0010000000475."""
+    try:
+        return ("%g" % float(value))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _faces(count):
+    return _n(count, "грань", "грани", "граней")
+
+
+def _edges(count):
+    return _n(count, "ребро", "ребра", "рёбер")
+
+
+def _verts(count):
+    return _n(count, "вершина", "вершины", "вершин")
+
+
+def _verb(count, one, many):
+    """Глагол под число: «1 грань задвоена», «5 граней задвоены»."""
+    n10, n100 = count % 10, count % 100
+    return one if (n10 == 1 and n100 != 11) else many
+
+
+def _uv_list(names):
+    if not names:
+        return "UV-каналов у меша нет"
+    return ("канал " if len(names) == 1 else "каналы ") + ", ".join(names)
+
+
+def _channel(values):
+    """«Канал UV3» - с какого канала начинается текст находки по развёртке."""
+    name = values.get("uv")
+    return ("Канал %s: " % name) if name else ""
+
+
+_SOURCES = {"object": "объект", "mesh data": "меш", "shape keys": "шейп-кейсы"}
+# ключи приходят из самой проверки (`check_unapplied_transform`), поэтому
+# "translation", а не "location"
+_PARTS = {"translation": "позиция", "location": "позиция",
+          "rotation": "поворот", "scale": "масштаб"}
+
+
+def _xyz(values, unit=""):
+    """«(0.01, 0.01, 0.01)». -0 от округления печатаем как 0."""
+    try:
+        parts = []
+        for value in values:
+            text = _g(value)
+            parts.append(("0" if text == "-0" else text) + unit)
+        return "(%s)" % ", ".join(parts)
+    except TypeError:
+        return ""
+
+
+def _t_non_manifold(v):
+    kind = v.get("kind")
+    if kind == "edges":
+        return "%s с тремя и более гранями" % _edges(v.get("edges", 0))
+    if kind == "fans":
+        return "%s с разорванным веером граней" % _verts(v.get("verts", 0))
+    verts = v.get("verts", 0)
+    return "%s %s в одной точке и не сварены" % (_verts(verts),
+                                                 _verb(verts, "стоит", "стоят"))
+
+
+def _t_loose(v):
+    parts = []
+    if v.get("verts"):
+        parts.append(_verts(v["verts"]))
+    if v.get("edges"):
+        parts.append(_edges(v["edges"]))
+    return "Вне граней: %s" % " и ".join(parts)
+
+
+def _t_unapplied(v):
+    named = []
+    for part in v.get("parts", ()):
+        label = _PARTS.get(part, part)
+        if part in ("translation", "location"):
+            label += " " + _xyz(v.get("location", ()))
+        elif part == "rotation":
+            label += " " + _xyz(v.get("rotation", ()), "°")
+        elif part == "scale":
+            label += " " + _xyz(v.get("scale", ()))
+        named.append(label)
+    return "Не применены: " + ", ".join(named)
+
+
+def _t_nanite(v):
+    shells = v.get("shells", 0)
+    count = _n(shells, "открытая оболочка", "открытые оболочки", "открытых оболочек")
+    if v.get("kind") == "stranded":
+        edges = v.get("edges", 0)
+        return ("%s %s ничем: %s по краю %s в пустоту"
+                % (count, _verb(shells, "не перекрыта", "не перекрыты"),
+                   _edges(edges), _verb(edges, "смотрит", "смотрят")))
+    return ("%s %s в соседнюю геометрию не до конца: %s по краю, зазор до %s мм"
+            % (count, _verb(shells, "утоплена", "утоплены"),
+               _edges(v.get("edges", 0)), _g(v.get("gap_mm", 0))))
+
+
+def _t_single_tile(v):
+    if v.get("error"):
+        return "Регулярное выражение «%s» не читается: %s" % (v.get("regex", ""), v["error"])
+    if v.get("loops"):
+        return ("%sне читается - %s на %s"
+                % (_channel(v), _n(v.get("uvs", 0), "UV", "UV", "UV"),
+                   _n(v["loops"], "луп", "лупа", "лупов")))
+    u, w = v.get("u") or (0, 0), v.get("v") or (0, 0)
+    return ("%s%s за квадратом 0-1, U %s..%s, V %s..%s"
+            % (_channel(v), _faces(v.get("faces", 0)),
+               _g(u[0]), _g(u[1]), _g(w[0]), _g(w[1])))
+
+
+def _t_set_names(v):
+    kind = v.get("kind")
+    if kind == "default":
+        want = list(v.get("want", ()))
+        return ("Блендеровские имена каналов: %s. %s %s"
+                % (", ".join(v.get("bad", ())),
+                   _verb(len(want), "Ожидается", "Ожидаются"), ", ".join(want)))
+    if kind == "extra":
+        return ("Канал %d «%s» лишний: проект ждёт %s"
+                % (v.get("slot", 0), v.get("uv", ""), ", ".join(v.get("expected", ()))))
+    return ("Канал %d назван «%s», ожидается «%s»"
+            % (v.get("slot", 0), v.get("uv", ""), v.get("want", "")))
+
+
+def _t_overlap(v):
+    if v.get("error"):
+        return "Проверку наложений не удалось выполнить: %s" % v["error"]
+    if v.get("regex") is not None:
+        return ("Ни один канал не подходит под «%s»; у меша %s"
+                % (v["regex"], _uv_list(v.get("uvs", ()))))
+    where = " внутри UDIM 1001" if v.get("udim_only") else ""
+    islands = v.get("islands") or 0
+    if islands == 1:
+        return "%s1 остров наложен на другой%s (%s)" % (_channel(v), where,
+                                                       _faces(v.get("faces", 0)))
+    if islands:
+        return ("%s%s наложены друг на друга%s (%s)"
+                % (_channel(v), _n(islands, "остров", "острова", "островов"),
+                   where, _faces(v.get("faces", 0))))
+    return "%s%s с наложенными UV%s" % (_channel(v), _faces(v.get("faces", 0)), where)
+
+
+def _t_missing_material(v):
+    if v.get("faces"):
+        return "%s %s в пустой слот" % (_faces(v["faces"]),
+                                        _verb(v["faces"], "смотрит", "смотрят"))
+    slots = v.get("slots", 0)
+    if not slots:
+        return "У объекта нет ни одного слота материала"
+    return "Все слоты материала пусты (%s)" % _n(slots, "слот", "слота", "слотов")
+
+
+TEXT = {
+    "geo_has_soft_edges":  lambda v: "Все рёбра помечены hard edge: %s, мягких нет"
+                                     % _edges(v.get("sharp", 0)),
+    "geo_ngons":           lambda v: "%s с пятью и более вершинами" % _faces(v.get("faces", 0)),
+    "geo_non_manifold":    _t_non_manifold,
+    "geo_zero_area":       lambda v: "%s площадью меньше %s" % (_faces(v.get("faces", 0)),
+                                                                _g(v.get("threshold", 0))),
+    "geo_zero_length":     lambda v: "%s короче %s" % (_edges(v.get("edges", 0)),
+                                                       _g(v.get("threshold", 0))),
+    "geo_non_planar":      lambda v: "%s с вершинами не в одной плоскости (допуск %s)"
+                                     % (_faces(v.get("faces", 0)), _g(v.get("tolerance", 0))),
+    "geo_concave_faces":   lambda v: "%s с вогнутым углом" % _faces(v.get("faces", 0)),
+    "geo_duplicate_faces": lambda v: "%s %s: дубль на тех же вершинах"
+                                     % (_faces(v.get("faces", 0)),
+                                        _verb(v.get("faces", 0), "задвоена", "задвоены")),
+    "geo_loose":           _t_loose,
+    "geo_animation_keys":  lambda v: "Анимационные данные на: %s"
+                                     % ", ".join(_SOURCES.get(s, s) for s in v.get("sources", ())),
+    "tr_unapplied":        _t_unapplied,
+    "tr_world_origin":     lambda v: "Пивот в %s, это %s от нуля сцены (допуск %s)"
+                                     % (_xyz(v.get("xyz", ())), _g(v.get("offset", 0)),
+                                        _g(v.get("tolerance", 0))),
+    "tr_pivot_center":     lambda v: "Пивот смещён от центра габарита на %s" % _g(v.get("offset", 0)),
+    "nm_object_pattern":   lambda v: "Имя «%s» не подходит под шаблон «%s»"
+                                     % (v.get("name", ""), v.get("pattern", "")),
+    "obj_nanite_closed_geometry": _t_nanite,
+    "uv_missing":          lambda v: "У меша нет ни одного UV-канала",
+    "uv_set_count":        lambda v: "%s при %s: лишние - %s"
+                                     % (_n(v.get("count", 0), "канал", "канала", "каналов"),
+                                        _n(v.get("max", 0), "допустимом", "допустимых",
+                                           "допустимых"),
+                                        ", ".join(v.get("extra", ())) or "?"),
+    "uv_single_tile":      _t_single_tile,
+    "uv_set_names":        _t_set_names,
+    "uv_overlap":          _t_overlap,
+    "uv_no_hard_edge_on_uv_borders":
+        lambda v: "%s на границах шеллов %s hard edge (%s)"
+                  % (_edges(v.get("edges", 0)),
+                     _verb(v.get("edges", 0), "не помечено", "не помечены"),
+                     _uv_list(v.get("uvs", ()))),
+    "uv_random_sharp":     lambda v: "%s %s hard edge вне границ шеллов (%s)"
+                                     % (_edges(v.get("edges", 0)),
+                                        _verb(v.get("edges", 0), "помечено", "помечены"),
+                                        _uv_list(v.get("uvs", ()))),
+    "uv_unaligned_edges":  lambda v: "%s%s на границах шеллов %s относительно осей "
+                                     "(проверено %s)"
+                                     % (_channel(v), _edges(v.get("edges", 0)),
+                                        _verb(v.get("edges", 0), "завалено", "завалены"),
+                                        _n(v.get("islands", 0), "прямоугольный шелл",
+                                           "прямоугольных шелла", "прямоугольных шеллов")),
+    "mat_missing":         _t_missing_material,
+    "mat_material_count":  lambda v: "%s при %s: %s"
+                                     % (_n(v.get("count", 0), "материал", "материала",
+                                           "материалов"),
+                                        _n(v.get("max", 0), "допустимом", "допустимых",
+                                           "допустимых"),
+                                        ", ".join(v.get("names", ()))),
+    "mat_material_name":   lambda v: "Имена не по шаблону: %s. Ожидается %s"
+                                     % (", ".join(v.get("names", ())),
+                                        ", ".join("«%s»" % a for a in v.get("allowed", ())) or "?"),
+}
+
+
+def label(check_id, fallback=""):
+    """Короткая русская метка проверки."""
+    return CODES.get(check_id) or fallback or check_id
+
+
+def text(check_id, values, fallback=""):
+    """Находка по-русски, с замером. Нет замера или собрать не вышло - машинный текст.
+
+    Падать здесь нельзя: отчёт пишется после долгой проверки, и ошибка в одной
+    строке не должна стоить художнику всей страницы.
+    """
+    builder = TEXT.get(check_id)
+    if builder is None or not isinstance(values, dict):
+        return fallback      # в том числе values is None: замера не было
+    try:
+        built = builder(values)
+    except Exception:
+        return fallback
+    return built or fallback
+
+
+def fix_hint(check_id, values=None, can_fix=None):
+    """(вид, что сделать). can_fix - есть ли у этой находки рабочая кнопка.
+
+    Вид берётся из таблицы, и только понижается: проверку могли включить в этапе
+    без фикса, или фикс отвязали (так сделано у наложений UV). Обещать «авто»
+    там, где кнопки нет, хуже, чем промолчать.
+
+    Обратно - не повышаем. Если у проверки появился фикс, а строка в таблице
+    осталась прежней, повышение дало бы самопротиворечивую строку: ярлык «авто»
+    и текст «автофикса нет намеренно». Расхождение ловит `inconsistent()`.
+    """
+    kind, how = FIX.get(check_id, (MANUAL, ""))
+    if can_fix is False and kind in (AUTO, BUTTON):
+        kind = MANUAL
+    return kind, how
+
+
+def missing(check_ids):
+    """Проверки без метки - страховка от опечатки в id при добавлении новой."""
+    return sorted(check_id for check_id in check_ids if check_id not in CODES)
+
+
+def inconsistent(definitions):
+    """Расхождения реестра с определениями проверок, строками.
+
+    Зовётся при регистрации аддона и печатает найденное в консоль: таблицы здесь
+    сведены руками, и забытая строка проявилась бы в отчёте у художника - то
+    находкой без русского текста, то обещанием кнопки, которой нет.
+    """
+    out = []
+    for check_id, definition in definitions.items():
+        if check_id not in CODES:
+            out.append("%s: нет русской метки в CODES" % check_id)
+        if check_id not in FIX:
+            out.append("%s: нет строки в FIX" % check_id)
+            continue
+        kind = FIX[check_id][0]
+        can_fix = bool(definition.get("can_fix"))
+        if can_fix and kind in (MANUAL, NOTE):
+            out.append("%s: фикс есть, а в FIX записано «%s»" % (check_id, FIX_LABEL[kind]))
+        if not can_fix and kind in (AUTO, BUTTON):
+            out.append("%s: в FIX обещано «%s», а фикса нет" % (check_id, FIX_LABEL[kind]))
+    for check_id in CODES:
+        if check_id not in definitions:
+            out.append("%s: есть в CODES, но такой проверки нет" % check_id)
+    return out
+
+
+def describe(check_id):
+    """Совместимость со старым отчётом: (метка, «», как чинить, «»)."""
+    return CODES.get(check_id, ""), "", FIX.get(check_id, (MANUAL, ""))[1], ""

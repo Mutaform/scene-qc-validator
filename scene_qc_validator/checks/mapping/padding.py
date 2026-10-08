@@ -528,6 +528,19 @@ def enable_padding_visual(
     return True
 
 
+def retarget_padding_visual(uv_layer_names):
+    """Point a running padding preview at another UV set."""
+    if not _padding.enabled:
+        return False
+    _padding.invalidate()
+    for object_name, uv_layer_name in uv_layer_names.items():
+        if object_name in _padding.targets:
+            _padding.targets[object_name] = uv_layer_name
+    _request_rebuild()
+    _tag_uv_editor_redraw()
+    return True
+
+
 def rescope_padding_visual(material_slots):
     """Point a running padding preview at another material's faces."""
     if not _padding.enabled:

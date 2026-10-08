@@ -36,7 +36,7 @@ class SQC_OT_load_stage(Operator):
     def execute(self, context):
         ensure_checks_initialized(context)
         s = _settings(context)
-        if presets_mod.load_stage(self.project_name, self.stage_name, s.checks):
+        if presets_mod.load_stage(self.project_name, self.stage_name, s.checks, s):
             s.active_project_name = self.project_name
             s.active_preset_name = self.project_name
             s.active_stage_name = self.stage_name
@@ -71,7 +71,10 @@ class SQC_OT_save_preset(Operator):
     def execute(self, context):
         ensure_checks_initialized(context)
         s = _settings(context)
-        if presets_mod.save_project(self.project_name, self.stage_name, s.checks):
+        if presets_mod.save_project(
+            self.project_name, self.stage_name, s.checks,
+            s.ignore_objects_regex,
+        ):
             s.active_project_name = self.project_name
             s.active_preset_name = self.project_name
             s.active_stage_name = self.stage_name
@@ -90,7 +93,10 @@ class SQC_OT_save_stage(Operator):
     def execute(self, context):
         ensure_checks_initialized(context)
         s = _settings(context)
-        if presets_mod.save_project(s.active_project_name, s.active_stage_name, s.checks):
+        if presets_mod.save_project(
+            s.active_project_name, s.active_stage_name, s.checks,
+            s.ignore_objects_regex,
+        ):
             s.applied_stage_key = f"{s.active_project_name}::{s.active_stage_name}"
             self.report({'INFO'}, f"Saved stage '{s.active_stage_name}'")
             return {'FINISHED'}

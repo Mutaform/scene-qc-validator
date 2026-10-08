@@ -285,6 +285,8 @@ def check_nanite_closed_geometry(obj, item):
                 f"{len(stranded_edges)} border edge(s) face empty space"
             ),
             "element_ref": "e:" + ",".join(map(str, sorted(stranded_edges))),
+            "values": {"kind": "stranded", "shells": stranded_shells,
+                       "edges": len(stranded_edges)},
         })
     if gapped_shells:
         issues.append({
@@ -294,5 +296,8 @@ def check_nanite_closed_geometry(obj, item):
                 f"{largest_gap * 1000.0:.2f} mm"
             ),
             "element_ref": "e:" + ",".join(map(str, sorted(gapped_edges))),
+            "values": {"kind": "gapped", "shells": gapped_shells,
+                       "edges": len(gapped_edges),
+                       "gap_mm": round(largest_gap * 1000.0, 2)},
         })
     return issues

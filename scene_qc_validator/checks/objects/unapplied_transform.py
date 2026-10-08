@@ -1,3 +1,5 @@
+import math
+
 from ..common import *
 
 
@@ -26,6 +28,10 @@ def check_unapplied_transform(obj, item):
         return [{
             "message": f"Unapplied {', '.join(bad)}",
             "element_ref": "",
+            "values": {"parts": bad,
+                       "location": [round(v, 4) for v in obj.location],
+                       "rotation": [round(math.degrees(a), 2) for a in obj.rotation_euler],
+                       "scale": [round(v, 4) for v in obj.scale]},
         }]
     return []
 

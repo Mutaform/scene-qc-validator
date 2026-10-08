@@ -1,5 +1,6 @@
 from ..common import *
 from collections import defaultdict, deque
+import re
 
 
 def _uv_key(uv, tolerance):
@@ -64,10 +65,28 @@ def _outside_uv_island_faces(obj, layer, tolerance, min_allowed, max_allowed):
 
 
 def check_single_uv_tile(obj, item):
-    """Ensure every UV set stays inside the first UDIM square."""
+    """Ensure the UV sets under review stay inside the first UDIM square.
+
+    Which sets those are is a project rule, not a universal one: a lightmap or
+    a detail channel may be laid out beyond 0-1 on purpose while the texture
+    channels may not. The regex picks the sets to judge; the default ``.+``
+    takes them all.
+    """
     uv_layers = obj.data.uv_layers
     if not uv_layers:
         return []
+
+    uv_name_expression = item.string_param_1 or ".+"
+    try:
+        uv_name_pattern = re.compile(uv_name_expression)
+    except re.error as error:
+        return [{
+            "message": (
+                f"Invalid UV set regex '{uv_name_expression}': {error}"
+            ),
+            "element_ref": "",
+            "values": {"regex": uv_name_expression, "error": str(error)},
+        }]
 
     tolerance = item.float_param_1 if item.float_param_1 > 0 else 0.001
     min_allowed = 0.0 - tolerance
@@ -75,11 +94,18 @@ def check_single_uv_tile(obj, item):
     issues = []
 
     for layer in uv_layers:
+        if not uv_name_pattern.match(layer.name):
+            continue
         uv_data = layer.data
         if len(uv_data) < len(obj.data.loops):
             issues.append({
-                "message": f"{layer.name} have are shells outside the square",
+                "message": (
+                    f"{layer.name} carries {len(uv_data)} UVs for "
+                    f"{len(obj.data.loops)} loops and could not be read"
+                ),
                 "element_ref": f"uv:{layer.name}",
+                "values": {"uv": layer.name, "uvs": len(uv_data),
+                           "loops": len(obj.data.loops)},
             })
             continue
 
@@ -89,8 +115,11 @@ def check_single_uv_tile(obj, item):
             min_u, min_v, max_u, max_v = bounds
             bounds_text = f"U {min_u:.4f}..{max_u:.4f}, V {min_v:.4f}..{max_v:.4f}"
             issues.append({
-                "message": f"{layer.name} have shells outside the square ({len(face_indices)} face(s), {bounds_text})",
+                "message": f"{layer.name} has shells outside the square ({len(face_indices)} face(s), {bounds_text})",
                 "element_ref": f"uv:{layer.name};f:" + ",".join(map(str, face_indices)),
+                "values": {"uv": layer.name, "faces": len(face_indices),
+                           "u": [round(min_u, 4), round(max_u, 4)],
+                           "v": [round(min_v, 4), round(max_v, 4)]},
             })
 
     return issues

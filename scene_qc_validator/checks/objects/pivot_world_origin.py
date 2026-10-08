@@ -7,6 +7,8 @@ def check_pivot_world_origin(obj, item):
         return [{
             "message": f"Object origin is not at world origin (offset {obj.location.length:.4f}, tolerance {tolerance})",
             "element_ref": "",
+            "values": {"offset": round(obj.location.length, 4), "tolerance": tolerance,
+                       "xyz": [round(v, 4) for v in obj.location]},
         }]
     return []
 

@@ -27,6 +27,7 @@ def check_animation_keys(obj, item):
         return [{
             "message": "Animation data found on " + ", ".join(sources),
             "element_ref": "",
+            "values": {"sources": sources},
         }]
     return []
 

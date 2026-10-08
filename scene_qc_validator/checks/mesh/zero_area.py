@@ -28,6 +28,7 @@ def check_zero_area_faces(obj, item):
         return [{
             "message": f"{len(bad)} face(s) with area below {threshold}",
             "element_ref": "f:" + ",".join(map(str, bad)),
+            "values": {"faces": len(bad), "threshold": threshold},
         }]
     return []
 

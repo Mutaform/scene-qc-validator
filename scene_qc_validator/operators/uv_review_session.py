@@ -249,6 +249,47 @@ def isolate_material_faces(context, material):
     return face_count
 
 
+def apply_uv_set(context, uv_set_number):
+    """Make the one-based ``uv_set_number`` active on every mesh being edited.
+
+    Returns ``{object name: uv layer name}`` for the meshes that carry it.
+    """
+    index = max(0, uv_set_number - 1)
+    uv_layer_names = {}
+    for obj in context.objects_in_mode_unique_data:
+        if obj.type != 'MESH':
+            continue
+        uv_layers = obj.data.uv_layers
+        if index >= len(uv_layers):
+            continue
+        uv_layers.active_index = index
+        uv_layer_names[obj.name] = uv_layers[index].name
+    return uv_layer_names
+
+
+def refresh_uv_set(context, uv_set_number):
+    """Move the whole review to another UV set.
+
+    The UV Editor draws each mesh's active UV layer, so pointing the layers at
+    the chosen set is what makes the editor follow; every open overlay is then
+    re-aimed at the same layer and rebuilt. Without this the artist has to
+    switch a Show button off and on until the view catches up.
+    """
+    if not active_kinds() or context.mode != 'EDIT_MESH':
+        return False
+    uv_layer_names = apply_uv_set(context, uv_set_number)
+    if not uv_layer_names:
+        return False
+
+    from ..checks.mapping import overlapped_uv
+    from ..checks.mapping import padding
+    from . import texel_density_visual
+    overlapped_uv.retarget_overlap_visual(uv_layer_names)
+    padding.retarget_padding_visual(uv_layer_names)
+    texel_density_visual.retarget_review(uv_layer_names)
+    return True
+
+
 def rescope_material(context, targets, material):
     """Re-aim an open review at ``material`` without leaving Edit Mode.
 

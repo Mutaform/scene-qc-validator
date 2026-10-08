@@ -9,6 +9,7 @@ def check_object_name_pattern(obj, item):
         return [{
             "message": f"Object name '{obj.name}' does not match pattern '{pattern}'",
             "element_ref": "",
+            "values": {"name": obj.name, "pattern": pattern},
         }]
     return []
 
