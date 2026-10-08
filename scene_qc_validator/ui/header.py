@@ -2,8 +2,16 @@
 """Кнопка проверки в шапке 3D-вьюпорта.
 
 Художник проверяет ассет десятки раз за день, а боковая панель чаще закрыта.
-Кнопка в шапке даёт три действия в один клик - по кнопке на этап активного
-проекта - и сразу открывает сводку в браузере.
+Кнопка даёт по действию на этап - в один клик, со сводкой сразу в браузере.
+
+Кнопка всегда проверяет по ARDENA, что бы ни было выбрано в панели валидатора.
+Буква «А» на ней - это буква проекта, и означать она должна ровно его: иначе
+художник, переключивший панель на студийный чеклист, нажимает «А» и получает
+проверку не того проекта, ничего об этом не узнав. Панель остаётся общей - там
+проект выбирается как раньше.
+
+Поэтому проект здесь зашит константой, а не берётся из настроек сцены. Понадобится
+такая же кнопка другому клиенту - это будет своя кнопка со своей буквой.
 """
 
 from bpy.types import Panel
@@ -11,6 +19,10 @@ from bpy.types import Panel
 from .. import presets as presets_mod
 from .checklist_panel import _stage_button_text
 from .helpers import addon_version
+
+
+# Проект, который проверяет кнопка «А». Не настройка сцены - см. шапку модуля.
+HEADER_PROJECT = "ARDENA"
 
 
 class SQC_PT_header_menu(Panel):
@@ -26,7 +38,7 @@ class SQC_PT_header_menu(Panel):
         settings = context.scene.sqc_settings
 
         title = layout.row(align=True)
-        title.label(text="QC Validator", icon='CHECKMARK')
+        title.label(text="QC Validator · %s" % HEADER_PROJECT, icon='CHECKMARK')
         version = title.row(align=True)
         version.alignment = 'RIGHT'
         version.enabled = False
@@ -38,12 +50,14 @@ class SQC_PT_header_menu(Panel):
 
         layout.prop(settings, "validation_scope", text="")
 
-        project = settings.active_project_name
+        project = HEADER_PROJECT
         stages = presets_mod.project_stage_names(project)
         box = layout.column(align=True)
-        box.label(text=project or "No project", icon='PRESET')
+        box.label(text=project, icon='PRESET')
         if not stages:
-            box.label(text="No stages in project", icon='INFO')
+            # проект удалили или переименовали: молчаливая пустота выглядела бы
+            # как «кнопка сломалась», поэтому говорим, чего не хватает
+            box.label(text=f"Project '{project}' is not installed", icon='ERROR')
         else:
             column = box.column(align=True)
             column.scale_y = 1.3

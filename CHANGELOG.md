@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.11.1
+
+### Fixed
+
+- The **А** button in the viewport header always checks ARDENA now, whatever
+  project the sidebar has selected. The letter on the button is that project's,
+  so it has to mean that project: an artist who switched the panel to the studio
+  checklist pressed А and got the wrong project's rules, with nothing saying so.
+  The panel is still the general one - the project is picked there as before.
+
+
 ## 1.11.0
 
 The browser report is now the same page as the one ARDENA Tools writes, and
