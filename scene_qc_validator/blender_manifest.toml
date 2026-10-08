@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "scene_qc_validator"
-version = "1.11.1"
+version = "1.12.1"
 name = "Scene QC Validator by Mutaform Studio"
 tagline = "Production scene and mesh validation checklist by Mutaform Studio"
 maintainer = "Mutaform Studio"
@@ -21,3 +21,4 @@ license = [
 # its own preset files.
 [permissions]
 files = "Save and load local checklist presets (JSON) in the addon's user extension folder"
+network = "Check the studio release folder for a newer version of the add-on"

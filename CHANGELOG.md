@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.12.1
+
+### Fixed
+
+- **The update installed itself without the button being pressed.** The offer
+  window is opened from a timer, and a timer does not always have a window in
+  its context; without one Blender does not show the dialog at all - it runs
+  the operator's `execute` instead, which is the branch the button leads to. So
+  the add-on downloaded and installed an update nobody had agreed to. It is the
+  first rule of the scheme and the one worth having: the tool reports, the
+  artist installs. The offer is now skipped when there is no window, and the
+  install refuses to start unless the dialog was actually shown and answered.
+
+
+## 1.12.0
+
+### Added
+
+- **The add-on updates itself from the studio folder on Yandex.Disk.** On every
+  Blender start it quietly asks the release folder whether a newer version is
+  out; if one is, a window opens in the middle of the screen with the two
+  version numbers and what changed, and one button installs it. Nothing is
+  installed without that button being pressed. Close the window and a red row
+  stays at the top of the panel until the update is in, and the window comes
+  back on the next start - an add-on that knows it is out of date must not be
+  easy to miss.
+- The updater is a module of its own, `mutaform_update/`, meant to be copied
+  into the studio's other add-ons: nothing inside it names this one, the
+  settings arrive through `setup()`, and operator names carry the add-on's id
+  so two Mutaform add-ons can both carry it in one Blender.
+- `tools/publish_update.py` cuts a release into the channel: it reads the
+  version out of the built archive, hashes the file it actually wrote, and
+  checks the two against each other afterwards. A manifest that disagrees with
+  the archive beside it advertises an update that cannot install, and keeps
+  advertising it.
+
+The scheme is the one ARDENA Tools and QC Bake for Maya already run, and what
+it costs to get wrong is written down in `maya-addon-updater.md`: only https,
+the archive is checked against the sha256 in the manifest before anything is
+installed, a version the updater cannot parse is a refusal rather than a guess,
+and `bpy.app.online_access` being off means silence - that setting is the
+artist saying no, not an obstacle.
+
+
 ## 1.11.1
 
 ### Fixed

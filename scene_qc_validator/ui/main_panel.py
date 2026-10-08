@@ -1,5 +1,6 @@
 from bpy.types import Panel
 
+from .. import mutaform_update
 from .helpers import addon_version
 
 
@@ -20,6 +21,11 @@ class SQC_PT_main(Panel):
     def draw(self, context):
         layout = self.layout
         s = context.scene.sqc_settings
+
+        # Обновление - первой строкой панели, выше всего остального. Окно на
+        # запуске можно закрыть не читая, и тогда это единственное, что
+        # напоминает: аддон устарел.
+        mutaform_update.draw_banner(layout)
 
         if len(s.checks) == 0:
             col = layout.column(align=True)
