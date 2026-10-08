@@ -30,11 +30,16 @@ jobs:
         shell: pwsh
         run: tools/build_release.ps1
 
+      # The archive holds one top-level "scene_qc_validator" folder, so the
+      # manifest sits inside it - not at the root. The check looked at the root
+      # and had been failing every publish since the build script started
+      # writing the wrapper folder, which is why the repository served 1.9.2
+      # while main moved on.
       - name: Check ZIP contents
         shell: pwsh
         run: |
           Expand-Archive -LiteralPath dist/scene_qc_validator_by_mutaform_studio.zip -DestinationPath verify -Force
-          if (-not (Test-Path -LiteralPath "verify/blender_manifest.toml")) {
+          if (-not (Test-Path -LiteralPath "verify/scene_qc_validator/blender_manifest.toml")) {
             throw "Invalid extension ZIP: missing scene_qc_validator/blender_manifest.toml"
           }
 
