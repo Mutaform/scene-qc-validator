@@ -421,7 +421,8 @@ TEXT = {
                                            "допустимых"),
                                         ", ".join(v.get("extra", ())) or "?"),
     "uv_padding_gap":      lambda v: "%sпаддинг похож на %g px при карте %s, норма %g-%g "
-                                     "(самое узкое место %g px, шеллов %d)"
+                                     "(самое узкое %g px, шеллов %d; нажмите - "
+                                     "покажу худшие в UV)"
                                      % (_channel(v), v.get("padding", 0),
                                         _n_plain(v.get("size", 0)),
                                         v.get("min", 0), v.get("max", 0),

@@ -25,11 +25,19 @@
 упакованном с Margin 16 при 2048, - между соседними островами ровно 16.0 px,
 до края тайла 8. Делить пополам для этого пакера неверно.
 
-Соприкасающиеся острова в расчёт не идут. Пакер считает лежащие вплотную куски
-одним островом, а топологически они разные, и такая пара даёт ноль. На том же
-кубе четыре острова из шести имели ноль до ближайшего, и медиана выходила
-нулевой при настоящем отступе 16. Всё, что ближе пикселя, - это склейка, а не
-отступ, и в статистику не попадает.
+Наложенные друг на друга острова - не соседи. Стакинг на текстурном канале
+законный приём: повторяющиеся куски кладут в одно место, чтобы маски выходили
+детальнее. Расстояние между такими островами - не отступ, а почти ноль, и
+считать его отступом бессмысленно. Узнаются они по пересечению габаритов.
+
+Замерено на живой полке: из 121 острова у 108 ближайшим оказывался наложенный
+на них же, и отступ выходил 1.8 px вместо настоящих 33. Отбрасывать только
+нулевые расстояния не помогло - у двух наложенных шеллов контуры расходятся на
+пиксель-другой, и эта разница подменяла собой отступ.
+
+Соприкасающиеся острова тоже не считаются: всё, что ближе пикселя, - это
+склейка, а не отступ. На кубе четыре острова из шести имели ноль до
+ближайшего, и медиана выходила нулевой при настоящем отступе 16.
 
 Край тайла в расчёт не берётся: у пакера для него свой параметр (Border
 Margin), и на том же кубе он вдвое меньше междушелльного.
@@ -51,6 +59,10 @@ from .udim import islands_of, layer_by_index
 # ближайший сосед дальше, в медиану не идёт: он стоит на отшибе и про отступ,
 # заданный пакером, ничего не сообщает.
 REACH = 4.0
+
+# Сколько шеллов показывать по нажатию на находку. Выделять все сто с лишним -
+# то же, что не выделять ничего: смотреть надо на худшие.
+SHOW_SHELLS = 20
 
 
 def _boundary_points(obj, layer, islands):
@@ -115,6 +127,17 @@ def measure_gap(obj, layer, reach=None, floor=0.0):
     if len(points) < 2:
         return None
 
+    # наложенные пары: габариты пересекаются - значит это стак, а не соседство
+    stacked = set()
+    for first in range(len(islands)):
+        a = islands[first]
+        for second in range(first + 1, len(islands)):
+            b = islands[second]
+            if (a.umin < b.umax and b.umin < a.umax
+                    and a.vmin < b.vmax and b.vmin < a.vmax):
+                stacked.add((first, second))
+                stacked.add((second, first))
+
     radius = reach if reach and reach > 0 else (16.0 * REACH) / 2048.0
     cell = radius
     buckets = {}
@@ -135,7 +158,7 @@ def measure_gap(obj, layer, reach=None, floor=0.0):
                 near.extend(buckets.get((tile, x + dx, y + dy), ()))
         for index, u, v in here:
             for other_index, ou, ov in near:
-                if other_index == index:
+                if other_index == index or (index, other_index) in stacked:
                     continue
                 distance = (u - ou) ** 2 + (v - ov) ** 2
                 if distance <= floor_squared or distance >= limit:
@@ -144,8 +167,9 @@ def measure_gap(obj, layer, reach=None, floor=0.0):
                     best[index] = distance
     if not best:
         return None
-    nearest = [math.sqrt(value) for value in best.values()]
-    return _median(nearest), min(nearest), len(nearest)
+    nearest = {index: math.sqrt(value) for index, value in best.items()}
+    values = sorted(nearest.values())
+    return _median(values), values[0], len(values), nearest, islands
 
 
 def check_padding_gap(obj, item):
@@ -164,19 +188,28 @@ def check_padding_gap(obj, item):
         found = measure_gap(obj, layer, floor=1.0 / size)
         if found is None:
             continue
-        median_uv, minimum_uv, pairs = found
+        median_uv, minimum_uv, pairs, nearest, islands = found
         padding_px = median_uv * size
         if low <= round(padding_px) <= high:
             continue
+        # грани тех шеллов, что увели замер за норму: художник нажмёт на находку
+        # и увидит в UV-редакторе ровно их, а не будет искать сам
+        guilty = sorted(
+            (index for index, value in nearest.items()
+             if not low <= round(value * size) <= high),
+            key=lambda index: abs(nearest[index] * size - padding_px),
+            reverse=True)[:SHOW_SHELLS]
+        faces = sorted({face for index in guilty for face in islands[index].faces})
         issues.append({
             "message": ("Padding on UV set %s looks like %.0f px at %d, "
                         "expected %g..%g (tightest %.1f px over %d shell(s))"
                         % (layer.name, padding_px, size, low, high,
                            minimum_uv * size, pairs)),
-            "element_ref": "uv:%s" % layer.name,
+            "element_ref": ("uv:%s;f:%s" % (layer.name, ",".join(map(str, faces)))
+                            if faces else "uv:%s" % layer.name),
             "values": {"uv": layer.name, "padding": round(padding_px, 1),
                        "size": size, "min": low, "max": high, "shells": pairs,
                        "tightest": round(minimum_uv * size, 1),
-                       "tight": padding_px < low},
+                       "shown": len(guilty), "tight": padding_px < low},
         })
     return issues

@@ -159,7 +159,7 @@ def _padding_gap(obj, number, size):
     if found is None:
         return None, ("не измерен: в «%s» нечего сравнивать - соседних шеллов нет"
                       % layer.name)
-    return found[0] * size, ""
+    return found[0] * size, ""          # found = (медиана, минимум, шеллов, ...)
 
 
 def _udim_tiles(mesh, number=1):

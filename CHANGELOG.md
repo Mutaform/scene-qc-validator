@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.18.2
+
+### Fixed
+
+- **Stacked shells were being measured as the padding.** Stacking is a
+  legitimate trick on the texture channel - repeated pieces are laid on top of
+  each other so the masks come out finer - and the distance between two such
+  shells is not a gap at all. Measured on a real shelf: of its 121 shells, 108
+  had their nearest neighbour sitting on top of them, and the padding came out
+  as 1.8 px against a real 33. Dropping only the exact zeroes did not help -
+  the outlines of two stacked shells run a pixel or two apart, and that
+  difference stood in for the padding. Islands whose bounding boxes overlap are
+  not neighbours and are left out.
+
+### Added
+
+- Clicking the padding finding **shows the shells it is complaining about** in
+  the UV editor - the twenty furthest from the norm, rather than all hundred
+  and something, because selecting everything says as little as selecting
+  nothing.
+
+
 ## 1.18.1
 
 ### Fixed
