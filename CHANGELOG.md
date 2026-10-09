@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.18.0
+
+### Changed
+
+- **The measuring checks pick their UV set by number, not by name.** They were
+  matched with a regex against `^UV1$`, so a mesh whose channel was still
+  called `UVMap` after import got measured by nothing at all - and said so
+  nowhere. What a channel is called is the naming check's business; a
+  measurement should measure whatever is there. The six of them - both padding
+  checks, packing density and the three UDIM ones - now take a channel number,
+  1 being the first, and the setting reads "UV Set (1 = first)".
+
+### Fixed
+
+- **A row that could not be measured showed a green tick.** The breakdown takes
+  a row's state from "the check is on and found nothing", and a check that
+  cannot measure finds nothing either - so "не измерен" came with a tick beside
+  it, which reads as "looked at, all good". Such a row is grey now and says why
+  it could not be measured: no channel of that number, or no neighbouring
+  shells to compare.
+
+
 ## 1.17.1
 
 ### Changed

@@ -39,10 +39,9 @@
 """
 
 import math
-import re
 
 from ..common import *
-from .udim import islands_of
+from .udim import islands_of, layer_by_index
 
 # Во сколько раз дальше верхней границы ещё интересно смотреть. Шелл, у которого
 # ближайший сосед дальше, в медиану не идёт: он стоит на отшибе и про отступ,
@@ -149,22 +148,13 @@ def check_padding_gap(obj, item):
     low = item.float_param_1 if item.float_param_1 > 0 else 8.0
     high = item.float_param_2 if item.float_param_2 > 0 else 16.0
 
-    if not obj.data.uv_layers:
-        return []
-    expression = item.string_param_1 or r"^UV1$"
-    try:
-        pattern = re.compile(expression)
-    except re.error as error:
-        return [{
-            "message": "Invalid UV set regex '%s': %s" % (expression, error),
-            "element_ref": "",
-            "values": {"regex": expression, "error": str(error)},
-        }]
-
+    # Канал берём по НОМЕРУ: как он назван, проверяет uv_set_names, замеру имя
+    # безразлично. Канала нет вовсе - здесь молчим, про это скажут uv_missing и
+    # uv_set_count; но строка разбора покажет «не измерен» серым, а не зелёную
+    # галочку (см. facts._padding_gap).
+    layer = layer_by_index(obj, item.int_param_2 or 1)
     issues = []
-    for layer in obj.data.uv_layers:
-        if not pattern.match(layer.name) or len(layer.data) < len(obj.data.loops):
-            continue
+    for layer in ([layer] if layer is not None else []):
         found = measure_gap(obj, layer)
         if found is None:
             continue

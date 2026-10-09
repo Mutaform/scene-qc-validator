@@ -125,51 +125,57 @@ def _percent(value):
         return "—"
 
 
-def _packing_density(obj, layer_name="UV1"):
+def _packing_density(obj, number=1):
     """Плотность паковки канала. Считает растеризацией, поэтому через try:
     разбор не должен падать из-за строки, которую можно и не показать."""
     try:
         from .checks.mapping.packing_density import packing_density
-        return packing_density(obj, layer_name)
+        return packing_density(obj, number)
     except Exception as error:                      # noqa: BLE001
         print("[Scene QC Validator] плотность паковки %s: %s" % (obj.name, error))
         return None, []
 
 
-def _padding_gap(obj, expression, size):
-    """Самый узкий отступ между шеллами в пикселях, или None.
+def _padding_gap(obj, number, size):
+    """(паддинг в пикселях, причина). Значение None - мерить не получилось.
 
     Считает замером, а не по настройкам: строка разбора должна показывать то,
-    что в меше, иначе она врёт теми же числами, что стоят в параметрах.
+    что в меше, иначе она врёт теми же числами, что стоят в параметрах. А если
+    замерить не вышло, обязана сказать почему: «не измерен» без причины
+    читается как недоработка инструмента.
     """
-    import re
-    try:
-        pattern = re.compile(expression)
-    except re.error:
-        return None
-    layer = next((uv for uv in obj.data.uv_layers
-                  if pattern.match(uv.name) and len(uv.data) >= len(obj.data.loops)), None)
-    if layer is None:
-        return None
     try:
         from .checks.mapping.padding_gap import measure_gap
+        from .checks.mapping.udim import layer_by_index
+        layer = layer_by_index(obj, number)
+        if layer is None:
+            total = len(getattr(obj.data, "uv_layers", ()))
+            return None, ("не измерен: UV-канала №%d нет (каналов %d)"
+                          % (number, total))
         found = measure_gap(obj, layer)
     except Exception as error:                      # noqa: BLE001
         print("[Scene QC Validator] отступ %s: %s" % (obj.name, error))
-        return None
+        return None, "не измерен: ошибка расчёта, см. консоль"
+    if found is None:
+        return None, ("не измерен: в «%s» нечего сравнивать - соседних шеллов нет"
+                      % layer.name)
     # половина зазора - это и есть паддинг, заданный пакеру (см. padding_gap)
-    return None if found is None else found[0] * size / 2.0
+    return found[0] * size / 2.0, ""
 
 
-def _udim_tiles(mesh, layer_name="UV1"):
+def _udim_tiles(mesh, number=1):
     """Номера тайлов, занятых каналом. Пусто - канала нет или он весь в 1001.
 
     Считаем по углу грани, а не по острову: строке разбора нужен сам факт
     «канал занимает три тайла», а разбираться, законно это или нет, - дело
     проверок uv_udim_*.
     """
-    layer = mesh.uv_layers.get(layer_name)
-    if layer is None or len(layer.data) < len(mesh.loops):
+    layers = mesh.uv_layers
+    index = max(1, int(number or 1)) - 1
+    if index >= len(layers):
+        return []
+    layer = layers[index]
+    if len(layer.data) < len(mesh.loops):
         return []
     seen = set()
     for polygon in mesh.polygons:
@@ -317,19 +323,22 @@ def _rows(obj, settings):
     gap = state.item("uv_padding_gap")
     if gap is not None:
         size = gap.int_param_1 or 2048
-        measured = _padding_gap(obj, gap.string_param_1 or "^UV1$", size)
+        measured, why = _padding_gap(obj, gap.int_param_2 or 1, size)
         out.append(("Паддинг при паковке",
-                    "не измерен" if measured is None
+                    why if measured is None
                     else "~%g px при карте %s" % (round(measured), _n(size)),
-                    state("uv_padding_gap"),
+                    # не измерили - значит сказать нечего. Зелёная галочка здесь
+                    # читалась бы как «проверено и в порядке»
+                    INFO if measured is None else state("uv_padding_gap"),
                     "%g-%g px" % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
-    density, _per_tile = _packing_density(obj)
+    density, _per_tile = _packing_density(obj, state.param("uv_packing_density",
+                                                           "int_param_2", 1))
     if density is not None:
-        out.append(("Плотность паковки UV1", "%.1f%%" % (density * 100.0),
+        out.append(("Плотность паковки", "%.1f%%" % (density * 100.0),
                     state("uv_packing_density"),
                     "не меньше %s"
                     % _percent(state.param("uv_packing_density", "float_param_1", 0.7))))
-    tiles = _udim_tiles(mesh)
+    tiles = _udim_tiles(mesh, state.param("uv_udim_shell_in_tile", "int_param_2", 1))
     if tiles:
         out.append(("UDIM-тайлы", ", ".join(str(t) for t in tiles),
                     state("uv_udim_shell_in_tile", "uv_udim_tile_set",

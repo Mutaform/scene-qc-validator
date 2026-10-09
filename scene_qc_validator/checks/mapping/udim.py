@@ -87,22 +87,30 @@ class Island:
         return 0 <= self.u_tile < TILE_COLUMNS and self.v_tile >= 0
 
 
-def _layers(obj, item, default=r"^UV1$"):
-    """UV-каналы, которым проект разрешил UDIM. (каналы, None) или (None, ошибка)."""
-    if not obj.data.uv_layers:
-        return [], None
-    expression = item.string_param_1 or default
-    try:
-        pattern = re.compile(expression)
-    except re.error as error:
-        return None, {
-            "message": "Invalid UV set regex '%s': %s" % (expression, error),
-            "element_ref": "",
-            "values": {"regex": expression, "error": str(error)},
-        }
-    layers = [layer for layer in obj.data.uv_layers
-              if pattern.match(layer.name) and len(layer.data) >= len(obj.data.loops)]
-    return layers, None
+def layer_by_index(obj, number):
+    """Канал по НОМЕРУ, считая с единицы. None - такого нет или он не читается.
+
+    По номеру, а не по имени: как канал назван, проверяет uv_set_names, и
+    замеру это безразлично. Привязка к имени делала проверку молчаливо
+    бесполезной на ассете, где канал назвали иначе - а именно так выглядит
+    свежий импорт, где он ещё «UVMap».
+    """
+    layers = getattr(obj.data, "uv_layers", None)
+    if not layers:
+        return None
+    index = max(1, int(number or 1)) - 1
+    if index >= len(layers):
+        return None
+    layer = layers[index]
+    if len(layer.data) < len(obj.data.loops):
+        return None                 # данные не прочитаны, мерить нечего
+    return layer
+
+
+def _layers(obj, item, default=1):
+    """Канал замера списком, чтобы вызывающие не менялись. (каналы, None)."""
+    layer = layer_by_index(obj, getattr(item, "int_param_2", 0) or default)
+    return ([] if layer is None else [layer]), None
 
 
 def islands_of(obj, layer, tolerance):

@@ -18,7 +18,7 @@
 """
 
 from ..common import *
-from .udim import _layers, islands_of
+from .udim import islands_of, layer_by_index
 
 GRID = 512          # клеток на сторону тайла
 
@@ -90,12 +90,10 @@ def _cover_tile(triangles, u_tile, v_tile, grid):
 def check_packing_density(obj, item):
     """Доля текстуры, занятая шеллами канала, не ниже нормы проекта."""
     minimum = item.float_param_1 if item.float_param_1 > 0 else 0.7
-    layers, error = _layers(obj, item)
-    if error:
-        return [error]
+    picked = layer_by_index(obj, item.int_param_2 or 1)
 
     issues = []
-    for layer in layers:
+    for layer in ([picked] if picked is not None else []):
         islands = islands_of(obj, layer, 1e-4)
         tiles = sorted({island.tile for island in islands if island.in_grid})
         if not tiles:
@@ -129,21 +127,16 @@ def check_packing_density(obj, item):
     return issues
 
 
-def packing_density(obj, layer_name="UV1"):
+def packing_density(obj, number=1):
     """Плотность паковки канала для строки разбора. None - считать нечего."""
-    layer = obj.data.uv_layers.get(layer_name)
-    if layer is None or len(layer.data) < len(obj.data.loops):
+    layer = layer_by_index(obj, number)
+    if layer is None:
         return None, []
-
-    class _Item:
-        string_param_1 = "^%s$" % layer_name
-        float_param_1 = 0.0
-
     islands = islands_of(obj, layer, 1e-4)
     tiles = sorted({island.tile for island in islands if island.in_grid})
     if not tiles:
         return None, []
-    triangles = _triangles(obj, layer_name)
+    triangles = _triangles(obj, layer.name)
     if not triangles:
         return None, []
 
