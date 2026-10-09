@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.17.0
+
+### Added
+
+- **Padding Between Shells** measures the padding instead of reminding you of
+  it. The breakdown used to print a row reading "16 px at 2048" that was not a
+  measurement at all - it printed two numbers out of the check's own settings,
+  and touched no UV set. The old `Padding` check could not fail either: it
+  returns an empty list by design, being the Show Padding preview rather than a
+  check, so its FAIL severity in ARDENA meant nothing.
+
+  What is measured now: the smallest gap between the borders of two different
+  shells, in pixels of the target map. That is what padding is - the bake
+  bleeds across it, and one narrow spot is enough for one shell's texture to
+  run onto its neighbour, so the minimum is the number that matters. The upper
+  bound matters too: a minimum above the limit means nothing is tight anywhere,
+  which is space spent on emptiness. ARDENA accepts 8 to 16 px at 2048 and
+  fails anything else.
+
+  Shells in different UDIM tiles are not compared - they are different
+  textures, and the gap between them means nothing. The tile border counts as a
+  neighbour, because whatever runs off the edge is painted by nobody.
+
+  Measured on the real asset: UV1 on `S_TAR_DK_Estate_GuestRoom_Bed_01` comes
+  out at 15.99 px, packed right up to the project's 16, in 0.34 s over 11 930
+  faces. UV3 measures 0.00 - which is correct and is why the check is aimed at
+  UV1 alone: ARDENA lays UV3 out past the square on purpose.
+
+  Settings: UV set regex, texture size, the two bounds, and whether the tile
+  border counts.
+
+
 ## 1.16.1
 
 ### Fixed

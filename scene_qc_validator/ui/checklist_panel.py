@@ -280,6 +280,12 @@ class SQC_PT_checklist(Panel):
             sub.prop(item, "int_param_1", text="Min Layer IDs")
             sub.prop(item, "int_param_2", text="Max Layer IDs")
             sub.prop(item, "bool_param_1", text="Green/Blue Must Be Zero")
+        elif cid == "uv_padding_gap":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "int_param_1", text="Texture Size")
+            sub.prop(item, "float_param_1", text="Min Padding, px")
+            sub.prop(item, "float_param_2", text="Max Padding, px")
+            sub.prop(item, "bool_param_1", text="Count Tile Border")
         elif cid == "uv_packing_density":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "float_param_1", text="Min Density (0..1)")

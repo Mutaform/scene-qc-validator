@@ -63,6 +63,7 @@ CODES = {
     "uv_udim_tile_fill":    "пустой UDIM-тайл",
     "uv_shifted_duplicate": "шелл сдвинут на тайл",
     "uv_packing_density":   "плотность паковки",
+    "uv_padding_gap":       "отступ между шеллами",
     "uv_padding":           "паддинг между шеллами",
     "uv_no_hard_edge_on_uv_borders": "шов без hard edge",
     "uv_random_sharp":      "hard edges не по швам",
@@ -122,6 +123,10 @@ FIX = {
     "uv_shifted_duplicate": (MANUAL, "разложить шелл на своё место, а не отодвигать на тайл: "
                                      "сдвиг прячет наложение от проверки, но текстуру под него "
                                      "всё равно никто не нарисует"),
+    "uv_padding_gap":       (MANUAL, "раздвинуть или сдвинуть шеллы так, чтобы самый узкий "
+                                     "зазор попал в норму: по нему растекается бейк, и где "
+                                     "тесно - текстура затечёт на соседний шелл. Посмотреть "
+                                     "глазами - кнопкой Show Padding"),
     "uv_padding":           (NOTE, "это предпросмотр отступов, а не проверка: смотреть кнопкой Show Padding"),
     "uv_no_hard_edge_on_uv_borders": (AUTO, "поставить hard edge ровно на границы шеллов, остальные швы не трогая"),
     "uv_random_sharp":      (AUTO, "снять hard edge со всех рёбер, кроме границ шеллов"),
@@ -147,6 +152,14 @@ def _n(count, one, few, many):
             else few if (2 <= n10 <= 4 and not 12 <= n100 <= 14)
             else many)
     return "%d %s" % (count, word)
+
+
+def _n_plain(value):
+    """12345 -> «12 345»: длинные числа глазами не читаются."""
+    try:
+        return "{:,}".format(int(value)).replace(",", " ")
+    except (TypeError, ValueError):
+        return str(value)
 
 
 def _g(value):
@@ -406,6 +419,10 @@ TEXT = {
                                         _n(v.get("max", 0), "допустимом", "допустимых",
                                            "допустимых"),
                                         ", ".join(v.get("extra", ())) or "?"),
+    "uv_padding_gap":      lambda v: "%sсамый узкий отступ %g px при карте %s, норма %g-%g%s"
+                                     % (_channel(v), v.get("gap", 0), _n_plain(v.get("size", 0)),
+                                        v.get("min", 0), v.get("max", 0),
+                                        " (это край тайла)" if v.get("kind") == "border" else ""),
     "uv_single_tile":      _t_single_tile,
     "uv_udim_shell_in_tile": _t_udim_shell,
     "uv_udim_tile_set":    _t_udim_tiles,

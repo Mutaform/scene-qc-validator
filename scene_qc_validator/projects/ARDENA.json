@@ -253,6 +253,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "uv_padding_gap",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 8.0,
+          "float_param_2": 16.0,
+          "int_param_1": 2048,
+          "int_param_2": 0,
+          "string_param_1": "^UV1$",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "uv_packing_density",
           "enabled": false,
           "severity": "FAIL",
@@ -700,6 +713,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "uv_padding_gap",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 8.0,
+          "float_param_2": 16.0,
+          "int_param_1": 2048,
+          "int_param_2": 0,
+          "string_param_1": "^UV1$",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "uv_packing_density",
           "enabled": true,
           "severity": "INFO",
@@ -1142,6 +1168,19 @@
           "int_param_1": 16,
           "int_param_2": 2048,
           "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "uv_padding_gap",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 8.0,
+          "float_param_2": 16.0,
+          "int_param_1": 2048,
+          "int_param_2": 0,
+          "string_param_1": "^UV1$",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true

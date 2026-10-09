@@ -32,6 +32,7 @@ from .mapping.udim import (
     check_udim_tile_fill, check_shifted_duplicate,
 )
 from .mapping.packing_density import check_packing_density
+from .mapping.padding_gap import check_padding_gap
 from .mapping.no_hard_edge_on_uv_borders import (
     check_no_hard_edge_on_uv_borders, fix_no_hard_edge_on_uv_borders,
 )
@@ -169,6 +170,11 @@ CHECK_DEFINITIONS = [
          description="A shell that is a copy of another one moved by whole tiles is a hidden overlap, not a UDIM layout",
          run=check_shifted_duplicate, fix=None, can_fix=False,
          string_param_1="^UV1$", float_param_1=0.0001),
+    dict(id="uv_padding_gap", label="Padding Between Shells", category='UV',
+         description="The smallest gap between UV shells, measured in pixels of the target map, must stay within the project range",
+         run=check_padding_gap, fix=None, can_fix=False,
+         string_param_1="^UV1$", int_param_1=2048,
+         float_param_1=8.0, float_param_2=16.0, bool_param_1=True),
     dict(id="uv_padding", label="Padding", category='UV',
          description="Interactive UV-island padding preview in the UV Editor",
          run=check_padding, fix=None, can_fix=False,

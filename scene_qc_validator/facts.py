@@ -136,6 +136,30 @@ def _packing_density(obj, layer_name="UV1"):
         return None, []
 
 
+def _padding_gap(obj, expression, size):
+    """Самый узкий отступ между шеллами в пикселях, или None.
+
+    Считает замером, а не по настройкам: строка разбора должна показывать то,
+    что в меше, иначе она врёт теми же числами, что стоят в параметрах.
+    """
+    import re
+    try:
+        pattern = re.compile(expression)
+    except re.error:
+        return None
+    layer = next((uv for uv in obj.data.uv_layers
+                  if pattern.match(uv.name) and len(uv.data) >= len(obj.data.loops)), None)
+    if layer is None:
+        return None
+    try:
+        from .checks.mapping.padding_gap import _measure
+        found = _measure(obj, layer, 64.0 / max(size, 1), True)
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] отступ %s: %s" % (obj.name, error))
+        return None
+    return None if found is None else found[0] * size
+
+
 def _udim_tiles(mesh, layer_name="UV1"):
     """Номера тайлов, занятых каналом. Пусто - канала нет или он весь в 1001.
 
@@ -289,10 +313,15 @@ def _rows(obj, settings):
                 state("uv_overlap"),
                 "канал %s без наложений"
                 % state.param("uv_overlap", "string_param_1", ".+")))
-    padding = state.item("uv_padding")
-    if padding is not None:
-        out.append(("Паддинг", "%s px при карте %s"
-                    % (_n(padding.int_param_1 or 0), _n(padding.int_param_2 or 0)), INFO))
+    gap = state.item("uv_padding_gap")
+    if gap is not None:
+        size = gap.int_param_1 or 2048
+        measured = _padding_gap(obj, gap.string_param_1 or "^UV1$", size)
+        out.append(("Отступ между шеллами",
+                    "не измерен" if measured is None
+                    else "%g px при карте %s" % (round(measured, 1), _n(size)),
+                    state("uv_padding_gap"),
+                    "%g-%g px" % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
     density, _per_tile = _packing_density(obj)
     if density is not None:
         out.append(("Плотность паковки UV1", "%.1f%%" % (density * 100.0),
