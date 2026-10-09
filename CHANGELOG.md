@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.17.1
+
+### Changed
+
+- **Padding Between Shells estimates the number the artist typed into the
+  packer**, instead of hunting the exact worst case. A shell with an awkward
+  shape can pinch closer to its neighbour than the packer was told to, and that
+  is the shape's doing, not a fault in the layout - but the global minimum
+  reports exactly that pinch and so lies about the setting we are after. Each
+  shell's distance to its nearest neighbour is taken, and the median of those
+  is the answer: it survives a pinched shell and a stray one alike.
+
+  It reports the padding, not the gap. A packer inflates every shell by the
+  margin, so two neighbours end up a margin apart on each side. Measured on the
+  real asset packed to 16 px at 2048: 15.99 px to the tile border, 32.9 px
+  between shells - exactly double. Half the gap is the number the artist typed.
+
+  The result is rounded to whole pixels, because it is an estimate. Outline
+  points sit slightly further apart than the outlines themselves, which on that
+  asset read 16.45 instead of 16 - against a hard bound a correctly packed
+  asset would have failed by half a pixel.
+
+  Bounding boxes were tried first and thrown away: measured on the same asset,
+  a tightly packed layout has shells whose boxes overlap all over, and every
+  gap came out as zero.
+
+  0.29 s over 11 930 faces, of which about half is the island walk the other UV
+  checks already do.
+
+
 ## 1.17.0
 
 ### Added

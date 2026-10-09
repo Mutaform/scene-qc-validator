@@ -152,12 +152,13 @@ def _padding_gap(obj, expression, size):
     if layer is None:
         return None
     try:
-        from .checks.mapping.padding_gap import _measure
-        found = _measure(obj, layer, 64.0 / max(size, 1), True)
+        from .checks.mapping.padding_gap import measure_gap
+        found = measure_gap(obj, layer)
     except Exception as error:                      # noqa: BLE001
         print("[Scene QC Validator] отступ %s: %s" % (obj.name, error))
         return None
-    return None if found is None else found[0] * size
+    # половина зазора - это и есть паддинг, заданный пакеру (см. padding_gap)
+    return None if found is None else found[0] * size / 2.0
 
 
 def _udim_tiles(mesh, layer_name="UV1"):
@@ -317,9 +318,9 @@ def _rows(obj, settings):
     if gap is not None:
         size = gap.int_param_1 or 2048
         measured = _padding_gap(obj, gap.string_param_1 or "^UV1$", size)
-        out.append(("Отступ между шеллами",
+        out.append(("Паддинг при паковке",
                     "не измерен" if measured is None
-                    else "%g px при карте %s" % (round(measured, 1), _n(size)),
+                    else "~%g px при карте %s" % (round(measured), _n(size)),
                     state("uv_padding_gap"),
                     "%g-%g px" % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
     density, _per_tile = _packing_density(obj)
