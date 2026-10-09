@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.18.4
+
+### Fixed
+
+- **A fix started from the report page left the artist out of Edit Mode.** The
+  page has to leave edit for the duration: several fixes are Blender operators
+  and they refuse to run under edit - `bpy.ops.object.transform_apply` fails
+  its `poll()` (measured on a synthetic mesh: scale 2 becomes 1 in Object Mode,
+  poll failure in Edit Mode). Leaving was already there; coming back was not,
+  so pressing a button in the browser silently kicked the artist out of their
+  edit session. Fixes now run inside one `_object_mode` guard that leaves edit
+  once for the whole action and restores it afterwards, including which object
+  was active - the same thing the panel's Fix button has always done.
+- **A fix that threw was reported as "nothing to fix".** Those are different
+  things, and the artist at the browser could only tell them apart by reading
+  Blender's console. `_fix_one_check` and `_fix_auto` now hand the failures
+  back, and the page says "не получилось: ..." with the reason.
+
 ## 1.18.3
 
 ### Fixed

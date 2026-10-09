@@ -95,24 +95,81 @@ def _write_and_open(context, settings):
     return doc, path
 
 
+class _object_mode:
+    """Починка идёт в объектном режиме; правку восстанавливаем, как было.
+
+    Часть фиксов - операторы Blender, а в правке они не работают:
+    `bpy.ops.object.transform_apply` роняет `poll()`. Замерено на синтетике -
+    в объектном масштаб 2 превращается в 1, в правке оператор срывается, и
+    страница отвечала «чинить нечего», хотя чинить было что. Панельная кнопка
+    «Исправить» выходит в объектный режим ровно за этим же.
+
+    Выходим один раз на всю починку, а не на каждый фикс: `fix_all` гоняет
+    десятки проверок по шесть проходов, и мигать режимом на каждой - это и
+    медленно, и засоряет историю отмены.
+    """
+
+    def __init__(self, context):
+        self.context = context
+        self.edited = []
+        self.active = None
+
+    def __enter__(self):
+        view = self.context.view_layer
+        self.active = view.objects.active
+        self.edited = [o for o in self.context.scene.objects if o.mode == 'EDIT']
+        if not self.edited:
+            return self
+        try:
+            view.objects.active = self.edited[0]
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except Exception as error:              # noqa: BLE001
+            # не вышло - чиним как есть: пусть лучше сработает часть фиксов,
+            # чем ни одного
+            print("[Scene QC Validator] не удалось выйти из режима правки: %s" % error)
+            self.edited = []
+        return self
+
+    def __exit__(self, *_exception):
+        view = self.context.view_layer
+        if self.edited:
+            try:
+                for obj in self.edited:
+                    obj.select_set(True)
+                view.objects.active = self.edited[0]
+                bpy.ops.object.mode_set(mode='EDIT')
+            except Exception as error:          # noqa: BLE001
+                print("[Scene QC Validator] не удалось вернуть режим правки: %s" % error)
+        if self.active is not None:
+            try:
+                view.objects.active = self.active
+            except Exception:                   # noqa: BLE001
+                pass
+        return False
+
+
 def _fix_one_check(context, settings, check_id, only=""):
-    """Применить фикс одной проверки. Возвращает число правок.
+    """Применить фикс одной проверки. Возвращает (число правок, срывы).
 
     `only` - имена объектов через запятую: у строки в отчёте своя кнопка, и
     чинить она должна объекты своей строки. Одна проверка даёт по строке на
     каждый разный замер, и без этого обе кнопки делали бы одно и то же.
+
+    Срывы возвращаются, а не только пишутся в консоль: «чинить нечего» и
+    «фикс сорвался» - разные вещи, и человек у страницы должен видеть, какая
+    из них случилась.
     """
     if not check_id:
-        return 0
+        return 0, []
     definition = checks_mod.get_check_definition(check_id)
     check_item = next((c for c in settings.checks if c.check_id == check_id), None)
     if not (definition and definition.get("fix") and check_item):
-        return 0
+        return 0, []
     wanted = {n for n in (only or "").split(",") if n}
     names = [r.object_name for r in settings.results
              if r.check_id == check_id and r.can_fix and not r.muted
              and (not wanted or r.object_name in wanted)]
-    fixed = 0
+    fixed, broke = 0, []
     for name in dict.fromkeys(names):
         obj = context.scene.objects.get(name)
         if obj is None:
@@ -122,7 +179,8 @@ def _fix_one_check(context, settings, check_id, only=""):
                 fixed += 1
         except Exception as error:
             print(f"[Scene QC Validator] Fix {check_id} on {name} failed: {error}")
-    return fixed
+            broke.append("%s: %s" % (name, error))
+    return fixed, broke
 
 
 # Вьюпорт, переключённый на показ вершинного цвета, и то, каким он был до этого.
@@ -251,16 +309,19 @@ def _auto_check_ids(settings):
 
 
 def _fix_auto(context, settings, targets, max_passes=6):
-    """Прогнать «авто»-фиксы, пока они что-то меняют. Возвращает число правок."""
-    total = 0
+    """Прогнать «авто»-фиксы, пока они что-то меняют. (число правок, срывы)."""
+    total, broke = 0, []
     for _pass in range(max_passes):
-        fixed = sum(_fix_one_check(context, settings, check_id)
-                    for check_id in _auto_check_ids(settings))
+        fixed = 0
+        for check_id in _auto_check_ids(settings):
+            count, failures = _fix_one_check(context, settings, check_id)
+            fixed += count
+            broke.extend(failures)
         total += fixed
         run_validation_logic(context, targets=targets)
         if not fixed:
             break
-    return total
+    return total, broke
 
 
 def run_action(context, action, code="", object_name=""):
@@ -300,41 +361,42 @@ def run_action(context, action, code="", object_name=""):
             area.tag_redraw()
         return result
 
-    if context.mode != 'OBJECT' and context.object is not None:
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-        except RuntimeError:
-            pass
+    if action not in ("fix_all", "fix_code"):
+        return {"ok": False, "text": "Неизвестное действие"}
 
     # чиним и перепроверяем по объектам отчёта: выделение в Blender к этому
     # моменту уже другое - его сменил клик по находке или сам фикс
     targets = _pinned_targets(context, settings) or _validation_targets(context)
     before = sum(1 for r in settings.results if not r.muted)
-    if action == "fix_all":
-        label = "Исправить автоматически"
-        if not _fix_auto(context, settings, targets):
-            note = {"ok": False, "text": "%s — чинить нечего" % label}
-            _write(context, settings, note=note, targets=targets)
-            return {"ok": False, "text": note["text"]}
-    elif action == "fix_code":
-        # имя проверки по-русски: строку читают в браузере, рядом с русскими находками
-        definition = checks_mod.get_check_definition(code)
-        label = "Исправить: %s" % explain_mod.label(
-            code, definition["label"] if definition else code)
-        if not _fix_one_check(context, settings, code, object_name):
-            note = {"ok": False, "text": "%s — чинить нечего" % label}
-            _write(context, settings, note=note, targets=targets)
-            return {"ok": False, "text": note["text"]}
-        run_validation_logic(context, targets=targets)
-    else:
-        return {"ok": False, "text": "Неизвестное действие"}
+    with _object_mode(context):
+        if action == "fix_all":
+            label = "Исправить автоматически"
+            fixed, broke = _fix_auto(context, settings, targets)
+        else:
+            # имя проверки по-русски: строку читают в браузере, рядом с русскими находками
+            definition = checks_mod.get_check_definition(code)
+            label = "Исправить: %s" % explain_mod.label(
+                code, definition["label"] if definition else code)
+            fixed, broke = _fix_one_check(context, settings, code, object_name)
+            if fixed:
+                run_validation_logic(context, targets=targets)
 
-    after = sum(1 for r in settings.results if not r.muted)
-    gone = before - after
-    text = ("%s — снято находок: %d" % (label, gone)) if gone > 0 else \
-        ("%s — список не изменился" % label)
-    _write(context, settings, note={"ok": gone > 0, "text": text}, targets=targets)
-    return {"ok": gone > 0, "text": text}
+        if not fixed:
+            # сорвавшийся фикс и «нечего чинить» - разные вещи, и человек у
+            # страницы должен видеть, какая из них случилась
+            text = ("%s — не получилось: %s" % (label, broke[0])) if broke else \
+                ("%s — чинить нечего" % label)
+            _write(context, settings, note={"ok": False, "text": text}, targets=targets)
+            return {"ok": False, "text": text}
+
+        after = sum(1 for r in settings.results if not r.muted)
+        gone = before - after
+        text = ("%s — снято находок: %d" % (label, gone)) if gone > 0 else \
+            ("%s — список не изменился" % label)
+        if broke:
+            text += ". Не вышло: %s" % broke[0]
+        _write(context, settings, note={"ok": gone > 0, "text": text}, targets=targets)
+        return {"ok": gone > 0, "text": text}
 
 
 class SQC_OT_check_stage(Operator):
