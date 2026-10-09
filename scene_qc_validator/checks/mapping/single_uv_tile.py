@@ -15,33 +15,42 @@ def _uv_edge_key(a, b, tolerance):
 
 
 def _outside_uv_island_faces(obj, layer, tolerance, min_allowed, max_allowed):
-    uv_data = layer.data
-    face_edges = {}
-    edge_faces = defaultdict(list)
-    outside_faces = set()
-    min_u = min_v = float("inf")
-    max_u = max_v = float("-inf")
+    """Через bmesh, а не через obj.data: в режиме правки RNA-массив UV пуст, и
+    проверка ругалась «канал не читается» на нормальной развёртке. Почему пуст -
+    в checks/common._read_bmesh."""
+    bm, should_free = _read_bmesh(obj)
+    try:
+        uv_layer = bm.loops.layers.uv.get(layer.name)
+        if uv_layer is None:
+            return set(), (0.0, 0.0, 0.0, 0.0)
+        face_edges = {}
+        edge_faces = defaultdict(list)
+        outside_faces = set()
+        min_u = min_v = float("inf")
+        max_u = max_v = float("-inf")
 
-    for poly in obj.data.polygons:
-        loop_indices = list(poly.loop_indices)
-        edges = []
-        face_is_outside = False
-        for offset, loop_index in enumerate(loop_indices):
-            next_loop_index = loop_indices[(offset + 1) % len(loop_indices)]
-            uv = uv_data[loop_index].uv
-            next_uv = uv_data[next_loop_index].uv
-            min_u = min(min_u, uv.x)
-            min_v = min(min_v, uv.y)
-            max_u = max(max_u, uv.x)
-            max_v = max(max_v, uv.y)
-            edges.append(_uv_edge_key(uv, next_uv, tolerance))
-            if uv.x < min_allowed or uv.x > max_allowed or uv.y < min_allowed or uv.y > max_allowed:
-                face_is_outside = True
-        face_edges[poly.index] = edges
-        for edge in edges:
-            edge_faces[edge].append(poly.index)
-        if face_is_outside:
-            outside_faces.add(poly.index)
+        for face in bm.faces:
+            loops = list(face.loops)
+            edges = []
+            face_is_outside = False
+            for offset, loop in enumerate(loops):
+                uv = loop[uv_layer].uv
+                next_uv = loops[(offset + 1) % len(loops)][uv_layer].uv
+                min_u = min(min_u, uv.x)
+                min_v = min(min_v, uv.y)
+                max_u = max(max_u, uv.x)
+                max_v = max(max_v, uv.y)
+                edges.append(_uv_edge_key(uv, next_uv, tolerance))
+                if uv.x < min_allowed or uv.x > max_allowed or uv.y < min_allowed or uv.y > max_allowed:
+                    face_is_outside = True
+            face_edges[face.index] = edges
+            for edge in edges:
+                edge_faces[edge].append(face.index)
+            if face_is_outside:
+                outside_faces.add(face.index)
+    finally:
+        if should_free:
+            bm.free()
 
     selected_faces = set()
     visited = set()
@@ -97,7 +106,8 @@ def check_single_uv_tile(obj, item):
         if not uv_name_pattern.match(layer.name):
             continue
         uv_data = layer.data
-        if len(uv_data) < len(obj.data.loops):
+        if (not getattr(obj.data, "is_editmode", False)
+                and len(uv_data) < len(obj.data.loops)):
             issues.append({
                 "message": (
                     f"{layer.name} carries {len(uv_data)} UVs for "

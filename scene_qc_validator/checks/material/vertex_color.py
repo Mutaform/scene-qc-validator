@@ -39,12 +39,36 @@ def _attribute(mesh, name=""):
     return attributes.active_color or attributes[0]
 
 
-def _read(attribute):
+def _read_edit(obj, attribute):
+    """То же из bmesh правки: в Edit Mode RNA-массив атрибута пуст (почему - в
+    checks/common._read_bmesh).
+
+    Байтовый слой bmesh отдаёт ровно то, что RNA даёт через `color_srgb`:
+    проверено пробой - линейные 0.2, записанные в BYTE_COLOR, читаются как
+    0.4863 и там, и там. Значит числа не разойдутся с объектным режимом.
+    """
+    bm, _should_free = _read_bmesh(obj)      # bmesh правки освобождать нельзя
+    byte = attribute.data_type == 'BYTE_COLOR'
+    if attribute.domain == 'POINT':
+        layers = bm.verts.layers.color if byte else bm.verts.layers.float_color
+        layer = layers.get(attribute.name)
+        items = [] if layer is None else [vert[layer] for vert in bm.verts]
+    else:
+        layers = bm.loops.layers.color if byte else bm.loops.layers.float_color
+        layer = layers.get(attribute.name)
+        items = ([] if layer is None
+                 else [loop[layer] for face in bm.faces for loop in face.loops])
+    return ([c[0] for c in items], [c[1] for c in items], [c[2] for c in items])
+
+
+def _read(obj, attribute):
     """(reds, greens, blues) значениями, которые набирал художник.
 
     foreach_get, а не цикл по data: на меше в 11 тысяч граней это разница между
     десятыми долями секунды и несколькими секундами.
     """
+    if getattr(obj.data, "is_editmode", False):
+        return _read_edit(obj, attribute)
     count = len(attribute.data)
     if not count:
         return [], [], []
@@ -91,7 +115,7 @@ def check_vertex_color_ids(obj, item):
     if attribute is None:
         return []                       # «нет вовсе» - это vc_missing, не здесь
 
-    reds, greens, blues = _read(attribute)
+    reds, greens, blues = _read(obj, attribute)
     if not reds:
         return []
 
@@ -164,7 +188,7 @@ def layer_summary(obj, name=""):
     attribute = _attribute(obj.data, name)
     if attribute is None:
         return "", []
-    reds, _g, _b = _read(attribute)
+    reds, _g, _b = _read(obj, attribute)
     if not reds:
         return attribute.name, []
     return attribute.name, _layers(reds)

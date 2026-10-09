@@ -72,7 +72,7 @@ def _boundary_points(obj, layer, islands):
     разошлась по UV. Внутренние точки до соседей не ближе своих же границ, и
     тащить их в расчёт незачем.
     """
-    bm = _bmesh_from_obj(obj)
+    bm, should_free = _read_bmesh(obj)
     try:
         uv_layer = bm.loops.layers.uv.get(layer.name)
         if uv_layer is None:
@@ -102,7 +102,8 @@ def _boundary_points(obj, layer, islands):
                     tuple(round(value, 6) for value in loop[uv_layer].uv))
         return {index: list(found) for index, found in points.items()}
     finally:
-        bm.free()
+        if should_free:
+            bm.free()
 
 
 def _median(values):

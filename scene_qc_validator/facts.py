@@ -162,29 +162,40 @@ def _padding_gap(obj, number, size):
     return found[0] * size, ""          # found = (медиана, минимум, шеллов, ...)
 
 
-def _udim_tiles(mesh, number=1):
+def _udim_tiles(obj, number=1):
     """Номера тайлов, занятых каналом. Пусто - канала нет или он весь в 1001.
 
     Считаем по углу грани, а не по острову: строке разбора нужен сам факт
     «канал занимает три тайла», а разбираться, законно это или нет, - дело
-    проверок uv_udim_*.
+    проверок uv_udim_*. Читаем из bmesh, иначе в режиме правки строка молча
+    исчезает (почему - в checks/common._read_bmesh).
     """
-    layers = mesh.uv_layers
-    index = max(1, int(number or 1)) - 1
-    if index >= len(layers):
-        return []
-    layer = layers[index]
-    if len(layer.data) < len(mesh.loops):
-        return []
     seen = set()
-    for polygon in mesh.polygons:
-        for index in polygon.loop_indices:
-            u, v = layer.data[index].uv
-            u_tile, v_tile = int(math.floor(u)), int(math.floor(v))
-            if 0 <= u_tile < 10 and v_tile >= 0:
-                seen.add(1001 + u_tile + 10 * v_tile)
-            else:
-                seen.add(-1)              # вне сетки - покажем явно
+    try:
+        from .checks.common import _read_bmesh
+        from .checks.mapping.udim import layer_by_index
+        layer = layer_by_index(obj, number)
+        if layer is None:
+            return []
+        bm, should_free = _read_bmesh(obj)
+        try:
+            uv_layer = bm.loops.layers.uv.get(layer.name)
+            if uv_layer is None:
+                return []
+            for face in bm.faces:
+                for loop in face.loops:
+                    u, v = loop[uv_layer].uv
+                    u_tile, v_tile = int(math.floor(u)), int(math.floor(v))
+                    if 0 <= u_tile < 10 and v_tile >= 0:
+                        seen.add(1001 + u_tile + 10 * v_tile)
+                    else:
+                        seen.add(-1)      # вне сетки - покажем явно
+        finally:
+            if should_free:
+                bm.free()
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] тайлы %s: %s" % (obj.name, error))
+        return []
     if seen <= {1001}:
         return []
     return sorted(seen)
@@ -337,7 +348,7 @@ def _rows(obj, settings):
                     state("uv_packing_density"),
                     "не меньше %s"
                     % _percent(state.param("uv_packing_density", "float_param_1", 0.7))))
-    tiles = _udim_tiles(mesh, state.param("uv_udim_shell_in_tile", "int_param_2", 1))
+    tiles = _udim_tiles(obj, state.param("uv_udim_shell_in_tile", "int_param_2", 1))
     if tiles:
         out.append(("UDIM-тайлы", ", ".join(str(t) for t in tiles),
                     state("uv_udim_shell_in_tile", "uv_udim_tile_set",

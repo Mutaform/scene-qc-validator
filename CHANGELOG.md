@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.18.3
+
+### Fixed
+
+- **UV and vertex colour were unreadable while the mesh was in Edit Mode** -
+  which is exactly where an artist sits when working on a UV layout. Blender
+  reports attribute arrays as empty for a mesh under edit: measured on Blender
+  5.2 on a live asset, `len(uv_layers["UV1"].data)` is 0 against 44 908 loops,
+  and stays 0 after `update_from_editmode()` returns True; colour attributes
+  behave the same way, while the geometry arrays read fine. So the emptiness
+  does not look like a refusal - it looks like a mesh with no UVs. On the shelf
+  in Edit Mode that cost one finding out of five: `uv_single_tile` reported
+  "the channel cannot be read" on a perfectly good layout, while the padding
+  and packing-density measurements switched themselves off without a word.
+  Every attribute read now goes through one shared reader
+  (`checks/common._read_bmesh`) that takes the values from the edit BMesh.
+  Verified on a real asset: the same six findings and the same breakdown rows
+  in both modes, padding 32.7 px and density 68.8% either way.
+
 ## 1.18.2
 
 ### Fixed

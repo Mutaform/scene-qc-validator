@@ -13,16 +13,6 @@ def _zero_area_threshold(item, obj=None):
     return threshold / (scale * scale)
 
 
-def _read_bmesh(obj):
-    if obj.mode == 'EDIT':
-        bm = bmesh.from_edit_mesh(obj.data)
-        bm.faces.ensure_lookup_table()
-        bm.edges.ensure_lookup_table()
-        bm.verts.ensure_lookup_table()
-        return bm, False
-    return _bmesh_from_obj(obj), True
-
-
 def check_zero_area_faces(obj, item):
     threshold = _zero_area_threshold(item, obj)
     bm, should_free = _read_bmesh(obj)

@@ -26,7 +26,7 @@ GRID = 512          # клеток на сторону тайла
 def _triangles(obj, layer_name):
     """Треугольники канала в UV-пространстве. Веером от первой вершины грани:
     для замера площади разбиение не важно, важно покрытие."""
-    bm = _bmesh_from_obj(obj)
+    bm, should_free = _read_bmesh(obj)
     try:
         uv_layer = bm.loops.layers.uv.get(layer_name)
         if uv_layer is None:
@@ -38,7 +38,8 @@ def _triangles(obj, layer_name):
                 out.append((points[0], points[index], points[index + 1]))
         return out
     finally:
-        bm.free()
+        if should_free:
+            bm.free()
 
 
 def _cover_tile(triangles, u_tile, v_tile, grid):

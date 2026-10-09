@@ -102,6 +102,8 @@ def layer_by_index(obj, number):
     if index >= len(layers):
         return None
     layer = layers[index]
+    if getattr(obj.data, "is_editmode", False):
+        return layer                # в правке RNA пуст всегда, читаем из bmesh
     if len(layer.data) < len(obj.data.loops):
         return None                 # данные не прочитаны, мерить нечего
     return layer
@@ -115,7 +117,7 @@ def _layers(obj, item, default=1):
 
 def islands_of(obj, layer, tolerance):
     """Шеллы канала с габаритом, площадью и тайлом. Пустой список - нечего мерить."""
-    bm = _bmesh_from_obj(obj)
+    bm, should_free = _read_bmesh(obj)
     try:
         uv_layer = bm.loops.layers.uv.get(layer.name)
         if uv_layer is None:
@@ -138,7 +140,8 @@ def islands_of(obj, layer, tolerance):
             out.append(Island(group, area, (umin, vmin, umax, vmax), tolerance))
         return out
     finally:
-        bm.free()
+        if should_free:
+            bm.free()
 
 
 def _ref(faces):

@@ -13,6 +13,31 @@ def _bmesh_from_obj(obj):
     return bm
 
 
+def _read_bmesh(obj):
+    """(bmesh, освобождать ли). Единственный надёжный способ прочитать атрибуты.
+
+    В режиме правки RNA-массивы атрибутов пусты. Не «иногда» и не «пока не
+    обновили»: проверено на Blender 5.2 на живом ассете - 44 908 лупов,
+    `len(uv_layers["UV1"].data) == 0` и после `update_from_editmode()`, который
+    вернул True; у атрибутов цвета то же самое. Геометрия при этом читается
+    нормально, поэтому пустота выглядит не как отказ, а как «на меше нет UV».
+
+    Цена этого была видна на полке в Edit Mode: uv_single_tile давал ложную
+    ошибку «канал не читается», а замеры паддинга и плотности молча
+    отключались - четыре находки вместо пяти, и художник решил бы, что чисто.
+
+    bmesh правки отдавать наружу можно, а освобождать нельзя: он принадлежит
+    редактору, и free() уронил бы сессию. Про это и второе значение.
+    """
+    if obj.mode == 'EDIT' or getattr(obj.data, "is_editmode", False):
+        bm = bmesh.from_edit_mesh(obj.data)
+        bm.faces.ensure_lookup_table()
+        bm.edges.ensure_lookup_table()
+        bm.verts.ensure_lookup_table()
+        return bm, False
+    return _bmesh_from_obj(obj), True
+
+
 def _write_bmesh(obj, bm):
     bm.to_mesh(obj.data)
     obj.data.update()
