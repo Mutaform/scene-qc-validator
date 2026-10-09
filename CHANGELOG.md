@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.18.6
+
+### Changed
+
+- **The padding finding no longer promises a click.** It ended with "нажмите -
+  покажу худшие в UV": the text itself is not a button, and "худшие в UV"
+  named nothing an artist can picture. The sentence now ends with what the
+  number rests on - "замерено по 19 шеллам", declined properly for one, two
+  and five. Clicking the finding still points the UV editor at those shells;
+  it just no longer advertises itself in a place where there is nothing to
+  press.
+- **A breakdown row no longer claims a verdict nobody reached.** When a check
+  is not part of the stage the row went grey and its norm column said "правила
+  нет" - but the value column still read "по осям", "нет", "внутри". "Границы
+  шеллов | по осям | правила нет" reads as "we looked and it is fine"; nobody
+  looked. Such rows now show a dash. Affected: topology, degenerate geometry,
+  shells inside 0-1, overlaps and shell borders.
+- **Three "by hand" hints lost the part that explains the checker rather than
+  the work.** Packing density no longer explains that coverage is what gets
+  measured, the transform hint no longer talks about length and area
+  thresholds shifting by 100 and 10 000 times, and the overlap hint no longer
+  argues why there is deliberately no autofix - the word "руками" beside it
+  already says there is none. Those explanations live in the modules' own
+  headers, where the next person to touch the code will find them.
+
 ## 1.18.5
 
 ### Changed

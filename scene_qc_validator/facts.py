@@ -86,6 +86,19 @@ class _Lookup:
         return default if value in ("", None) else value
 
 
+def _verdict(state_value, bad, good):
+    """«есть» / «нет» - но только если это проверяли.
+
+    У выключенной в этапе проверки состояние DIM, и в колонке нормы стоит
+    «правила нет». А в колонке значения при этом стояло бодрое «нет» или «по
+    осям» - утверждение, которого никто не делал: строка «Границы шеллов | по
+    осям | правила нет» читается как «посмотрели и всё хорошо». Не посмотрели.
+    """
+    if state_value == DIM:
+        return "—"
+    return bad if state_value == BAD else good
+
+
 def _mesh_counts(mesh):
     """Треугольники считаем по граням: calc_loop_triangles перестраивает кэш на
     каждом объекте, а здесь нужна только цифра для глаз."""
@@ -297,12 +310,13 @@ def _rows(obj, settings):
                 state("geo_has_soft_edges", "uv_random_sharp",
                       "uv_no_hard_edge_on_uv_borders"),
                 "только по границам UV-шеллов"))
-    out.append(("Топология", "non manifold" if state("geo_non_manifold") == BAD else "чисто",
-                state("geo_non_manifold"), "норма: без non manifold"))
+    topology = state("geo_non_manifold")
+    out.append(("Топология", _verdict(topology, "non manifold", "чисто"),
+                topology, "норма: без non manifold"))
+    degenerate = state("geo_zero_area", "geo_zero_length",
+                       "geo_duplicate_faces", "geo_loose")
     out.append(("Вырожденная геометрия",
-                "есть" if state("geo_zero_area", "geo_zero_length",
-                                "geo_duplicate_faces", "geo_loose") == BAD else "нет",
-                state("geo_zero_area", "geo_zero_length", "geo_duplicate_faces", "geo_loose"),
+                _verdict(degenerate, "есть", "нет"), degenerate,
                 "норма: 0 — нулевые площади и длины, дубли, болтающееся"))
     out.append(("Модификаторы", _modifiers_text(obj), INFO))
     out.append(("Шейп-кейсы", _shape_keys_text(obj), INFO))
@@ -320,14 +334,12 @@ def _rows(obj, settings):
                 % (state.param("uv_set_names", "string_param_1", "—"),
                    state.param("uv_set_count", "int_param_1", "—")),
                 _n(len(mesh.uv_layers)) if mesh.uv_layers else "нет"))
-    out.append(("Шеллы в 0-1",
-                "выходят за квадрат" if state("uv_single_tile") == BAD else "внутри",
-                state("uv_single_tile"),
+    tile = state("uv_single_tile")
+    out.append(("Шеллы в 0-1", _verdict(tile, "выходят за квадрат", "внутри"), tile,
                 "каналы %s внутри 0-1"
                 % state.param("uv_single_tile", "string_param_1", ".+")))
-    out.append(("Наложения",
-                "есть" if state("uv_overlap") == BAD else "нет",
-                state("uv_overlap"),
+    overlap = state("uv_overlap")
+    out.append(("Наложения", _verdict(overlap, "есть", "нет"), overlap,
                 "канал %s без наложений"
                 % state.param("uv_overlap", "string_param_1", ".+")))
     gap = state.item("uv_padding_gap")
@@ -355,9 +367,10 @@ def _rows(obj, settings):
                           "uv_udim_tile_fill", "uv_shifted_duplicate"),
                     "подряд с 1001, каждый заполнен",
                     str(len(tiles))))
+    borders = state("uv_unaligned_edges")
     out.append(("Границы шеллов",
-                "завалены" if state("uv_unaligned_edges") == BAD else "по осям",
-                state("uv_unaligned_edges"), "границы прямоугольных шеллов по осям"))
+                _verdict(borders, "завалены", "выровнены по осям"), borders,
+                "у прямоугольных шеллов границы строго по горизонтали и вертикали"))
 
     # --- материал
     out.append(("Материалы", _materials_text(obj),
