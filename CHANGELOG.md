@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.15.0
+
+### Added
+
+- **Vertex Color Missing** and **Vertex Color IDs** - the layer mask ARDENA's
+  Medium Poly pipeline is built on. The rules come from the project document
+  ("General Medium Poly Pipeline", section 8): the mesh is filled pure black,
+  the id goes in the **Red channel only**, in steps of 0.1 - 0.1 is layer 1 and
+  on to 1.0, layer 10. Black is not a layer, it is the background. Not all ten
+  need to be on one asset, but one is not a mask: a single value separates
+  nothing, so at least two layers are expected.
+
+  The same rules are already checked by the UE toolset (`FBX.VID.STEP`,
+  `FBX.VID.GB_NONZERO`, `FBX.VID.LIMIT`) and the thresholds are taken from
+  there rather than invented again - 0.008 of tolerance on the step, "zero" in
+  Green and Blue meaning below 0.01, ten ids to an asset. The two must not
+  drift: the same asset cannot pass in Blender and be rejected in Unreal.
+
+  Split in two because the conversations differ: a mesh with no vertex colour
+  at all needs it authored, a mesh that has one needs it corrected. Both carry
+  their settings - attribute name, step tolerance, how few layers are too few,
+  how many are too many, and whether Green and Blue must be zero.
+
+  A value above 1.0 is reported separately. It is a clean multiple of 0.1, so
+  the step test passes it, and only the count would have caught it - and only
+  by accident.
+
+- The breakdown's **Vertex Color** row now lists the ids actually found
+  ("Color: ID 0.1, 0.3, 0.5") instead of the attribute name, and says plainly
+  when the mesh is filled black with no layers at all.
+
+### Fixed
+
+- A byte colour attribute would have failed every value. Blender stores
+  `BYTE_COLOR` as eight-bit sRGB and hands it back through `.color` converted
+  to linear, so an authored 0.1 arrives as 0.01 and nothing is a multiple of
+  the step. Byte attributes are read through `color_srgb`, which is the number
+  the artist typed.
+
+
 ## 1.14.0
 
 ### Added

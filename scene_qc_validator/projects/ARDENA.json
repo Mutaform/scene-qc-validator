@@ -383,6 +383,32 @@
           "bool_param_2": true
         },
         {
+          "check_id": "vc_missing",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "vc_id_values",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.008,
+          "float_param_2": 0.0,
+          "int_param_1": 2,
+          "int_param_2": 10,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "mat_missing",
           "enabled": true,
           "severity": "FAIL",
@@ -804,6 +830,32 @@
           "bool_param_2": true
         },
         {
+          "check_id": "vc_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "vc_id_values",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.008,
+          "float_param_2": 0.0,
+          "int_param_1": 2,
+          "int_param_2": 10,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "mat_missing",
           "enabled": true,
           "severity": "FAIL",
@@ -1220,6 +1272,32 @@
           "int_param_1": 0,
           "int_param_2": 0,
           "string_param_1": "^S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}$|^(?:UCX|UBX|USP|UCP)_S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}(?:_\\d+)?$",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "vc_missing",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "vc_id_values",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.008,
+          "float_param_2": 0.0,
+          "int_param_1": 2,
+          "int_param_2": 10,
+          "string_param_1": "",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true

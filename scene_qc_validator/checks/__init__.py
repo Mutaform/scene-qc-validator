@@ -45,6 +45,9 @@ from .mapping.unaligned_uv_edges import (
 from .material.missing_material import check_missing_material, fix_missing_material
 from .material.material_count import check_material_count
 from .material.material_name import check_material_name, fix_material_name
+from .material.vertex_color import (
+    check_vertex_color_missing, check_vertex_color_ids,
+)
 
 
 TAB_ITEMS = [
@@ -199,6 +202,15 @@ CHECK_DEFINITIONS = [
          description="Faces or object without an assigned material",
          run=check_missing_material, fix=fix_missing_material, can_fix=True,
          fix_is_destructive=False),
+    dict(id="vc_missing", label="Vertex Color Missing", category='MATERIAL',
+         description="The mesh must carry a vertex color attribute: it holds the layer mask",
+         run=check_vertex_color_missing, fix=None, can_fix=False,
+         string_param_1=""),
+    dict(id="vc_id_values", label="Vertex Color IDs", category='MATERIAL',
+         description="Layer ids live in the Red channel in steps of 0.1; Green and Blue stay at zero and a mask needs more than one layer",
+         run=check_vertex_color_ids, fix=None, can_fix=False,
+         string_param_1="", float_param_1=0.008,
+         int_param_1=2, int_param_2=10, bool_param_1=True),
     dict(id="mat_material_count", label="Material Count", category='MATERIAL',
          description="Too many materials assigned to one mesh",
          run=check_material_count, fix=None, can_fix=False,

@@ -272,6 +272,14 @@ class SQC_PT_checklist(Panel):
         elif cid == "uv_udim_tile_fill":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "float_param_1", text="Min Tile Fill (0..1)")
+        elif cid == "vc_missing":
+            sub.prop(item, "string_param_1", text="Attribute Name (empty = active)")
+        elif cid == "vc_id_values":
+            sub.prop(item, "string_param_1", text="Attribute Name (empty = active)")
+            sub.prop(item, "float_param_1", text="Step Tolerance")
+            sub.prop(item, "int_param_1", text="Min Layer IDs")
+            sub.prop(item, "int_param_2", text="Max Layer IDs")
+            sub.prop(item, "bool_param_1", text="Green/Blue Must Be Zero")
         elif cid == "uv_packing_density":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "float_param_1", text="Min Density (0..1)")

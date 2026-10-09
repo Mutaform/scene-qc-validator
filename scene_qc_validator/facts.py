@@ -187,6 +187,23 @@ def _colors_text(mesh):
     return ", ".join(names) if names else "нет"
 
 
+def _vertex_color_text(obj, mesh):
+    """«UV1Color: ID 0.1, 0.3, 0.5» - какие слои маски реально лежат в меше."""
+    if not getattr(mesh, "color_attributes", None):
+        return "нет"
+    try:
+        from .checks.material.vertex_color import layer_summary
+        name, layers = layer_summary(obj)
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] vertex color %s: %s" % (obj.name, error))
+        return _colors_text(mesh)
+    if not name:
+        return _colors_text(mesh)
+    if not layers:
+        return "%s: слоёв нет, залит чёрным" % name
+    return "%s: ID %s" % (name, ", ".join("%g" % (number * 0.1) for number in layers))
+
+
 def _animated(obj):
     if obj.animation_data and (obj.animation_data.action or obj.animation_data.nla_tracks):
         return "есть"
@@ -244,7 +261,10 @@ def _rows(obj, settings):
                 "норма: 0 — нулевые площади и длины, дубли, болтающееся"))
     out.append(("Модификаторы", _modifiers_text(obj), INFO))
     out.append(("Шейп-кейсы", _shape_keys_text(obj), INFO))
-    out.append(("Vertex Color", _colors_text(mesh), INFO))
+    out.append(("Vertex Color", _vertex_color_text(obj, mesh),
+                state("vc_missing", "vc_id_values"),
+                "ID десятыми в красном, G и B в нуле, слоёв не меньше %s"
+                % state.param("vc_id_values", "int_param_1", 2)))
 
     # --- развёртка
     out.append(("UV-каналов", _uv_text(mesh), state("uv_missing", "uv_set_count", "uv_set_names"),

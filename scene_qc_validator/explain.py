@@ -68,6 +68,8 @@ CODES = {
     "uv_random_sharp":      "hard edges не по швам",
     "uv_unaligned_edges":   "границы шеллов завалены",
     # --- материал
+    "vc_missing":           "нет Vertex Color",
+    "vc_id_values":         "Vertex Color ID не по правилам",
     "mat_missing":          "нет материала",
     "mat_material_count":   "слишком много материалов",
     "mat_material_name":    "имя материала не по шаблону",
@@ -125,6 +127,11 @@ FIX = {
     "uv_random_sharp":      (AUTO, "снять hard edge со всех рёбер, кроме границ шеллов"),
     "uv_unaligned_edges":   (AUTO, "выпрямить границы, сдвигая UV не больше чем на 16 текселей; где нужен "
                                    "сдвиг больше, кнопка молча не сделает ничего - такие шеллы руками"),
+    "vc_missing":           (MANUAL, "залить меш чёрным и назначить ID участкам: в ARDENA это "
+                                     "Mesh Display → Apply Color в Maya, значение только в красном"),
+    "vc_id_values":         (MANUAL, "выставить ID ровными десятыми в красном канале (0.1 - слой 1, "
+                                     "0.2 - слой 2, до 1.0), G и B оставить в нуле. Маска из одного "
+                                     "значения ничего не разделяет - слоёв должно быть минимум два"),
     "mat_missing":          (AUTO, "создать материал по правилу проекта и закрыть им пустые слоты"),
     "mat_material_count":   (MANUAL, "свести к разрешённому числу и удалить пустые слоты"),
     "mat_material_name":    (BUTTON, "«Исправить» у этой строки переименует по шаблону проекта "
@@ -328,6 +335,35 @@ def _t_udim_tiles(v):
         _channel(v), v.get("count", 0), v.get("max", 0), tiles)
 
 
+def _t_vertex_color_ids(v):
+    kind = v.get("kind")
+    where = "«%s»" % v.get("attr", "")
+    if kind == "step":
+        return ("В %s значения ID не кратны %s: %s"
+                % (where, _g(v.get("step", 0.1)),
+                   ", ".join("%g" % value for value in v.get("values", ()))))
+    if kind == "gb":
+        return ("В %s зелёный или синий не в нуле у %d из %s: ID пишется только в красный"
+                % (where, v.get("count", 0),
+                   _n(v.get("total", 0), "значения", "значений", "значений")))
+    if kind == "range":
+        return ("В %s значения выше %g: %s - в таблице проекта слои кончаются на %d"
+                % (where, v.get("top", 10) * 0.1,
+                   ", ".join("%g" % (n * 0.1) for n in v.get("layers", ())),
+                   v.get("top", 10)))
+    layers = ", ".join("%g" % (number * 0.1) for number in v.get("layers", ()))
+    if kind == "few":
+        if not v.get("layers"):
+            return ("В %s нет ни одного слоя: меш залит чёрным, маска ничего не разделяет"
+                    % where)
+        return ("В %s всего %s (%s), нужно не меньше %d: маска из одного значения ничего "
+                "не разделяет"
+                % (where, _n(v.get("count", 0), "слой", "слоя", "слоёв"), layers,
+                   v.get("min", 0)))
+    return ("В %s %s (%s) при лимите %d на ассет"
+            % (where, _n(v.get("count", 0), "слой", "слоя", "слоёв"), layers, v.get("max", 0)))
+
+
 def _t_missing_material(v):
     if v.get("faces"):
         return "%s %s в пустой слот" % (_faces(v["faces"]),
@@ -409,6 +445,11 @@ TEXT = {
                                         _verb(v.get("edges", 0), "завалено", "завалены"),
                                         _n(v.get("islands", 0), "прямоугольный шелл",
                                            "прямоугольных шелла", "прямоугольных шеллов")),
+    "vc_missing":          lambda v: ("Атрибута вершинного цвета «%s» на меше нет"
+                                      % v["wanted"]) if v.get("wanted")
+                                     else ("У меша нет вершинного цвета, а в нём лежит "
+                                           "маска слоёв"),
+    "vc_id_values":        _t_vertex_color_ids,
     "mat_missing":         _t_missing_material,
     "mat_material_count":  lambda v: "%s при %s: %s"
                                      % (_n(v.get("count", 0), "материал", "материала",
