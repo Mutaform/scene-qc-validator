@@ -4,8 +4,13 @@ from ..common import *
 DEFAULT_ZERO_AREA_THRESHOLD = 1e-10
 
 
-def _zero_area_threshold(item):
-    return item.float_param_1 if item.float_param_1 > 0 else DEFAULT_ZERO_AREA_THRESHOLD
+def _zero_area_threshold(item, obj=None):
+    """Порог в мировых единицах: площадь растёт квадратом масштаба."""
+    threshold = item.float_param_1 if item.float_param_1 > 0 else DEFAULT_ZERO_AREA_THRESHOLD
+    if obj is None:
+        return threshold
+    scale = _world_scale(obj, item.bool_param_1)
+    return threshold / (scale * scale)
 
 
 def _read_bmesh(obj):
@@ -19,7 +24,7 @@ def _read_bmesh(obj):
 
 
 def check_zero_area_faces(obj, item):
-    threshold = _zero_area_threshold(item)
+    threshold = _zero_area_threshold(item, obj)
     bm, should_free = _read_bmesh(obj)
     bad = [f.index for f in bm.faces if f.calc_area() <= threshold]
     if should_free:
@@ -34,7 +39,7 @@ def check_zero_area_faces(obj, item):
 
 
 def fix_zero_area_faces(obj, item, result):
-    threshold = _zero_area_threshold(item)
+    threshold = _zero_area_threshold(item, obj)
     bm, should_free = _read_bmesh(obj)
     geom = [f for f in bm.faces if f.calc_area() < threshold]
     if geom:

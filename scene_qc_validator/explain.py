@@ -62,6 +62,7 @@ CODES = {
     "uv_udim_tile_set":     "набор UDIM-тайлов",
     "uv_udim_tile_fill":    "пустой UDIM-тайл",
     "uv_shifted_duplicate": "шелл сдвинут на тайл",
+    "uv_packing_density":   "плотность паковки",
     "uv_padding":           "паддинг между шеллами",
     "uv_no_hard_edge_on_uv_borders": "шов без hard edge",
     "uv_random_sharp":      "hard edges не по швам",
@@ -112,6 +113,10 @@ FIX = {
                                      "означает, что шелл улетел в сторону, а не что набор такой"),
     "uv_udim_tile_fill":    (MANUAL, "разложить содержимое пустого тайла по занятым или оставить "
                                      "его осознанно: лишний тайл - это лишняя текстура целиком"),
+    "uv_packing_density":   (MANUAL, "упаковать плотнее: пустое место в развёртке - это "
+                                     "оплаченные и неиспользованные тексели. Считается покрытая "
+                                     "площадь, поэтому сложенные друг на друга шеллы перерасходом "
+                                     "не считаются"),
     "uv_shifted_duplicate": (MANUAL, "разложить шелл на своё место, а не отодвигать на тайл: "
                                      "сдвиг прячет наложение от проверки, но текстуру под него "
                                      "всё равно никто не нарисует"),
@@ -286,6 +291,15 @@ def _t_overlap(v):
     return "%s%s с наложенными UV%s" % (_channel(v), _faces(v.get("faces", 0)), where)
 
 
+def _per_tile(v):
+    """«: 1001 - 90%, 1002 - 34%» - по тайлам, когда их больше одного."""
+    rows = v.get("per_tile") or []
+    if len(rows) < 2:
+        return ""
+    return ": " + ", ".join("%d - %.0f%%" % (number, share * 100.0)
+                            for number, share in rows)
+
+
 def _t_udim_shell(v):
     if v.get("kind") == "grid":
         corners = v.get("corners") or []
@@ -366,6 +380,11 @@ TEXT = {
                                         (v.get("min", 0) or 0) * 100.0,
                                         _n(v.get("islands", 0), "остров", "острова", "островов"),
                                         _faces(v.get("faces", 0))),
+    "uv_packing_density":  lambda v: "%sупакован на %.1f%% при норме %.0f%% (%s%s)"
+                                     % (_channel(v), (v.get("density", 0) or 0) * 100.0,
+                                        (v.get("min", 0) or 0) * 100.0,
+                                        _n(len(v.get("tiles", ())), "тайл", "тайла", "тайлов"),
+                                        _per_tile(v)),
     "uv_shifted_duplicate": lambda v: "%s%s - один и тот же шелл, сдвинутый на целые тайлы "
                                       "(затронуты тайлы %s, %s)"
                                       % (_channel(v),

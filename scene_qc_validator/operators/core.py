@@ -339,6 +339,15 @@ def run_validation_logic(context, targets=None):
         s.last_validation_passed = False
         return False, False
 
+    # матрицы объектов могут быть не пересчитаны: предыдущий фикс только что
+    # поменял масштаб, а matrix_world обновляется депсграфом. Пороги, заданные в
+    # мировых единицах, читают именно его - и на устаревшей матрице судили бы по
+    # старому масштабу. Один вызов на прогон, рядом с _flush_edit_mesh по смыслу
+    try:
+        context.view_layer.update()
+    except AttributeError:
+        pass
+
     muted_keys = _muted_keys(s)
     enabled_checks = _enabled_checks(s)
 

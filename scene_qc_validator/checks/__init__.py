@@ -31,6 +31,7 @@ from .mapping.udim import (
     check_udim_shell_in_tile, check_udim_tile_set,
     check_udim_tile_fill, check_shifted_duplicate,
 )
+from .mapping.packing_density import check_packing_density
 from .mapping.no_hard_edge_on_uv_borders import (
     check_no_hard_edge_on_uv_borders, fix_no_hard_edge_on_uv_borders,
 )
@@ -82,10 +83,12 @@ CHECK_DEFINITIONS = [
     dict(id="geo_zero_area", label="Zero Area Faces", category='GEOMETRY',
          description="Faces with area below tolerance",
          run=check_zero_area_faces, fix=fix_zero_area_faces, can_fix=True,
+         bool_param_1=True,
          fix_is_destructive=True, float_param_1=1e-10),
     dict(id="geo_zero_length", label="Zero Length Edges", category='GEOMETRY',
          description="Edges shorter than tolerance",
          run=check_zero_length_edges, fix=fix_zero_length_edges, can_fix=True,
+         bool_param_1=True,
          fix_is_destructive=True, float_param_1=0.0001),
     dict(id="geo_non_planar", label="Non-Planar Faces", category='GEOMETRY',
          description="Faces whose vertices do not lie on one plane",
@@ -155,6 +158,10 @@ CHECK_DEFINITIONS = [
          description="Each UDIM tile must carry at least this share of its area; a near-empty tile is shells moved aside, not a texture",
          run=check_udim_tile_fill, fix=None, can_fix=False,
          string_param_1="^UV1$", float_param_1=0.1),
+    dict(id="uv_packing_density", label="UV Packing Density", category='UV',
+         description="The UV set must cover at least this share of the texture it occupies; measured as covered area, so stacked shells are not counted twice",
+         run=check_packing_density, fix=None, can_fix=False,
+         string_param_1="^UV1$", float_param_1=0.7),
     dict(id="uv_shifted_duplicate", label="Shell Moved By Whole Tiles", category='UV',
          description="A shell that is a copy of another one moved by whole tiles is a hidden overlap, not a UDIM layout",
          run=check_shifted_duplicate, fix=None, can_fix=False,

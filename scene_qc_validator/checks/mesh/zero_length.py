@@ -3,6 +3,9 @@ from ..common import *
 
 def check_zero_length_edges(obj, item):
     threshold = item.float_param_1 if item.float_param_1 > 0 else 1e-6
+    # порог в мировых единицах: иначе применение трансформа меняет вердикт,
+    # не трогая геометрию (см. _world_scale)
+    threshold = threshold / _world_scale(obj, item.bool_param_1)
     if obj.data.is_editmode:
         bm = bmesh.from_edit_mesh(obj.data)
         bm.edges.ensure_lookup_table()
@@ -29,6 +32,7 @@ def check_zero_length_edges(obj, item):
 
 def fix_zero_length_edges(obj, item, result):
     threshold = item.float_param_1 if item.float_param_1 > 0 else 1e-6
+    threshold = threshold / _world_scale(obj, item.bool_param_1)
     if obj.data.is_editmode:
         if bpy.context.view_layer.objects.active != obj:
             bpy.context.view_layer.objects.active = obj

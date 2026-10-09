@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.14.0
+
+### Added
+
+- **UV Packing Density** - what share of the texture a UV set actually occupies,
+  reported as a percentage. It measures *covered* area, not the sum of island
+  areas: shells stacked on purpose share one patch of texture, and summing
+  would bill them twice for an economy the artist made deliberately. Coverage
+  comes from rasterising each used tile on a 512x512 grid, which costs half a
+  second on an 11 500-face asset; a touched texel counts as spent, because that
+  is what it is. ARDENA reports it without failing on it for now - the project
+  has not declared a number, and the first real asset measured 53.1%
+  (1001: 64.9%, 1002: 41.4%). The per-object breakdown shows the figure
+  whatever the severity.
+
+### Changed
+
+- **ARDENA now requires transforms to be applied.** The check and its fix have
+  been there all along; the project had them switched off because a 90° turn
+  and a scale of 0.01 are the signature of an FBX imported from Maya. The
+  asset still has to reach the engine clean, so the rule is on.
+
+### Fixed
+
+- **A threshold in local units let applying a transform change the verdict**
+  without the geometry changing at all. Zero-length and zero-area read the mesh
+  data, so on an asset with an unapplied scale of 0.01 a local unit is a
+  centimetre: the 0.1 mm threshold really meant one micron, and applying the
+  transform made the same test a hundred and ten thousand times stricter. That
+  is not a hypothetical - the smallest edge on the first real asset cleared the
+  threshold by a factor of 1.9 after applying. Both thresholds are now measured
+  in world units, which makes the verdict the same before and after, and the
+  switch is a setting on each check. Measured on an edge of 5e-5 m at scale
+  0.01: in local units the verdict went from clean to two findings on applying,
+  in world units it stayed at two either way.
+- Object matrices are refreshed once before a validation run. A fix that
+  changes an object's scale leaves `matrix_world` for the dependency graph to
+  recompute, and a world-unit threshold reading it would have judged by the old
+  scale.
+
+
 ## 1.13.0
 
 ### Added

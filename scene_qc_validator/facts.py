@@ -114,6 +114,24 @@ def _transform_text(obj):
     return ", ".join(parts) or "применена"
 
 
+def _percent(value):
+    try:
+        return "%.0f%%" % (float(value) * 100.0)
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _packing_density(obj, layer_name="UV1"):
+    """Плотность паковки канала. Считает растеризацией, поэтому через try:
+    разбор не должен падать из-за строки, которую можно и не показать."""
+    try:
+        from .checks.mapping.packing_density import packing_density
+        return packing_density(obj, layer_name)
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] плотность паковки %s: %s" % (obj.name, error))
+        return None, []
+
+
 def _udim_tiles(mesh, layer_name="UV1"):
     """Номера тайлов, занятых каналом. Пусто - канала нет или он весь в 1001.
 
@@ -248,6 +266,12 @@ def _rows(obj, settings):
     if padding is not None:
         out.append(("Паддинг", "%s px при карте %s"
                     % (_n(padding.int_param_1 or 0), _n(padding.int_param_2 or 0)), INFO))
+    density, _per_tile = _packing_density(obj)
+    if density is not None:
+        out.append(("Плотность паковки UV1", "%.1f%%" % (density * 100.0),
+                    state("uv_packing_density"),
+                    "не меньше %s"
+                    % _percent(state.param("uv_packing_density", "float_param_1", 0.7))))
     tiles = _udim_tiles(mesh)
     if tiles:
         out.append(("UDIM-тайлы", ", ".join(str(t) for t in tiles),

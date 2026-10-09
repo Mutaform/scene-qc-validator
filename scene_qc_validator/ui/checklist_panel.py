@@ -231,8 +231,11 @@ class SQC_PT_checklist(Panel):
         sub = layout.column()
         sub.use_property_split = True
         sub.use_property_decorate = False
-        if cid in ("geo_zero_area", "geo_zero_length", "geo_non_planar", "tr_world_origin", "uv_random_sharp"):
+        if cid in ("geo_non_planar", "tr_world_origin", "uv_random_sharp"):
             sub.prop(item, "float_param_1", text="Tolerance")
+        elif cid in ("geo_zero_area", "geo_zero_length"):
+            sub.prop(item, "float_param_1", text="Threshold")
+            sub.prop(item, "bool_param_1", text="Threshold In World Units")
         elif cid == "uv_single_tile":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "float_param_1", text="Tolerance")
@@ -269,6 +272,9 @@ class SQC_PT_checklist(Panel):
         elif cid == "uv_udim_tile_fill":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "float_param_1", text="Min Tile Fill (0..1)")
+        elif cid == "uv_packing_density":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "float_param_1", text="Min Density (0..1)")
         elif cid == "uv_shifted_duplicate":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "float_param_1", text="Tolerance")
