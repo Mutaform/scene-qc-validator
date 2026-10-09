@@ -421,11 +421,11 @@ TEXT = {
                                            "допустимых"),
                                         ", ".join(v.get("extra", ())) or "?"),
     "uv_padding_gap":      lambda v: "%sпаддинг похож на %g px при карте %s, норма %g-%g "
-                                     "(зазор между шеллами %g px, шеллов %d)"
+                                     "(самое узкое место %g px, шеллов %d)"
                                      % (_channel(v), v.get("padding", 0),
                                         _n_plain(v.get("size", 0)),
                                         v.get("min", 0), v.get("max", 0),
-                                        v.get("gap", 0), v.get("shells", 0)),
+                                        v.get("tightest", 0), v.get("shells", 0)),
     "uv_single_tile":      _t_single_tile,
     "uv_udim_shell_in_tile": _t_udim_shell,
     "uv_udim_tile_set":    _t_udim_tiles,

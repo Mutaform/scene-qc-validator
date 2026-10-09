@@ -152,15 +152,14 @@ def _padding_gap(obj, number, size):
             total = len(getattr(obj.data, "uv_layers", ()))
             return None, ("не измерен: UV-канала №%d нет (каналов %d)"
                           % (number, total))
-        found = measure_gap(obj, layer)
+        found = measure_gap(obj, layer, floor=1.0 / max(size, 1))
     except Exception as error:                      # noqa: BLE001
         print("[Scene QC Validator] отступ %s: %s" % (obj.name, error))
         return None, "не измерен: ошибка расчёта, см. консоль"
     if found is None:
         return None, ("не измерен: в «%s» нечего сравнивать - соседних шеллов нет"
                       % layer.name)
-    # половина зазора - это и есть паддинг, заданный пакеру (см. padding_gap)
-    return found[0] * size / 2.0, ""
+    return found[0] * size, ""
 
 
 def _udim_tiles(mesh, number=1):

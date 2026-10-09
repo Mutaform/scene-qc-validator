@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.18.1
+
+### Fixed
+
+- **Padding is the whole distance from one shell to the next**, and is reported
+  as such. It was being halved, on the theory that a packer inflates each shell
+  by the margin so two neighbours end up two margins apart. A cube packed with
+  UVPackmaster at Margin 16 and a 2048 map settled it: 16.0 px between
+  neighbouring islands, 8 to the tile border. The margin is the gap, and the
+  halving was wrong for it.
+
+- **Touching islands no longer drag the figure to zero.** A packer treats
+  pieces lying flush against each other as one island; Blender, going by
+  topology, counts them as two, and such a pair measures nothing at all. On
+  that same cube four islands out of six had a neighbour at zero distance, so
+  the median came out zero against a real padding of 16. Anything closer than a
+  pixel is a join rather than a gap, and is left out of the figure.
+
+  Measured after the fix: the cube reads 16 px. Meshes laid out to 4, 16 and 40
+  came back as 4.0, 16.0 and 40.0, with 4 and 40 failing the 8-16 range.
+
+
 ## 1.18.0
 
 ### Changed

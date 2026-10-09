@@ -20,19 +20,23 @@
 сравнивается только с соседними ячейками. Дальше радиуса не смотрим: шелл, у
 которого нет соседа ближе, про настройку пакера ничего не говорит.
 
-Зазор - это ДВА паддинга. Пакер раздувает каждый шелл на заданную величину, и
-между двумя соседями получается сумма их отступов. Проверено на живом ассете
-(S_TAR_DK_Estate_GuestRoom_Bed_01, упакован под 16 px при 2048): до края тайла
-15.99 px, между шеллами 32.9. Поэтому отчитываемся половиной зазора - тем
-числом, которое художник вбил в пакер, а не тем, что между шеллами видно.
+Отчитываемся ЗАЗОРОМ между шеллами. У UVPackmaster параметр Margin (px) - это
+расстояние между шеллами целиком, а не раздувание каждого: проверено на кубе,
+упакованном с Margin 16 при 2048, - между соседними островами ровно 16.0 px,
+до края тайла 8. Делить пополам для этого пакера неверно.
 
-Край тайла в расчёт не берётся: там отступ одинарный, и смешивать его с
-двойным в одной медиане значит её смазать.
+Соприкасающиеся острова в расчёт не идут. Пакер считает лежащие вплотную куски
+одним островом, а топологически они разные, и такая пара даёт ноль. На том же
+кубе четыре острова из шести имели ноль до ближайшего, и медиана выходила
+нулевой при настоящем отступе 16. Всё, что ближе пикселя, - это склейка, а не
+отступ, и в статистику не попадает.
+
+Край тайла в расчёт не берётся: у пакера для него свой параметр (Border
+Margin), и на том же кубе он вдвое меньше междушелльного.
 
 Результат округляется до целого пикселя: это оценка, а не измерение. Точки
-контура дают расстояние чуть больше истинного (между точками, а не между
-линиями), и на упакованном ассете это дало 16.45 вместо 16 - с жёсткой границей
-правильно упакованный ассет падал бы на половине пикселя.
+контура дают расстояние чуть больше истинного - между точками, а не между
+линиями.
 
 Шеллы в разных UDIM-тайлах не сравниваются: это разные текстуры, и зазор между
 ними ничего не значит.
@@ -97,10 +101,11 @@ def _median(values):
     return (ordered[middle - 1] + ordered[middle]) / 2.0
 
 
-def measure_gap(obj, layer, reach=None):
+def measure_gap(obj, layer, reach=None, floor=0.0):
     """(медиана, минимум, число шеллов) в единицах UV, или None.
 
-    Шелл, у которого нет соседа в радиусе, в расчёт не идёт: про настройку
+    `floor` - ниже этого расстояния соседи считаются склеенными и в расчёт не
+    идут. Шелл, у которого нет соседа в радиусе, тоже выпадает: про настройку
     пакера он ничего не говорит.
     """
     islands = [island for island in islands_of(obj, layer, 1e-4) if island.in_grid]
@@ -122,6 +127,7 @@ def measure_gap(obj, layer, reach=None):
 
     best = {}
     limit = radius * radius
+    floor_squared = floor * floor
     for (tile, x, y), here in buckets.items():
         near = []
         for dx in (-1, 0, 1):
@@ -132,8 +138,8 @@ def measure_gap(obj, layer, reach=None):
                 if other_index == index:
                     continue
                 distance = (u - ou) ** 2 + (v - ov) ** 2
-                if distance >= limit:
-                    continue
+                if distance <= floor_squared or distance >= limit:
+                    continue        # вплотную - это склейка, а не отступ
                 if distance < best.get(index, limit):
                     best[index] = distance
     if not best:
@@ -155,23 +161,22 @@ def check_padding_gap(obj, item):
     layer = layer_by_index(obj, item.int_param_2 or 1)
     issues = []
     for layer in ([layer] if layer is not None else []):
-        found = measure_gap(obj, layer)
+        found = measure_gap(obj, layer, floor=1.0 / size)
         if found is None:
             continue
         median_uv, minimum_uv, pairs = found
-        gap_px = median_uv * size
-        padding_px = gap_px / 2.0
+        padding_px = median_uv * size
         if low <= round(padding_px) <= high:
             continue
         issues.append({
             "message": ("Padding on UV set %s looks like %.0f px at %d, "
-                        "expected %g..%g (shell gap %.1f px over %d shell(s))"
-                        % (layer.name, padding_px, size, low, high, gap_px, pairs)),
+                        "expected %g..%g (tightest %.1f px over %d shell(s))"
+                        % (layer.name, padding_px, size, low, high,
+                           minimum_uv * size, pairs)),
             "element_ref": "uv:%s" % layer.name,
             "values": {"uv": layer.name, "padding": round(padding_px, 1),
-                       "gap": round(gap_px, 1), "size": size,
-                       "min": low, "max": high, "shells": pairs,
-                       "tightest": round(minimum_uv * size / 2.0, 1),
+                       "size": size, "min": low, "max": high, "shells": pairs,
+                       "tightest": round(minimum_uv * size, 1),
                        "tight": padding_px < low},
         })
     return issues
