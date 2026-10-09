@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.19.0
+
+### Added
+
+- **Four collision checks.** A mesh must have a collision mesh, it must be
+  named exactly `UCX_<mesh>` or `UCX_<mesh>_NN`, each one must be a closed
+  convex hull, and each one must carry the same material as its mesh (with an
+  autofix for the material). They live on the mesh, not on the collider: the
+  `UCX_*` objects are excluded from validation project-wide, so nobody could
+  speak for them - now the mesh finds its own colliders by name and answers
+  for them.
+  - The name is the only link between a mesh and its collision, so Blender's
+    `.001` suffix is a finding, not a cosmetic detail: in the engine that
+    object stops being collision and becomes ordinary geometry.
+  - Convexity is judged on triangles, the way the engine will see it, and from
+    the dihedral angle of each edge rather than every vertex against every
+    face. For a closed manifold surface local convexity at all edges is enough
+    for the whole, and it costs O(edges) instead of O(faces x vertices) - the
+    difference between instant and minutes on a collision somebody made by
+    copying the mesh. An open shell is reported separately from a dent, since
+    the two are fixed differently. Default tolerance 1 mm, in world units.
+  - Settings per check: the collision prefix regex, a regex of meshes that
+    need no collision, and the dent tolerance.
+  - Clicking such a finding selects the collider itself: `element_ref` now
+    understands `obj:<name>`.
+- Checked on synthetic cases - a correct pair of colliders, no collision at
+  all, a `.001` name, dents of 200 mm, 5 mm and 0.4 mm against a 1 mm
+  tolerance, an open shell, a foreign material with its autofix, and a mesh
+  excluded by regex - and on the live bed asset, whose single collider passes
+  all four. Kept as Dev/verify/t_collision.py.
+
+### Changed
+
+- **ARDENA: the padding measurement is yellow, not red.** It estimates the
+  figure the artist typed into the packer, and an estimate should not fail a
+  delivery. Enabled at 03_MP_UVs and 05_Textures as INFO.
+- **ARDENA: the collision checks are on at 05_Textures** and off earlier -
+  there is nothing to collide with at blockout or during unwrapping.
+- **The shell-borders row is gone from the breakdown when the stage has no
+  such rule** (ARDENA never uses it). A dash with "правила нет" only raised
+  the question of what the row meant.
+
 ## 1.18.8
 
 ### Changed

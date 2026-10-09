@@ -256,6 +256,11 @@ class SQC_PT_checklist(Panel):
                 "float_param_2",
                 text="Rectilinear Ratio",
             )
+        elif cid in {"col_missing", "col_name", "col_convex", "col_material"}:
+            sub.prop(item, "string_param_1", text="Collision Prefix Regex")
+            sub.prop(item, "string_param_2", text="Skip Meshes Regex")
+            if cid == "col_convex":
+                sub.prop(item, "float_param_1", text="Dent Tolerance (m)")
         elif cid == "mat_material_count":
             sub.prop(
                 item,

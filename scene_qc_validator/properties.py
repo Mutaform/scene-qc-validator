@@ -19,6 +19,7 @@ CATEGORY_ITEMS = [
     ('NAMING', "Naming", "Object / material naming checks"),
     ('MATERIAL', "Material", "Material assignment checks"),
     ('NANITE', "Nanite", "Unreal Nanite ingestion checks"),
+    ('COLLISION', "Collision", "Collision mesh checks"),
 ]
 
 SEVERITY_ITEMS = [

@@ -74,6 +74,11 @@ CODES = {
     "mat_missing":          "нет материала",
     "mat_material_count":   "слишком много материалов",
     "mat_material_name":    "имя материала не по шаблону",
+    # --- коллизии
+    "col_missing":          "нет коллизии",
+    "col_name":             "имя коллизии не по шаблону",
+    "col_convex":           "коллизия не выпуклая",
+    "col_material":         "на коллизии не тот материал",
 }
 
 # id проверки -> (вид, что сделать). Строка под находкой: лид сразу видит, что
@@ -136,6 +141,14 @@ FIX = {
     "mat_material_name":    (BUTTON, "«Исправить» у этой строки переименует по шаблону проекта "
                                      "и схлопнет дубли «.001» обратно на родителя. Общая кнопка "
                                      "«Исправить автоматически» переименованием не занимается"),
+    # --- коллизии
+    "col_missing":          (MANUAL, "сделать коллизию и назвать «UCX_<имя меша>» или "
+                                     "«UCX_<имя меша>_01»"),
+    "col_name":             (MANUAL, "переименовать в «UCX_<имя меша>» или «UCX_<имя меша>_NN»: "
+                                     "по имени движок и находит коллизию"),
+    "col_convex":           (MANUAL, "собрать оболочку заново выпуклой (Convex Hull): вмятину "
+                                     "движок не исправит, персонаж провалится внутрь"),
+    "col_material":         (AUTO, "поставить на коллизию материал её меша"),
 }
 
 
@@ -381,6 +394,37 @@ def _t_missing_material(v):
     return "Все слоты материала пусты (%s)" % _n(slots, "слот", "слота", "слотов")
 
 
+
+def _t_collision_name(v):
+    """Имя коллизии: показать, как названо и как надо."""
+    names = v.get("names") or []
+    count = v.get("count", len(names))
+    shown = ", ".join("«%s»" % name for name in names)
+    mesh = v.get("mesh", "")
+    head = ("Коллизия %s названа не по шаблону" % shown if count == 1
+            else "%s названы не по шаблону: %s"
+                 % (_n(count, "коллизия", "коллизии", "коллизий"), shown))
+    return "%s - ждём «UCX_%s» или «UCX_%s_NN»" % (head, mesh, mesh)
+
+
+def _t_collision_convex(v):
+    """Выпуклость: дыра и вмятина - разные беды, и чинят их по-разному."""
+    name = v.get("collider", "")
+    if v.get("kind") == "open":
+        return ("Коллизия «%s» не замкнута: у оболочки открытый край (%s)"
+                % (name, _edges(v.get("edges", 0))))
+    return ("Коллизия «%s» не выпуклая: вмятина до %g мм (%s)"
+            % (name, v.get("dent", 0), _edges(v.get("edges", 0))))
+
+
+def _t_collision_material(v):
+    """Материал коллизии против материала меша."""
+    here = ", ".join(v.get("has") or []) or "материала нет"
+    want = ", ".join(v.get("want") or []) or "материала нет"
+    return ("На коллизии «%s» материал: %s, а на меше: %s"
+            % (v.get("collider", ""), here, want))
+
+
 TEXT = {
     "geo_has_soft_edges":  lambda v: "Все рёбра помечены hard edge: %s, мягких нет"
                                      % _edges(v.get("sharp", 0)),
@@ -460,6 +504,11 @@ TEXT = {
                                         _g(v.get("tilt", 0)),
                                         _n(v.get("islands", 0), "шелл", "шелла",
                                            "шеллов")),
+    "col_missing":         lambda v: "У меша нет коллизии: нужен объект «UCX_%s» или «UCX_%s_01»"
+                                     % (v.get("mesh", ""), v.get("mesh", "")),
+    "col_name":            _t_collision_name,
+    "col_convex":          _t_collision_convex,
+    "col_material":        _t_collision_material,
     "vc_missing":          lambda v: ("Атрибута вершинного цвета «%s» на меше нет"
                                       % v["wanted"]) if v.get("wanted")
                                      else ("У меша нет вершинного цвета, а в нём лежит "

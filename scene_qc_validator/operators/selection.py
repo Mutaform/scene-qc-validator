@@ -113,6 +113,13 @@ def _select_uv_segments(obj, uv_layer_name, encoded_segments):
 
 
 def _select_elements(obj, element_ref):
+    # находка может указывать на ДРУГОЙ объект: коллизия живёт своим объектом,
+    # а ругается на неё меш, которому она принадлежит
+    named = _parse_element_ref(element_ref).get("obj", [""])[0]
+    if named:
+        other = bpy.context.scene.objects.get(named)
+        if other is not None:
+            obj = other
     if obj.mode != 'OBJECT':
         try:
             bpy.ops.object.mode_set(mode='OBJECT')

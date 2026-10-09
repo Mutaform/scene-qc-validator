@@ -22,6 +22,10 @@ from .objects.object_name_pattern import (
     check_object_name_pattern, fix_object_name_pattern,
 )
 from .objects.nanite_closed_geometry import check_nanite_closed_geometry
+from .objects.collision import (
+    check_collision_missing, check_collision_name,
+    check_collision_convex, check_collision_material, fix_collision_material,
+)
 
 from .mapping.missing_uv import check_missing_uv
 from .mapping.uv_set_count import check_uv_set_count
@@ -227,6 +231,28 @@ CHECK_DEFINITIONS = [
          fix_is_destructive=False,
          string_param_1=r"^m_[A-Za-z0-9_]+(?:_\d{2})?$",
          string_param_2=""),
+
+    # Коллизии проверяются НА МЕШЕ: сами объекты UCX_* из проверки исключены
+    # (у них нет ни UV, ни материала по старому правилу), и спросить с них
+    # некому. Меш ищет свои коллизии по имени - см. checks/objects/collision.py
+    dict(id="col_missing", label="Collision Missing", category='COLLISION',
+         description="Every mesh must have a collision mesh named UCX_<mesh> or UCX_<mesh>_NN",
+         run=check_collision_missing, fix=None, can_fix=False,
+         string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
+    dict(id="col_name", label="Collision Name", category='COLLISION',
+         description="A collision mesh must be named exactly UCX_<mesh> or UCX_<mesh>_NN: the name is the only link to its mesh",
+         run=check_collision_name, fix=None, can_fix=False,
+         string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
+    dict(id="col_convex", label="Collision Convex", category='COLLISION',
+         description="Each collision mesh must be a closed convex hull",
+         run=check_collision_convex, fix=None, can_fix=False,
+         float_param_1=0.001,
+         string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
+    dict(id="col_material", label="Collision Material", category='COLLISION',
+         description="A collision mesh must carry the same material as the mesh it belongs to",
+         run=check_collision_material, fix=fix_collision_material, can_fix=True,
+         fix_is_destructive=False,
+         string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
 ]
 
 

@@ -214,6 +214,30 @@ def _udim_tiles(obj, number=1):
     return sorted(seen)
 
 
+def _collisions_text(obj, state):
+    """Что нашлось по имени: «2: UCX_..._001, UCX_..._002».
+
+    Имена показываем, а не только число: по ним сразу видно и опечатку, и
+    блендеровский хвост «.001», из-за которого в движке это уже не коллизия.
+    """
+    item = (state.item("col_missing") or state.item("col_name")
+            or state.item("col_convex") or state.item("col_material"))
+    if item is None:
+        return "—"                  # правила нет - и искать незачем
+    try:
+        from .checks.objects.collision import colliders_of
+        mine, _wrong = colliders_of(obj, item)
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] коллизии %s: %s" % (obj.name, error))
+        return "—"
+    if not mine:
+        return "нет"
+    names = [o.name for o in mine[:4]]
+    if len(mine) > len(names):
+        names.append("…")
+    return "%d: %s" % (len(mine), ", ".join(names))
+
+
 def _uv_text(mesh):
     names = [uv.name for uv in mesh.uv_layers]
     if not names:
@@ -367,12 +391,15 @@ def _rows(obj, settings):
                           "uv_udim_tile_fill", "uv_shifted_duplicate"),
                     "подряд с 1001, каждый заполнен",
                     str(len(tiles))))
-    borders = state("uv_unaligned_edges")
-    out.append(("Границы шеллов",
-                _verdict(borders, "завалены", "ровные"), borders,
-                "у шеллов, задуманных прямыми, границы ровно по горизонтали и "
-                "вертикали (допуск %s°)"
-                % state.param("uv_unaligned_edges", "float_param_1", 0.1)))
+    # строки нет вовсе, если проверки нет в этапе: у ARDENA это правило не
+    # используется, и прочерк в разборе только вызывал вопросы (денис)
+    if state.item("uv_unaligned_edges") is not None:
+        out.append(("Границы шеллов",
+                    _verdict(state("uv_unaligned_edges"), "завалены", "ровные"),
+                    state("uv_unaligned_edges"),
+                    "у шеллов, задуманных прямыми, границы ровно по горизонтали "
+                    "и вертикали (допуск %s°)"
+                    % state.param("uv_unaligned_edges", "float_param_1", 0.1)))
 
     # --- материал
     out.append(("Материалы", _materials_text(obj),
@@ -381,4 +408,10 @@ def _rows(obj, settings):
                 % (state.param("mat_material_count", "int_param_1", "—"),
                    state.param("mat_material_name", "string_param_1", "—")),
                 _n(len(obj.material_slots)) if obj.material_slots else "нет"))
+
+    # --- коллизии
+    out.append(("Коллизии", _collisions_text(obj, state),
+                state("col_missing", "col_name", "col_convex", "col_material"),
+                "UCX_<имя меша> или UCX_<имя меша>_NN, выпуклые, "
+                "с материалом меша"))
     return out
