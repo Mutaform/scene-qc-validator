@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.18.7
+
+### Changed
+
+- **The padding hint is one line with the number in it:** "перепаковать канал
+  с отступом из нормы - 16 для 2048". The bake, the packer's Margin and the
+  Show Padding button are gone from it - an artist knows all three, and in the
+  hint they read as a pile of words.
+
 ## 1.18.6
 
 ### Changed
