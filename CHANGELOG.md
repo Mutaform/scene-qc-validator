@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.18.5
+
+### Changed
+
+- **Clicking a UV finding now points the UV editor at it.** The channel was
+  already switched - an overlap on UV3 put UV3 into the editor - but the whole
+  mesh stayed selected, so the editor showed the entire layout and finding the
+  two overlapping islands in it was again work for the eyes, which is the work
+  the check was supposed to take away. A click now leaves only the faces the
+  finding names selected, selects them in the UV editor and frames the view on
+  them. For an overlap that means the overlapping islands alone, filling the
+  editor; the same goes for padding, UDIM and shells outside 0-1.
+- Narrowing happens inside the open edit session: the overlap review keeps the
+  mesh in Edit Mode, and leaving it the way `_select_elements` does would tear
+  that session down.
+
 ## 1.18.4
 
 ### Fixed

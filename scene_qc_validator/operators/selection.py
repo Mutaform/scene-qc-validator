@@ -172,6 +172,61 @@ def _select_elements(obj, element_ref):
     bmesh.update_edit_mesh(obj.data)
 
 
+def _focus_faces_in_edit(obj, faces):
+    """Оставить выделенными только перечисленные грани, не выходя из правки.
+
+    Обзор наложений открывает весь меш, и в UV-редакторе лежит вся раскладка:
+    найти в ней те самые наложенные острова - снова работа глазами, ровно та,
+    которую проверка должна была снять. Выходить в объектный режим, как это
+    делает `_select_elements`, здесь нельзя - развалится сессия обзора.
+    """
+    if obj.mode != 'EDIT' or not faces:
+        return False
+    import bmesh
+    try:
+        bpy.ops.mesh.select_mode(type='FACE')
+        bpy.ops.mesh.select_all(action='DESELECT')
+    except RuntimeError as error:
+        print("[Scene QC Validator] выделение граней: %s" % error)
+        return False
+    bm = bmesh.from_edit_mesh(obj.data)
+    bm.faces.ensure_lookup_table()
+    for index in faces:
+        if index < len(bm.faces):
+            bm.faces[index].select = True
+    bm.select_flush(True)
+    bmesh.update_edit_mesh(obj.data)
+    return True
+
+
+def _frame_uv_editors(context):
+    """Показать выделенное в открытых UV-редакторах: выделить и подогнать вид.
+
+    Без этого художник видит нужный канал, но смотрит на прежний кусок
+    раскладки - а острова, на которые ругается проверка, могут лежать за
+    краем экрана.
+    """
+    sync = context.scene.tool_settings.use_uv_select_sync
+    for window in context.window_manager.windows:
+        for area in window.screen.areas:
+            space = area.spaces.active
+            if area.type != 'IMAGE_EDITOR' or getattr(space, "mode", "") != 'UV':
+                continue
+            region = next((r for r in area.regions if r.type == 'WINDOW'), None)
+            if region is None:
+                continue
+            try:
+                with context.temp_override(window=window, area=area, region=region):
+                    if not sync:
+                        # без синхронизации выделение в UV своё: подсветим те
+                        # же грани, иначе они просто нарисованы серым
+                        bpy.ops.uv.select_all(action='SELECT')
+                    bpy.ops.image.view_selected()
+            except (RuntimeError, TypeError) as error:
+                print("[Scene QC Validator] UV-редактор: %s" % error)
+            area.tag_redraw()
+
+
 def select_result_by_index(context, index):
     s = _settings(context)
     if index < 0 or index >= len(s.results):
@@ -181,21 +236,28 @@ def select_result_by_index(context, index):
     if not obj:
         return False
     from . import overlap_visual
+    parsed = _parse_element_ref(r.element_ref)
     if r.check_id == "uv_overlap":
         random_sharp_highlight.clear_highlight()
-        parsed = _parse_element_ref(r.element_ref)
         uv_layer_name = parsed.get("uv", [""])[0]
-        return overlap_visual.toggle_result_overlap_review(
+        done = overlap_visual.toggle_result_overlap_review(
             context, obj, uv_layer_name
         )
+        # обзор - переключатель: при выключении показывать нечего
+        if done and overlap_visual.is_overlap_review_active():
+            if _focus_faces_in_edit(obj, _parse_indices(parsed.get("f", []))):
+                _frame_uv_editors(context)
+        return done
     if overlap_visual.is_overlap_review_active():
         overlap_visual.restore_overlap_review(context)
     _select_elements(obj, r.element_ref)
     if r.check_id == "uv_random_sharp":
-        parsed = _parse_element_ref(r.element_ref)
         random_sharp_highlight.set_highlight(obj, _parse_indices(parsed.get("e", [])))
     else:
         random_sharp_highlight.clear_highlight()
+    if "uv" in parsed:
+        # находка про развёртку: канал уже переключён, осталось навести на неё
+        _frame_uv_editors(context)
     return True
 
 
