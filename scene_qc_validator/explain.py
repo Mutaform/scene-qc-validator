@@ -418,11 +418,19 @@ def _t_collision_convex(v):
 
 
 def _t_collision_material(v):
-    """Материал коллизии против материала меша."""
-    here = ", ".join(v.get("has") or []) or "материала нет"
-    want = ", ".join(v.get("want") or []) or "материала нет"
-    return ("На коллизии «%s» материал: %s, а на меше: %s"
-            % (v.get("collider", ""), here, want))
+    """Материал коллизии против материала меша.
+
+    Пустой слот - отдельная фраза: «материал: материала нет» читается как
+    опечатка, а это самый частый случай из трёх.
+    """
+    name = v.get("collider", "")
+    here = ", ".join(v.get("has") or [])
+    want = ", ".join(v.get("want") or [])
+    if not here:
+        return "На коллизии «%s» нет материала, а на меше %s" % (name, want)
+    if not want:
+        return "На меше нет материала, а на коллизии «%s» стоит %s" % (name, here)
+    return "На коллизии «%s» материал %s, а на меше %s" % (name, here, want)
 
 
 TEXT = {

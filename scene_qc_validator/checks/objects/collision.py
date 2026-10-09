@@ -228,11 +228,17 @@ def check_collision_material(obj, item):
         here = [slot.material.name for slot in collider.material_slots if slot.material]
         if here == wanted:
             continue
+        if not here:
+            message = ("%s has no material, the mesh carries %s"
+                       % (collider.name, ", ".join(wanted)))
+        elif not wanted:
+            message = ("the mesh has no material, %s carries %s"
+                       % (collider.name, ", ".join(here)))
+        else:
+            message = ("%s carries %s, the mesh carries %s"
+                       % (collider.name, ", ".join(here), ", ".join(wanted)))
         issues.append({
-            "message": ("%s carries %s, the mesh carries %s"
-                        % (collider.name,
-                           ", ".join(here) or "no material",
-                           ", ".join(wanted) or "no material")),
+            "message": message,
             "element_ref": "obj:%s" % collider.name,
             "values": {"mesh": obj.name, "collider": collider.name,
                        "has": here, "want": wanted},

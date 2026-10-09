@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.19.1
+
+### Changed
+
+- **"материал: материала нет" is gone.** An empty slot is the commonest of the
+  three cases and deserves its own sentence: "На коллизии «X» нет материала, а
+  на меше MI_Y". The reverse case - material on the collider, none on the mesh
+  - reads the other way round, and the English fallback follows the same
+  three branches.
+
 ## 1.19.0
 
 ### Added
