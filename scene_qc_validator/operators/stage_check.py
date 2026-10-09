@@ -125,6 +125,71 @@ def _fix_one_check(context, settings, check_id, only=""):
     return fixed
 
 
+# Вьюпорт, переключённый на показ вершинного цвета, и то, каким он был до этого.
+# Модульное состояние, а не настройка сцены: это временный взгляд, он не должен
+# пережить перезагрузку аддона и уж тем более попасть в .blend художника.
+_vertex_view = {"saved": [], "object": ""}
+
+
+def _restore_vertex_view():
+    """Вернуть вьюпортам прежнее затенение. Молча: окно могли закрыть."""
+    for space, shading_type, color_type in _vertex_view["saved"]:
+        try:
+            space.shading.type = shading_type
+            space.shading.color_type = color_type
+        except (ReferenceError, TypeError, AttributeError):
+            pass
+    _vertex_view["saved"] = []
+    _vertex_view["object"] = ""
+
+
+def _show_vertex_color(context, object_name):
+    """Показать маску вершинного цвета во вьюпорте. Повторное нажатие - выключить.
+
+    Числа в разборе говорят, что слои есть и что они по правилам. Они не говорят,
+    что слой назначен тому куску, которому надо, - это видно только глазами.
+    """
+    if _vertex_view["saved"] and _vertex_view["object"] == object_name:
+        _restore_vertex_view()
+        return {"ok": True, "text": "Вершинный цвет выключен, вьюпорт как был"}
+    _restore_vertex_view()
+
+    obj = context.scene.objects.get(object_name)
+    if obj is None:
+        return {"ok": False, "text": "Объект %s не найден в сцене" % object_name}
+    attributes = getattr(obj.data, "color_attributes", None)
+    if not attributes:
+        return {"ok": False, "text": "У %s нет вершинного цвета" % object_name}
+
+    # активный атрибут - тот же, по которому судила проверка
+    active = attributes.active_color or attributes[0]
+    try:
+        attributes.active_color = active
+    except (AttributeError, TypeError):
+        pass
+
+    for o in list(context.selected_objects):
+        o.select_set(False)
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+
+    saved = []
+    for screen_area in getattr(context.screen, "areas", ()):
+        if screen_area.type != 'VIEW_3D':
+            continue
+        space = screen_area.spaces.active
+        saved.append((space, space.shading.type, space.shading.color_type))
+        space.shading.type = 'SOLID'
+        space.shading.color_type = 'VERTEX'
+        screen_area.tag_redraw()
+    if not saved:
+        return {"ok": False, "text": "Во вьюпорте нечего переключать"}
+    _vertex_view["saved"] = saved
+    _vertex_view["object"] = object_name
+    return {"ok": True, "text": "Вершинный цвет «%s» показан на %s - нажмите ещё раз, "
+                                "чтобы вернуть вьюпорт" % (active.name, object_name)}
+
+
 def _auto_check_ids(settings):
     """Проверки, которые страница объявила как «авто» - их и чинит общая кнопка.
 
@@ -191,6 +256,12 @@ def run_action(context, action, code="", object_name=""):
         for area in getattr(context.screen, "areas", ()):
             area.tag_redraw()
         return {"ok": True, "text": "Показано в Blender: %s" % object_name}
+
+    if action == "show_vc":
+        result = _show_vertex_color(context, object_name)
+        for area in getattr(context.screen, "areas", ()):
+            area.tag_redraw()
+        return result
 
     if context.mode != 'OBJECT' and context.object is not None:
         try:
@@ -269,6 +340,29 @@ class SQC_OT_check_stage(Operator):
             f"on {len(doc['objects'])} object(s)",
         )
         return {'FINISHED'}
+
+
+class SQC_OT_show_vertex_color(Operator):
+    bl_idname = "sqc.show_vertex_color"
+    bl_label = "Show Vertex Color"
+    bl_description = (
+        "Show the vertex color mask on the active object in the viewport. "
+        "Press again to put the viewport back"
+    )
+
+    def execute(self, context):
+        obj = context.active_object
+        if obj is None or obj.type != 'MESH':
+            # уже показываем что-то - дадим выключить, даже если активного меша нет
+            if _vertex_view["saved"]:
+                _restore_vertex_view()
+                self.report({'INFO'}, "Вьюпорт возвращён")
+                return {'FINISHED'}
+            self.report({'WARNING'}, "Нет активного меша")
+            return {'CANCELLED'}
+        outcome = _show_vertex_color(context, obj.name)
+        self.report({'INFO'} if outcome["ok"] else {'WARNING'}, outcome["text"])
+        return {'FINISHED'} if outcome["ok"] else {'CANCELLED'}
 
 
 class SQC_OT_open_report(Operator):

@@ -46,7 +46,7 @@ import urllib.parse
 import bpy
 
 TAG = "[Scene QC Validator live]"
-ACTIONS = ("fix_all", "fix_code", "select")
+ACTIONS = ("fix_all", "fix_code", "select", "show_vc")
 STATE_KEY = "_SQC_VALIDATOR_LIVE"
 TICK = 0.25          # с: как часто главный поток заглядывает в очередь
 START_DELAY = 0.25   # с: дать ответу «принято» уйти в браузер до начала работы

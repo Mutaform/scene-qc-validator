@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.16.0
+
+### Added
+
+- **A "Посмотреть" button next to the Vertex Color row** in the report, and the
+  same thing in the header menu. It puts the viewport into solid shading with
+  the colour attribute showing, so the mask is on screen; pressing it again
+  puts the viewport back exactly as it was, shading mode and all. The numbers
+  in the breakdown say the layers exist and that they follow the rules. They
+  cannot say the layer was given to the part that needed it - that is only
+  visible by looking.
+
+  A row in the breakdown can now carry a button, so other rows can get one
+  where looking beats reading.
+
+
 ## 1.15.0
 
 ### Added

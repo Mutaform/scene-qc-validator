@@ -71,6 +71,10 @@ class SQC_PT_header_menu(Panel):
                 op.stage_name = stage
 
         layout.separator()
+        # взгляд, а не проверка: числа в отчёте говорят, что слои есть и что они
+        # по правилам, но не что назначены нужным кускам - это видно только глазами
+        layout.operator("sqc.show_vertex_color", text="Показать Vertex Color",
+                        icon='COLOR')
         layout.operator("sqc.open_report", text="Open Last Report", icon='URL')
 
 

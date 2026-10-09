@@ -133,6 +133,8 @@ td.k{color:var(--dim);width:210px;white-space:nowrap}
 td.v{font:13px ui-monospace,Consolas,monospace;word-break:break-word}
 td.v.ok{color:var(--ok)} td.v.warn{color:var(--warn)} td.v.bad{color:var(--err)}
 td.v .m{margin-right:6px;font-family:"Segoe UI",sans-serif}
+td.a{width:1%;white-space:nowrap;padding-left:14px}
+button.act.row{margin:0;padding:2px 10px;font-weight:600}
 .norule{color:#63646c;font:11px "Segoe UI",sans-serif;margin-left:10px}
 .part{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
 .part h2{font-size:12px;letter-spacing:1px;color:var(--acc);margin:0;text-transform:uppercase}
@@ -188,7 +190,7 @@ def build(settings, version, project, stage, scope_label, targets, muted_keys=()
     # находками, потому что состояние строки берётся из них
     rows = {}
     for obj in targets:
-        rows[obj.name] = [list(row) + [None] * (5 - len(row))
+        rows[obj.name] = [list(row) + [None] * (6 - len(row))
                           for row in facts_mod.rows(obj, settings)]
 
     names = [obj.name for obj in targets]
@@ -413,21 +415,27 @@ _MARK = {facts_mod.OK: "✓", facts_mod.BAD: "✕", facts_mod.WARN: "!"}
 NO_RULE = "<span class='norule'>правила нет</span>"
 
 
-def _facts_table(doc, name):
+def _facts_table(doc, name, live=None):
     """Разбор объекта: значение, состояние, норма. Что измеряли - видно и тогда,
     когда находок нет."""
     rows = doc.get("facts", {}).get(name) or []
     out = []
-    for label, value, state, why, _short in rows:
+    for label, value, state, why, _short, action in rows:
         # серое без пояснения читается как «забыли проверить»; говорим прямо
         tail = NO_RULE if state is None else ""
         if state in (facts_mod.WARN, facts_mod.BAD) and why:
             tail = "<span class='why'>%s</span>" % _e(why)
         mark = ("<span class='m'>%s</span>" % _MARK[state]) if state in _MARK else ""
         css = "" if state is facts_mod.INFO else (state or "")
-        out.append("<tr%s><td class='k'>%s</td><td class='v %s'>%s%s%s</td></tr>"
+        # кнопка у строки: показать то, о чём строка, прямо в Blender
+        button = ""
+        if live and action:
+            button = ("<button class='act row' data-act='%s' data-obj='%s' disabled>%s"
+                      "</button>" % (_e(action[1]), _e(name), _e(action[0])))
+        out.append("<tr%s><td class='k'>%s</td><td class='v %s'>%s%s%s</td>"
+                   "<td class='a'>%s</td></tr>"
                    % ("" if state in (facts_mod.WARN, facts_mod.BAD) else " class='fine'",
-                      _e(label), css, mark, _e(value), tail))
+                      _e(label), css, mark, _e(value), tail, button))
     if not out:
         return ""
     return ("<div class='part'><h2>Разбор</h2><table class='facts'>%s</table></div>"
@@ -453,7 +461,7 @@ def _cards(doc, live=None):
                "no" if errors else "ok", VERDICT_BAD if errors else VERDICT_OK, _e(counts),
                _problem_list(doc, name, SEVERITY_ERROR, "e", "Ошибки", live)
                + _problem_list(doc, name, SEVERITY_WARNING, "w", "Замечания", live),
-               _facts_table(doc, name))
+               _facts_table(doc, name, live))
         )
     return "".join(out)
 
