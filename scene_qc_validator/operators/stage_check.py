@@ -131,14 +131,52 @@ def _fix_one_check(context, settings, check_id, only=""):
 _vertex_view = {"saved": [], "object": ""}
 
 
-def _restore_vertex_view():
-    """Вернуть вьюпортам прежнее затенение. Молча: окно могли закрыть."""
-    for space, shading_type, color_type in _vertex_view["saved"]:
+# Что выставляем ради плоского показа маски и что, значит, надо вернуть.
+# Маска - это заливка, а не поверхность: любой свет, блик и cavity её искажают,
+# и по картинке уже не скажешь, 0.3 там или 0.35. FLAT убирает освещение вовсе.
+# Цветокоррекцию сцены (Filmic, AgX) трогать НЕ надо: показ вершинного цвета в
+# Solid через неё не проходит. Замерено 2026-10-09 на живой сцене с Filmic -
+# пиксели на экране совпали байт в байт с теми же при Standard, и оба раза это
+# было ровно значение канала: 0.2 дало 51, 0.5 - 128, 0.6 - 153 из 255. Трогать
+# настройки сцены ради нулевого эффекта незачем.
+
+_FLAT_VIEW = {
+    "type": 'SOLID',
+    "color_type": 'VERTEX',
+    "light": 'FLAT',
+    "show_cavity": False,
+    "show_specular_highlight": False,
+    "show_shadows": False,
+    "show_xray": False,
+}
+
+
+def _apply_known(target, wanted):
+    """Выставить то, что у объекта есть, и вернуть прежние значения.
+
+    Свойства затенения и цветокоррекции разнятся между версиями Blender: чего
+    нет, то не трогаем и не пытаемся вернуть.
+    """
+    was = {}
+    for name, value in wanted.items():
+        if not hasattr(target, name):
+            continue
+        was[name] = getattr(target, name)
         try:
-            space.shading.type = shading_type
-            space.shading.color_type = color_type
-        except (ReferenceError, TypeError, AttributeError):
-            pass
+            setattr(target, name, value)
+        except (TypeError, AttributeError):
+            was.pop(name, None)
+    return was
+
+
+def _restore_vertex_view():
+    """Вернуть вьюпортам и сцене прежний вид. Молча: окно могли закрыть."""
+    for space, saved in _vertex_view["saved"]:
+        for name, value in saved.items():
+            try:
+                setattr(space.shading, name, value)
+            except (ReferenceError, TypeError, AttributeError):
+                pass
     _vertex_view["saved"] = []
     _vertex_view["object"] = ""
 
@@ -177,17 +215,16 @@ def _show_vertex_color(context, object_name):
     for screen_area in getattr(context.screen, "areas", ()):
         if screen_area.type != 'VIEW_3D':
             continue
-        space = screen_area.spaces.active
-        saved.append((space, space.shading.type, space.shading.color_type))
-        space.shading.type = 'SOLID'
-        space.shading.color_type = 'VERTEX'
+        shading = screen_area.spaces.active.shading
+        saved.append((screen_area.spaces.active, _apply_known(shading, _FLAT_VIEW)))
         screen_area.tag_redraw()
     if not saved:
         return {"ok": False, "text": "Во вьюпорте нечего переключать"}
     _vertex_view["saved"] = saved
     _vertex_view["object"] = object_name
-    return {"ok": True, "text": "Вершинный цвет «%s» показан на %s - нажмите ещё раз, "
-                                "чтобы вернуть вьюпорт" % (active.name, object_name)}
+    return {"ok": True, "text": "Вершинный цвет «%s» показан на %s плоско, без света и "
+                                "бликов - нажмите ещё раз, чтобы вернуть вьюпорт"
+                                % (active.name, object_name)}
 
 
 def _auto_check_ids(settings):

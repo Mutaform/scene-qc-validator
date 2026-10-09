@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.16.1
+
+### Fixed
+
+- The vertex colour view is flat now - no lighting, no specular, no cavity. A
+  mask is a fill, not a surface: a highlight across it and you can no longer
+  tell 0.3 from 0.35. The viewport keeps whatever it had and gets it all back
+  on the second press, lighting mode included.
+
+  Scene colour management is deliberately left alone. Filmic and AgX looked
+  like the obvious culprit, but solid-mode vertex colour does not go through
+  them: measured on a real scene set to Filmic, the pixels on screen came out
+  byte for byte the same as with Standard, and both times they were exactly the
+  channel value - 0.2 gave 51, 0.5 gave 128, 0.6 gave 153 out of 255. There was
+  nothing to fix there, so nothing is touched.
+
+
 ## 1.16.0
 
 ### Added
