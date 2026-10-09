@@ -120,6 +120,20 @@ details.asset:not([open]){padding-top:12px;padding-bottom:12px}
 .prob .code{color:var(--dim);font:11px ui-monospace,Consolas,monospace;margin-left:8px}
 .prob.e li>b:last-of-type{color:var(--err)} .prob.w li>b:last-of-type{color:var(--warn)}
 .meas{color:var(--dim);font:11px ui-monospace,Consolas,monospace;margin:1px 0 0}
+/* Занавес на время починки. Blender на тяжёлом ассете думает секунды, и без
+   него страница выглядит так, будто кнопку не нажали: ничего не меняется, а
+   строка состояния мелкая и внизу. */
+.veil{position:fixed;inset:0;z-index:50;display:none;align-items:center;
+      justify-content:center;background:rgba(14,15,18,.72);
+      backdrop-filter:blur(2px);cursor:progress}
+.veil.on{display:flex}
+.veilbox{display:flex;flex-direction:column;align-items:center;gap:14px;
+         padding:26px 34px;text-align:center}
+.spin{width:44px;height:44px;border-radius:50%;border:3px solid rgba(122,162,247,.22);
+      border-top-color:var(--acc);animation:sqcspin .8s linear infinite}
+@keyframes sqcspin{to{transform:rotate(360deg)}}
+.veiltext{font-size:15px;font-weight:600}
+.veilhint{font-size:12px;color:var(--dim)}
 body.live .pick{cursor:pointer;border-bottom:1px dashed #54555d}
 body.live .pick:hover{color:var(--acc);border-bottom-color:var(--acc)}
 .who .pick{margin-left:2px} .who .pick:first-child{margin-left:0}
@@ -536,9 +550,24 @@ function poll(){
   });
 }
 document.body.classList.add('live');
-function send(label,q){
+var veilEl=document.getElementById('veil'),veilTx=document.getElementById('veiltext'),veilOff=false;
+function veil(text){
+  if(!veilEl)return;
+  if(text&&!veilOff){veilTx.textContent=text;veilEl.classList.add('on');}
+  else veilEl.classList.remove('on');
+}
+// занавес снимается кликом: если Blender молчит, человек не должен остаться
+// заперт за тёмным экраном
+if(veilEl)veilEl.addEventListener('click',function(){veilOff=true;veil('');});
+// занавес ходит за pending сам: тот гасится в пяти разных местах, и развешивать
+// вызовы по каждому - верный способ однажды оставить экран тёмным
+setInterval(function(){veil(pending&&pending.heavy?pending.label:'');},120);
+function send(label,q,heavy){
   var id=String(Date.now())+Math.random().toString(36).slice(2,8);
-  pending={id:id,label:label};msg=null;show();
+  pending={id:id,label:label,heavy:!!heavy};msg=null;veilOff=false;
+  veil(heavy?label:'');show();
+  // страховка: пять минут ожидания - это уже не ожидание
+  setTimeout(function(){if(pending&&pending.id===id){veilOff=true;veil('');}},300000);
   call(url('/run','&id='+id+q),{method:'POST'}).then(function(r){
     if(r.status===409){pending=null;msg={ok:false,text:'Blender занят — повторите чуть позже'};show();}
     else if(!r.ok){pending=null;msg={ok:false,text:'Blender не принял команду'};show();}
@@ -549,9 +578,13 @@ document.addEventListener('click',function(e){
   var b=e.target.closest('button.act');
   if(b){
     if(b.disabled||pending)return;
-    send(b.textContent.trim(),'&a='+encodeURIComponent(b.getAttribute('data-act'))
+    var act=b.getAttribute('data-act')||'';
+    // занавес только для починки: «показать в Blender» отрабатывает мгновенно,
+    // и темнеть ради него - мешать
+    send(b.textContent.trim(),'&a='+encodeURIComponent(act)
          +'&code='+encodeURIComponent(b.getAttribute('data-code')||'')
-         +'&obj='+encodeURIComponent(b.getAttribute('data-obj')||''));
+         +'&obj='+encodeURIComponent(b.getAttribute('data-obj')||''),
+         act.indexOf('fix')===0);
     return;
   }
   var row=e.target.closest('.pick');
@@ -607,6 +640,15 @@ def render(doc, live=None):
 
     out.append("<div class='foot'>Mutaform Scene QC Validator %s · машинная версия отчёта "
                "рядом, qc_report.json</div></div>" % _e(doc["version"]))
+    if live:
+        # вне #root: swap() перерисовывает только его, а занавес должен
+        # пережить обновление страницы и сняться сам
+        out.append(
+            "<div class='veil' id='veil'><div class='veilbox'>"
+            "<div class='spin'></div>"
+            "<div class='veiltext' id='veiltext'></div>"
+            "<div class='veilhint'>Blender работает — окно обновится само</div>"
+            "</div></div>")
     out.append("<script>%s</script>" % JS_VIEW)
     if live:
         out.append("<script>%s</script>" % JS_LIVE.replace(

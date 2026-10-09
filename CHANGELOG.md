@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.19.2
+
+### Added
+
+- **A fix now shows that it is working.** Pressing Fix sent the command and
+  then nothing visibly happened: Blender thinks for seconds on a heavy asset,
+  and the only sign was the small status line at the bottom of the card - so
+  the button looked dead and got pressed again. The page now dims and shows a
+  spinner with the name of what is running, and it stays until the page
+  refreshes itself.
+  - Only for fixes. "Показать в Blender" answers instantly, and dimming the
+    screen for it would be in the way.
+  - The veil follows `pending` on a 120 ms timer rather than being raised and
+    lowered by hand in the five places where that flag is cleared - one missed
+    path there would leave the screen dark for good.
+  - Two ways out if Blender never answers: clicking the veil dismisses it, and
+    it lifts itself after five minutes.
+
 ## 1.19.1
 
 ### Changed
