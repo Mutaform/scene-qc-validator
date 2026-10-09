@@ -27,6 +27,10 @@ from .mapping.missing_uv import check_missing_uv
 from .mapping.uv_set_count import check_uv_set_count
 from .mapping.uv_set_names import check_uv_set_names, fix_uv_set_names
 from .mapping.single_uv_tile import check_single_uv_tile
+from .mapping.udim import (
+    check_udim_shell_in_tile, check_udim_tile_set,
+    check_udim_tile_fill, check_shifted_duplicate,
+)
 from .mapping.no_hard_edge_on_uv_borders import (
     check_no_hard_edge_on_uv_borders, fix_no_hard_edge_on_uv_borders,
 )
@@ -135,6 +139,26 @@ CHECK_DEFINITIONS = [
          run=check_uv_overlap, fix=None, can_fix=False,
          string_param_1=".+", bool_param_1=True, bool_param_2=True,
          float_param_1=1e-10, int_param_1=250000),
+    # --- UDIM. Канал, которому разрешён UDIM, законно выходит за 0-1, и
+    # uv_single_tile для него выключают: внутри своих тайлов его держат эти
+    # проверки. Разделены они потому, что у доказуемого и у подозрения должна
+    # быть разная строгость - см. шапку checks/mapping/udim.py.
+    dict(id="uv_udim_shell_in_tile", label="UDIM: Shell Inside Tile", category='UV',
+         description="A UV island must lie inside one UDIM tile and inside the UDIM grid",
+         run=check_udim_shell_in_tile, fix=None, can_fix=False,
+         string_param_1="^UV1$", float_param_1=0.0001),
+    dict(id="uv_udim_tile_set", label="UDIM: Tile Set", category='UV',
+         description="UDIM tiles must start at 1001, run without gaps and stay within the limit",
+         run=check_udim_tile_set, fix=None, can_fix=False,
+         string_param_1="^UV1$", bool_param_1=True, int_param_1=0),
+    dict(id="uv_udim_tile_fill", label="UDIM: Tile Fill", category='UV',
+         description="Each UDIM tile must carry at least this share of its area; a near-empty tile is shells moved aside, not a texture",
+         run=check_udim_tile_fill, fix=None, can_fix=False,
+         string_param_1="^UV1$", float_param_1=0.1),
+    dict(id="uv_shifted_duplicate", label="Shell Moved By Whole Tiles", category='UV',
+         description="A shell that is a copy of another one moved by whole tiles is a hidden overlap, not a UDIM layout",
+         run=check_shifted_duplicate, fix=None, can_fix=False,
+         string_param_1="^UV1$", float_param_1=0.0001),
     dict(id="uv_padding", label="Padding", category='UV',
          description="Interactive UV-island padding preview in the UV Editor",
          run=check_padding, fix=None, can_fix=False,

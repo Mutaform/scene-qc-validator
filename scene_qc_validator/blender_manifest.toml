@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "scene_qc_validator"
-version = "1.12.1"
+version = "1.13.0"
 name = "Scene QC Validator by Mutaform Studio"
 tagline = "Production scene and mesh validation checklist by Mutaform Studio"
 maintainer = "Mutaform Studio"

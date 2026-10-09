@@ -114,6 +114,30 @@ def _transform_text(obj):
     return ", ".join(parts) or "применена"
 
 
+def _udim_tiles(mesh, layer_name="UV1"):
+    """Номера тайлов, занятых каналом. Пусто - канала нет или он весь в 1001.
+
+    Считаем по углу грани, а не по острову: строке разбора нужен сам факт
+    «канал занимает три тайла», а разбираться, законно это или нет, - дело
+    проверок uv_udim_*.
+    """
+    layer = mesh.uv_layers.get(layer_name)
+    if layer is None or len(layer.data) < len(mesh.loops):
+        return []
+    seen = set()
+    for polygon in mesh.polygons:
+        for index in polygon.loop_indices:
+            u, v = layer.data[index].uv
+            u_tile, v_tile = int(math.floor(u)), int(math.floor(v))
+            if 0 <= u_tile < 10 and v_tile >= 0:
+                seen.add(1001 + u_tile + 10 * v_tile)
+            else:
+                seen.add(-1)              # вне сетки - покажем явно
+    if seen <= {1001}:
+        return []
+    return sorted(seen)
+
+
 def _uv_text(mesh):
     names = [uv.name for uv in mesh.uv_layers]
     if not names:
@@ -224,6 +248,13 @@ def _rows(obj, settings):
     if padding is not None:
         out.append(("Паддинг", "%s px при карте %s"
                     % (_n(padding.int_param_1 or 0), _n(padding.int_param_2 or 0)), INFO))
+    tiles = _udim_tiles(mesh)
+    if tiles:
+        out.append(("UDIM-тайлы", ", ".join(str(t) for t in tiles),
+                    state("uv_udim_shell_in_tile", "uv_udim_tile_set",
+                          "uv_udim_tile_fill", "uv_shifted_duplicate"),
+                    "подряд с 1001, каждый заполнен",
+                    str(len(tiles))))
     out.append(("Границы шеллов",
                 "завалены" if state("uv_unaligned_edges") == BAD else "по осям",
                 state("uv_unaligned_edges"), "границы прямоугольных шеллов по осям"))

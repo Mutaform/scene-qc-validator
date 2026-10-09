@@ -58,6 +58,10 @@ CODES = {
     "uv_single_tile":       "шеллы за квадратом 0-1",
     "uv_set_names":         "имена UV-каналов не те",
     "uv_overlap":           "шеллы наложены друг на друга",
+    "uv_udim_shell_in_tile": "шелл не внутри своего тайла",
+    "uv_udim_tile_set":     "набор UDIM-тайлов",
+    "uv_udim_tile_fill":    "пустой UDIM-тайл",
+    "uv_shifted_duplicate": "шелл сдвинут на тайл",
     "uv_padding":           "паддинг между шеллами",
     "uv_no_hard_edge_on_uv_borders": "шов без hard edge",
     "uv_random_sharp":      "hard edges не по швам",
@@ -101,6 +105,16 @@ FIX = {
     "uv_overlap":           (MANUAL, "разложить канал заново, без наложений. Автофикса нет намеренно: "
                                      "сдвинуть лишние острова за UDIM - значит отдать художнику "
                                      "нераспакованную развёртку, это дольше, чем разложить сразу"),
+    "uv_udim_shell_in_tile": (MANUAL, "вернуть шелл внутрь одного тайла: на границе он разрежется "
+                                      "между двумя текстурами, а тайлов с отрицательным U или V "
+                                      "не существует"),
+    "uv_udim_tile_set":     (MANUAL, "упаковать тайлы подряд начиная с 1001: дыра в нумерации "
+                                     "означает, что шелл улетел в сторону, а не что набор такой"),
+    "uv_udim_tile_fill":    (MANUAL, "разложить содержимое пустого тайла по занятым или оставить "
+                                     "его осознанно: лишний тайл - это лишняя текстура целиком"),
+    "uv_shifted_duplicate": (MANUAL, "разложить шелл на своё место, а не отодвигать на тайл: "
+                                     "сдвиг прячет наложение от проверки, но текстуру под него "
+                                     "всё равно никто не нарисует"),
     "uv_padding":           (NOTE, "это предпросмотр отступов, а не проверка: смотреть кнопкой Show Padding"),
     "uv_no_hard_edge_on_uv_borders": (AUTO, "поставить hard edge ровно на границы шеллов, остальные швы не трогая"),
     "uv_random_sharp":      (AUTO, "снять hard edge со всех рёбер, кроме границ шеллов"),
@@ -272,6 +286,34 @@ def _t_overlap(v):
     return "%s%s с наложенными UV%s" % (_channel(v), _faces(v.get("faces", 0)), where)
 
 
+def _t_udim_shell(v):
+    if v.get("kind") == "grid":
+        corners = v.get("corners") or []
+        where = ", ".join("U %d V %d" % (u, w) for u, w in corners[:4])
+        return ("%s%s вне сетки UDIM%s"
+                % (_channel(v), _n(v.get("islands", 0), "остров", "острова", "островов"),
+                   (": " + where) if where else ""))
+    return ("%s%s %s границу тайла (%s)"
+            % (_channel(v), _n(v.get("islands", 0), "остров", "острова", "островов"),
+               _verb(v.get("islands", 0), "пересекает", "пересекают"),
+               _faces(v.get("faces", 0))))
+
+
+def _t_udim_tiles(v):
+    kind = v.get("kind")
+    tiles = ", ".join(str(t) for t in v.get("tiles", ()))
+    if kind == "start":
+        return "%sраскладка начинается с тайла %d, а не с 1001 (занято: %s)" % (
+            _channel(v), v.get("first", 0), tiles)
+    if kind == "gap":
+        missing = v.get("missing", ())
+        return ("%sв нумерации пропущен%s %s (занято: %s)"
+                % (_channel(v), "" if len(missing) == 1 else "ы",
+                   ", ".join(str(t) for t in missing), tiles))
+    return "%s%d тайлов при допустимых %d: %s" % (
+        _channel(v), v.get("count", 0), v.get("max", 0), tiles)
+
+
 def _t_missing_material(v):
     if v.get("faces"):
         return "%s %s в пустой слот" % (_faces(v["faces"]),
@@ -315,6 +357,22 @@ TEXT = {
                                            "допустимых"),
                                         ", ".join(v.get("extra", ())) or "?"),
     "uv_single_tile":      _t_single_tile,
+    "uv_udim_shell_in_tile": _t_udim_shell,
+    "uv_udim_tile_set":    _t_udim_tiles,
+    "uv_udim_tile_fill":   lambda v: "%sв тайле %d занято %.2f%% площади при норме %.0f%% "
+                                     "(%s, %s)"
+                                     % (_channel(v), v.get("tile", 0),
+                                        (v.get("fill", 0) or 0) * 100.0,
+                                        (v.get("min", 0) or 0) * 100.0,
+                                        _n(v.get("islands", 0), "остров", "острова", "островов"),
+                                        _faces(v.get("faces", 0))),
+    "uv_shifted_duplicate": lambda v: "%s%s - один и тот же шелл, сдвинутый на целые тайлы "
+                                      "(затронуты тайлы %s, %s)"
+                                      % (_channel(v),
+                                         _n(v.get("pairs", 0), "пара шеллов", "пары шеллов",
+                                            "пар шеллов"),
+                                         ", ".join(str(t) for t in v.get("tiles", ())),
+                                         _faces(v.get("faces", 0))),
     "uv_set_names":        _t_set_names,
     "uv_overlap":          _t_overlap,
     "uv_no_hard_edge_on_uv_borders":

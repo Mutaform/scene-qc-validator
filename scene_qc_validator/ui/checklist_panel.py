@@ -259,6 +259,19 @@ class SQC_PT_checklist(Panel):
                 "int_param_1",
                 text="Max Materials",
             )
+        elif cid == "uv_udim_shell_in_tile":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "float_param_1", text="Tolerance")
+        elif cid == "uv_udim_tile_set":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "bool_param_1", text="Tiles Must Be Contiguous")
+            sub.prop(item, "int_param_1", text="Max Tiles (0 = any)")
+        elif cid == "uv_udim_tile_fill":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "float_param_1", text="Min Tile Fill (0..1)")
+        elif cid == "uv_shifted_duplicate":
+            sub.prop(item, "string_param_1", text="UV Set Regex")
+            sub.prop(item, "float_param_1", text="Tolerance")
         elif cid == "uv_overlap":
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "bool_param_1", text="Required")

@@ -44,11 +44,13 @@ ADDON_ID = "scene_qc_validator"
 FALLBACK_DIR = os.path.join(PROJECT, "Dev", "publish", ADDON_ID)
 
 # Папка студии на Яндекс.Диске, синхронизируемая клиентом. Опубликована она
-# сама, поэтому в манифесте пути считаются от её корня.
+# сама, поэтому в манифесте пути считаются от её корня. Публикация привязана к
+# папке, а не к пути: папку переносили внутри Auto_Update_Tools, и ссылка это
+# пережила - менять надо только путь здесь.
 YANDEX_DIR = os.path.join(
     "D:\\", "Yandex.Disk360",
     "Yandex.Disk-SharedResources-d.yurchenko@mutaform.com",
-    "d_6gJuQcCF3P29fw", "Auto_Update_Tools", "qc_validator_blender")
+    "d_6gJuQcCF3P29fw", "Auto_Update_Tools", "blender", "qc_validator_blender")
 PUBLIC_KEY = "https://disk.360.yandex.ru/d/xG-PvFCrx2HDsQ"
 
 ARCHIVE_NAME = "%s_update.zip" % ADDON_ID           # постоянное имя: путь в манифесте не меняется

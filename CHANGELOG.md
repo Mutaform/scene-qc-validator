@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.13.0
+
+### Added
+
+- **Four checks that tell a UDIM layout from shells shoved aside.** A channel
+  allowed to use UDIMs leaves the 0-1 square legitimately, so "outside 0-1 is
+  wrong" stops working for it - and moving overlapping shells to the right is
+  the quickest way to make an overlap disappear from a report. From the outside
+  the two look the same, so the checks read the *layout*, not the position.
+  ARDENA allows UDIMs on UV1, which is why `Shells Outside 0-1 Square` now
+  judges UV2 alone there.
+
+  There are four of them rather than one because what can be proved and what
+  can only be suspected must not share a severity:
+
+  - **UDIM: Shell Inside Tile** - an island must lie inside one tile and inside
+    the UDIM grid. An island on a tile border is cut between two textures, and
+    tiles at negative U or V do not exist. Provable, no false positives.
+  - **UDIM: Tile Set** - tiles start at 1001, run without gaps, and stay within
+    the limit (0 = any, which is what ARDENA uses). Artists pack tiles in
+    order; a hole in the numbering means something was flung aside.
+  - **UDIM: Tile Fill** - each tile carries at least this share of its area.
+    UDIMs are bought for resolution: a tile holding half a percent is somewhere
+    to put shells, not a texture. This is the one guess in the set, and its
+    threshold is a dial.
+  - **Shell Moved By Whole Tiles** - an island that is a copy of another one,
+    moved by whole tiles, is a hidden overlap. All four measurements have to
+    agree at once - face count, area and both sides of the bounding box - and
+    the offset has to be a whole number of tiles. A tile copied *entirely*,
+    every island matching at one offset, is left alone: that is a duplicated
+    layout, odd but deliberate. Shoving shows up as part of a tile moving.
+
+  Two signals were deliberately left out. Overlap "after taking UVs modulo 1"
+  is not one: in a real UDIM two tiles are two textures, and shells in them may
+  sit at the same local spot. Texel density is not one either: a shoved shell
+  keeps the density it had, it was only translated.
+
+  The project has no textures in Blender, so the material cannot be asked which
+  tiles exist - `image.source == 'TILED'` is the one non-heuristic signal and it
+  is unavailable. Everything above is read off the geometry.
+
+- The per-object breakdown gained a **UDIM tiles** row, and the object table
+  shows how many tiles the channel uses.
+
+
 ## 1.12.1
 
 ### Fixed
