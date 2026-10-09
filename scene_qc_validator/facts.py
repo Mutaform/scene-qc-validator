@@ -369,8 +369,10 @@ def _rows(obj, settings):
                     str(len(tiles))))
     borders = state("uv_unaligned_edges")
     out.append(("Границы шеллов",
-                _verdict(borders, "завалены", "выровнены по осям"), borders,
-                "у прямоугольных шеллов границы строго по горизонтали и вертикали"))
+                _verdict(borders, "завалены", "ровные"), borders,
+                "у шеллов, задуманных прямыми, границы ровно по горизонтали и "
+                "вертикали (допуск %s°)"
+                % state.param("uv_unaligned_edges", "float_param_1", 0.1)))
 
     # --- материал
     out.append(("Материалы", _materials_text(obj),

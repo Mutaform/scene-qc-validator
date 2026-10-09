@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.18.8
+
+### Changed
+
+- **"Границы шеллов" now says what it found.** The check had no module
+  docstring at all, its finding said "12 рёбер на границах шеллов завалены
+  относительно осей", and the breakdown row read "по осям" - between them an
+  artist could not tell what was being measured. The finding now carries the
+  worst tilt it found: "границы прямоугольных шеллов завалены: 12 рёбер, до
+  2.3° от горизонтали и вертикали (проверено 3 шелла)". The breakdown names
+  the tolerance it judges by, and the module got a header explaining the whole
+  idea: a shell meant to be straight, off by fractions of a degree, bakes as a
+  staircase instead of a line.
+- Verified on synthetic shells: straight - clean; tilted 0.5 and 3 degrees -
+  caught with the figure; deliberately diagonal at 30 degrees - clean, that is
+  past the 5 degree cutoff; a circle tilted 2 degrees - clean, it is not a
+  rectilinear shell. Kept as Dev/verify/t_unaligned.py.
+
 ## 1.18.7
 
 ### Changed

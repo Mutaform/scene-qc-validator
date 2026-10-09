@@ -1,3 +1,27 @@
+# -*- coding: utf-8 -*-
+"""Шелл, который задуман прямоугольным, но завален на доли градуса.
+
+Про что проверка. Художник раскладывает ровный кусок - панель, доску, лист -
+и ждёт, что его границы в UV пойдут строго по горизонтали и вертикали. После
+ручной правки или развёртки с чуть повёрнутой проекции они оказываются
+завалены на десятые доли градуса. Глазами этого не видно, а на бейке прямая
+линия идёт лесенкой: пиксельные ступеньки по краю, и чем длиннее шелл, тем
+заметнее. Трим-листы и тайлы при этом перестают стыковаться.
+
+Что считается. Берутся только ГРАНИЦЫ островов. Если три четверти периметра
+(`Rectilinear Ratio`, по умолчанию 0.75) идут в пределах 5° от осей, остров
+признаётся прямоугольным - то есть задуманным прямым. Внутри такого острова
+каждое граничное ребро, отклонённое от оси больше чем на `Angle Tolerance`
+(по умолчанию 0.1°), и есть находка. Круглые и органические шеллы под правило
+не попадают: у них доля прямых участков мала, и выпрямлять там нечего.
+
+Почему порог сверху 5°. Ребро, завёрнутое сильнее, задумано наклонным, а не
+завалено - выпрямлять его значит ломать развёртку.
+
+Автофикс двигает UV не больше чем на 16 текселей и отказывается от правки,
+если длина или площадь грани уехали бы больше чем на 4%.
+"""
+
 from collections import defaultdict, deque
 import math
 
@@ -131,11 +155,12 @@ def _unaligned_edges_for_layer(
                 axis_length[island_index] += length
                 if deviation > angle_tolerance:
                     candidates[island_index].append(
-                        (face_index, edge_index)
+                        ((face_index, edge_index), deviation)
                     )
 
     bad_segments = set()
     checked_islands = 0
+    worst = 0.0
     for island_index in range(island_count):
         total_length = perimeter[island_index]
         if total_length <= _UV_KEY_TOLERANCE:
@@ -146,9 +171,13 @@ def _unaligned_edges_for_layer(
         ):
             continue
         checked_islands += 1
-        bad_segments.update(candidates[island_index])
+        for segment, deviation in candidates[island_index]:
+            bad_segments.add(segment)
+            # худший завал - единственное число, по которому видно, о чём речь:
+            # 0.2° это следы ручной правки, 3° - развёрнуто с поворотом
+            worst = max(worst, deviation)
 
-    return bad_segments, checked_islands
+    return bad_segments, checked_islands, worst
 
 
 def _parse_element_reference(element_ref):
@@ -554,7 +583,7 @@ def check_unaligned_uv_edges(obj, item):
         for layer in mesh.uv_layers:
             if layer.name.startswith("SQC_"):
                 continue
-            bad_segments, checked_islands = (
+            bad_segments, checked_islands, worst_tilt = (
                 _unaligned_edges_for_layer(
                     mesh,
                     layer,
@@ -567,7 +596,8 @@ def check_unaligned_uv_edges(obj, item):
             ordered_segments = sorted(bad_segments)
             issues.append({
                 "values": {"uv": layer.name, "edges": len(ordered_segments),
-                           "islands": checked_islands},
+                           "islands": checked_islands,
+                           "tilt": round(worst_tilt, 2)},
                 "message": (
                     f"{len(ordered_segments)} UV border edge(s) are "
                     f"slightly off-axis on {layer.name} "
@@ -660,7 +690,7 @@ def fix_unaligned_uv_edges_pass(
                 else _DEFAULT_ANGLE_TOLERANCE
             ),
         )
-        remaining_segments, _checked_islands = (
+        remaining_segments, _checked_islands, _worst = (
             _unaligned_edges_for_layer(
                 obj.data,
                 layer,
