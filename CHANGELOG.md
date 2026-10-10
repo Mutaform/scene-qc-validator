@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.23.4
+
+### Changed
+
+- **Two settings that did nothing are gone from the overlap check.**
+  "Tolerance" and "Max Pairs" belonged to the geometric overlap detector that
+  was replaced by Blender's own operator; since then the panel showed them,
+  the ARDENA preset filled them in, and the code never read them. Removed from
+  the registry, the panel and the preset. Verified on a mesh with a known
+  overlap: the finding is identical to the character before and after.
+- The overlap finding no longer fights Russian grammar. "21 остров наложены"
+  was wrong, "21 остров наложен друг на друга" was right and absurd; it now
+  reads "шеллы лежат друг на друге: 21 остров, 21 грань" for any number.
+
 ## 1.23.3
 
 ### Fixed

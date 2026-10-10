@@ -161,8 +161,12 @@ CHECK_DEFINITIONS = [
     dict(id="uv_overlap", label="Overlapped UV", category='UV',
          description="Finds overlapping UVs and expands hits to complete UV islands",
          run=check_uv_overlap, fix=None, can_fix=False,
-         string_param_1=".+", bool_param_1=True, bool_param_2=True,
-         float_param_1=1e-10, int_param_1=250000),
+         # float_param_1 и int_param_1 здесь были «Tolerance» и «Max Pairs» -
+         # допуск и предел перебора прежнего, геометрического поиска наложений.
+         # Его заменил нативный оператор Blender, и обе настройки перестали
+         # читаться: панель их показывала, а на результат они не влияли
+         # (найдено ревью 2026-10-10)
+         string_param_1=".+", bool_param_1=True, bool_param_2=True),
     # --- UDIM. Канал, которому разрешён UDIM, законно выходит за 0-1, и
     # uv_single_tile для него выключают: внутри своих тайлов его держат эти
     # проверки. Разделены они потому, что у доказуемого и у подозрения должна

@@ -315,8 +315,6 @@ class SQC_PT_checklist(Panel):
             sub.prop(item, "string_param_1", text="UV Set Regex")
             sub.prop(item, "bool_param_1", text="Required")
             sub.prop(item, "bool_param_2", text="Only UDIM 1001")
-            sub.prop(item, "float_param_1", text="Tolerance")
-            sub.prop(item, "int_param_1", text="Max Pairs")
         elif cid == "uv_padding":
             sub.prop(
                 item,

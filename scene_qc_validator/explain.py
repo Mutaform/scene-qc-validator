@@ -334,9 +334,12 @@ def _t_overlap(v):
         return "%s1 остров наложен на другой%s (%s)" % (_channel(v), where,
                                                        _faces(v.get("faces", 0)))
     if islands:
-        return ("%s%s наложены друг на друга%s (%s)"
-                % (_channel(v), _n(islands, "остров", "острова", "островов"),
-                   where, _faces(v.get("faces", 0))))
+        # без глагола: «21 остров наложены» неверно, «21 остров наложен друг на
+        # друга»верно и нелепо. Безличная форма одинаково годится для любого числа
+        return ("%sшеллы лежат друг на друге%s: %s, %s"
+                % (_channel(v), where,
+                   _n(islands, "остров", "острова", "островов"),
+                   _faces(v.get("faces", 0))))
     return "%s%s с наложенными UV%s" % (_channel(v), _faces(v.get("faces", 0)), where)
 
 
