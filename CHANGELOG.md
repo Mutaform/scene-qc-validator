@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.21.2
+
+### Fixed
+
+- **Four enabled checks judged the asset without a line in the breakdown.**
+  Concave faces, the new name check, Nanite closed geometry and the four UDIM
+  checks (whose row only appeared when the asset had more than one tile) all
+  passed silently: the breakdown showed 25 rows for 39 checks and there was no
+  way to tell which ones were missing. Now 38 of the 39 are judged there - the
+  39th is `uv_padding`, the interactive padding preview, which is not a check
+  and is hidden on purpose. New rows: "Вогнутые грани", "Геометрия для
+  Nanite", and "UDIM-тайлы" also when a single tile is used; the name row now
+  carries the spaces-and-Cyrillic check as well.
+
 ## 1.21.1
 
 ### Fixed

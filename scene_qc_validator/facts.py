@@ -350,8 +350,10 @@ def _rows(obj, settings):
     out = []
 
     # --- объект
-    out.append(("Имя", obj.name, state("nm_object_pattern"),
-                "шаблон: %s" % state.param("nm_object_pattern", "string_param_1", "—")))
+    out.append(("Имя", obj.name,
+                state("nm_object_pattern", "nm_name_characters"),
+                "шаблон: %s, без пробелов и кириллицы"
+                % state.param("nm_object_pattern", "string_param_1", "—")))
     moved = _transform_text(obj)
     out.append(("Трансформация", moved, state("tr_unapplied"), "должна быть применена",
                 "применена" if moved == "применена" else "не применена"))
@@ -375,6 +377,9 @@ def _rows(obj, settings):
     out.append(("Граней / вершин", "%s / %s" % (_n(faces), _n(len(mesh.vertices))), INFO))
     out.append(("N-гонов", _n(sum(1 for p in mesh.polygons if len(p.vertices) > 4)),
                 state("geo_ngons"), "норма: 0"))
+    concave = state("geo_concave_faces")
+    out.append(("Вогнутые грани", _verdict(concave, "есть", "нет"), concave,
+                "норма: 0 — вогнутая грань режется по-разному в разных пакетах"))
     out.append(("Hard edges", "%s из %s рёбер" % (_n(hard), _n(edges)),
                 state("geo_has_soft_edges", "uv_random_sharp",
                       "uv_no_hard_edge_on_uv_borders"),
@@ -459,6 +464,13 @@ def _rows(obj, settings):
                           "uv_udim_tile_fill", "uv_shifted_duplicate"),
                     "подряд с 1001, каждый заполнен",
                     str(len(tiles))))
+    elif state.item("uv_udim_shell_in_tile") is not None:
+        # тайл один - строку всё равно показываем: иначе четыре UDIM-проверки
+        # судят ассет молча, и в разборе их не видно
+        out.append(("UDIM-тайлы", "один, 1001",
+                    state("uv_udim_shell_in_tile", "uv_udim_tile_set",
+                          "uv_udim_tile_fill", "uv_shifted_duplicate"),
+                    "подряд с 1001, каждый заполнен", "1"))
     # строки нет вовсе, если проверки нет в этапе: у ARDENA это правило не
     # используется, и прочерк в разборе только вызывал вопросы (денис)
     if state.item("uv_unaligned_edges") is not None:
@@ -468,6 +480,12 @@ def _rows(obj, settings):
                     "у шеллов, задуманных прямыми, границы ровно по горизонтали "
                     "и вертикали (допуск %s°)"
                     % state.param("uv_unaligned_edges", "float_param_1", 0.1)))
+
+    nanite = state("obj_nanite_closed_geometry")
+    if state.item("obj_nanite_closed_geometry") is not None:
+        out.append(("Геометрия для Nanite",
+                    _verdict(nanite, "есть открытый край", "закрыта"), nanite,
+                    "открытые оболочки утоплены в соседнюю геометрию"))
 
     # --- материал
     out.append(("Материалы", _materials_text(obj),
