@@ -62,6 +62,8 @@ body.only-bad tr.clean,body.only-bad details.clean{display:none}
 .sub b{color:var(--txt);font-weight:600}
 .tiles{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 18px;min-width:128px}
+.tile.apart{margin-left:auto}
+.tile.apart b{font-size:22px}
 .tile b{display:block;font-size:26px;font-weight:600;line-height:1.15}
 .tile span{color:var(--dim);font-size:12px}
 .tile.ok b{color:var(--ok)} .tile.no b{color:var(--err)} .tile.w b{color:var(--warn)}
@@ -208,6 +210,16 @@ def build(settings, version, project, stage, scope_label, targets, muted_keys=()
                           for row in facts_mod.rows(obj, settings)]
 
     names = [obj.name for obj in targets]
+    # Сколько проверок отработало в этот раз: включённые на этапе, по каждому
+    # объекту. uv_padding не считаем - это интерактивный показ отступов, а не
+    # проверка, и в списке проверок он тоже спрятан
+    from . import checks as checks_mod          # лениво: здесь нет цикла импорта
+    ran_ids = [c.check_id for c in settings.checks
+               if c.enabled and c.check_id not in checks_mod.CHECKLIST_HIDDEN_IDS]
+    ran = len(ran_ids) * len(names)
+    # «чисто» считаем по парам объект-проверка: одна проверка может дать по
+    # находке на каждый UV-канал, но непройденной она остаётся одной
+    dirty = {(f["object"], f["code"]) for f in findings if not f["muted"]}
     bad = {f["object"] for f in findings
            if f["severity"] == SEVERITY_ERROR and not f["muted"]}
     with_issues = {f["object"] for f in findings if not f["muted"]}
@@ -224,6 +236,8 @@ def build(settings, version, project, stage, scope_label, targets, muted_keys=()
         "rejected": sum(1 for n in names if n in bad),
         "muted": sum(1 for r in settings.results
                      if (r.object_name, r.check_id) in muted_keys or r.muted),
+        "checks_ran": ran,
+        "checks_passed": max(0, ran - len(dirty)),
         "errors": sum(1 for f in findings if f["severity"] == SEVERITY_ERROR and not f["muted"]),
         "warnings": sum(1 for f in findings if f["severity"] == SEVERITY_WARNING and not f["muted"]),
         "findings": findings,
@@ -361,10 +375,14 @@ def _tiles(doc):
             "<div class='tile %s'><b>%d</b><span>отклонено</span></div>"
             "<div class='tile %s'><b>%d</b><span>ошибок</span></div>"
             "<div class='tile %s'><b>%d</b><span>замечаний</span></div>"
-            "<div class='tile'><b>%d</b><span>объектов</span></div></div>"
+            "<div class='tile'><b>%d</b><span>объектов</span></div>"
+            # отдельно, с отступом: это не про находки, а про объём работы
+            "<div class='tile apart'><b>%d из %d</b>"
+            "<span>проверок без замечаний</span></div></div>"
             % (doc["accepted"], "no" if doc["rejected"] else "", doc["rejected"],
                "no" if doc["errors"] else "", doc["errors"],
-               "w" if doc["warnings"] else "", doc["warnings"], len(doc["objects"])))
+               "w" if doc["warnings"] else "", doc["warnings"], len(doc["objects"]),
+               doc.get("checks_passed", 0), doc.get("checks_ran", 0)))
 
 
 # подписи строк разбора, которые идут отдельными колонками сводки

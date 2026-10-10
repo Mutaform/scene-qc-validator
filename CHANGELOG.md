@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.21.3
+
+### Added
+
+- **A tile of its own at the top of the report: how much work the run did.**
+  "35 из 38 проверок без замечаний", set apart from the counters of findings
+  because it answers a different question - not what is wrong, but how much
+  was looked at. Counted as enabled checks times objects, minus `uv_padding`,
+  which is the interactive padding preview and not a check. A check that fires
+  on three UV channels at once still counts as one that did not pass.
+
 ## 1.21.2
 
 ### Fixed
