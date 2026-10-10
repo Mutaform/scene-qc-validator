@@ -233,7 +233,7 @@ CHECK_DEFINITIONS = [
          string_param_1="modifiers,shape_keys,vertex_groups"),
 
     dict(id="tr_pivot_bottom", label="Pivot At Bottom", category='TRANSFORM',
-         description="The lowest point of the mesh must sit at the pivot: an ARDENA asset stands on the floor",
+         description="The lowest point of the mesh must sit at the pivot, so the asset stands on the floor",
          run=check_pivot_bottom, fix=fix_pivot_bottom, can_fix=True,
          fix_is_destructive=False,
          float_param_1=0.001),
