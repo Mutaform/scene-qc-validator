@@ -171,7 +171,7 @@ FIX = {
                                      "«.001». Движок находит коллизию только по имени"),
     "col_convex":           (MANUAL, "собрать оболочку заново выпуклой (Convex Hull): вмятину "
                                      "движок не исправит, персонаж провалится внутрь"),
-    "col_material":         (AUTO, "поставить на коллизию материал её меша"),
+    "col_material":         (AUTO, "привести материал коллизии к правилу проекта"),
 }
 
 
@@ -707,6 +707,9 @@ def _t_collision_material(v):
     name = v.get("collider", "")
     here = ", ".join(v.get("has") or [])
     want = ", ".join(v.get("want") or [])
+    if v.get("mode") == "empty":
+        return ("На коллизии «%s» стоит материал %s, а на коллизиях его быть "
+                "не должно" % (name, here))
     if not here:
         return "На коллизии «%s» нет материала, а на меше %s" % (name, want)
     if not want:

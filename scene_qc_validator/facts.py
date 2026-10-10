@@ -96,10 +96,15 @@ def _verdict(state_value, bad, good):
     «правила нет». А в колонке значения при этом стояло бодрое «нет» или «по
     осям» - утверждение, которого никто не делал: строка «Границы шеллов | по
     осям | правила нет» читается как «посмотрели и всё хорошо». Не посмотрели.
+
+    Замечание - тоже находка. Раньше «есть» писалось только на ошибке, и
+    проверка, понижённая до замечания, давала строку «Шеллы в 0-1 ✓внутри» при
+    находке «UV1: шеллы за квадратом, 4 597 граней» - прямая ложь (денис,
+    2026-10-10). Что нашли, говорит значение; насколько это страшно - цвет.
     """
     if state_value == DIM:
         return "—"
-    return bad if state_value == BAD else good
+    return bad if state_value in (BAD, WARN) else good
 
 
 def _mesh_counts(mesh):
@@ -348,6 +353,7 @@ def _texel_text(obj, number, map_px, per_tile=False):
         if value is None:
             return "—"
         text = "%s px/м" % _n(round(value * 100))
+    text += " при карте %s" % _n(map_px)
     if collapsed > 0.01:
         text += " (схлопнуто %.0f%% площади)" % (collapsed * 100.0)
     return text
@@ -507,7 +513,8 @@ def _rows(obj, settings):
                       "uv_no_hard_edge_on_uv_borders"),
                 "только по границам UV-шеллов"))
     topology = state("geo_non_manifold")
-    out.append(("Топология", _verdict(topology, "non manifold", "чисто"),
+    out.append(("Топология", _verdict(topology, "есть non manifold",
+                                      "без non manifold"),
                 topology, "норма: без non manifold"))
     normals = state("geo_flipped_normals")
     out.append(("Нормали", _verdict(normals, "вывернуты", "наружу"), normals,
@@ -558,7 +565,7 @@ def _rows(obj, settings):
 
     tile = state("uv_single_tile")
     tile_pattern = state.param("uv_single_tile", "string_param_1", ".+")
-    judged = _channels(tile_pattern, "все каналы")
+    judged = _channels(tile_pattern, "все каналы", join=" или ")
     tile_where = _uv_matching(obj, tile_pattern)
     uv_rows.append((_uv_number(obj, tile_pattern),
                     ("Шеллы в 0-1" + (" " + tile_where if tile_where else ""),
@@ -599,6 +606,9 @@ def _rows(obj, settings):
     # плотность текселя: первый канал показываем всегда (правила нет, норма
     # зависит от плана ассета), судимый канал - строкой с вердиктом
     size = state.param("uv_texel_density", "int_param_1", 2048) or 2048
+    # Размер карты - в самом значении: px/м без него число ни о чём, а норма
+    # рядом стоит только у строки с вердиктом и видна только при находке
+    # (денис, 2026-10-10).
     uv_rows.append((1, ("Плотность текселя %s" % _uv_label(obj, 1),
                         _texel_text(obj, 1, size, per_tile=True), INFO,
                         "правила нет: норма зависит от плана ассета")))
@@ -613,7 +623,8 @@ def _rows(obj, settings):
             print("[Scene QC Validator] плотность текселя %s: %s" % (obj.name, error))
         uv_rows.append((number,
                         ("Плотность текселя %s" % _uv_label(obj, number),
-                         "—" if value is None else "%d px/м" % round(value),
+                         "—" if value is None
+                         else "%d px/м при карте %s" % (round(value), _n(size)),
                          state("uv_texel_density"),
                          "%g px/м при карте %s ±%g%%"
                          % (judged_item.float_param_1 or 1024.0, _n(size),
@@ -685,5 +696,8 @@ def _rows(obj, settings):
     out.append(("Коллизии", _collisions_text(obj, state),
                 state("col_missing", "col_name", "col_convex", "col_material"),
                 "UCX_<имя меша> или UCX_<имя меша>_NN, выпуклые"
-                + (", с материалом меша" if state("col_material") != DIM else "")))
+                + ("" if state("col_material") == DIM
+                   else ", с материалом меша"
+                   if state.param("col_material", "bool_param_1", True)
+                   else ", без материала")))
     return out

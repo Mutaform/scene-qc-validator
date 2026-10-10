@@ -290,9 +290,9 @@ CHECK_DEFINITIONS = [
          float_param_1=0.001,
          string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
     dict(id="col_material", label="Collision Material", category='COLLISION',
-         description="A collision mesh must carry the same material as the mesh it belongs to",
+         description="With Same Material As Mesh on, a collision must carry the mesh's material; with it off, no material at all",
          run=check_collision_material, fix=fix_collision_material, can_fix=True,
-         fix_is_destructive=False,
+         fix_is_destructive=False, bool_param_1=True,
          string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
 ]
 

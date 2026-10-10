@@ -378,11 +378,26 @@ def check_collision_material(obj, item):
     """
     if _is_collider(obj, item) or _skips(item, obj.name):
         return []
+    # bool_param_1: True - на коллизии материал меша (ARDENA), False - материала
+    # быть не должно (MET, правило проекта от 2026-10-10). Два проекта требуют
+    # противоположного, поэтому это настройка, а не зашитое правило.
+    want_material = bool(getattr(item, "bool_param_1", True))
     wanted = [slot.material.name for slot in obj.material_slots if slot.material]
     mine, _wrong = colliders_of(obj, item)
     issues = []
     for collider in mine:
         here = [slot.material.name for slot in collider.material_slots if slot.material]
+        if not want_material:
+            if not here:
+                continue
+            issues.append({
+                "message": ("%s carries %s, a collision must carry none"
+                            % (collider.name, ", ".join(here))),
+                "element_ref": "obj:%s" % collider.name,
+                "values": {"mesh": obj.name, "collider": collider.name,
+                           "has": here, "want": [], "mode": "empty"},
+            })
+            continue
         if here and wanted and set(here) <= set(wanted):
             continue
         if here == wanted:
@@ -401,7 +416,7 @@ def check_collision_material(obj, item):
             "message": message,
             "element_ref": "obj:%s" % collider.name,
             "values": {"mesh": obj.name, "collider": collider.name,
-                       "has": here, "want": wanted},
+                       "has": here, "want": wanted, "mode": "same"},
         })
     return issues
 
@@ -410,9 +425,18 @@ def check_collision_material(obj, item):
 
 
 def fix_collision_material(obj, item, result):
-    """Повесить на коллизию материал меша: слот за слотом, как на меше."""
+    """Привести материал коллизии к правилу проекта: как на меше или снять."""
     if _is_collider(obj, item) or _skips(item, obj.name):
         return False
+    if not bool(getattr(item, "bool_param_1", True)):
+        # правило «материала быть не должно» - чистим слоты
+        mine, _wrong = colliders_of(obj, item)
+        changed = False
+        for collider in mine:
+            if any(slot.material for slot in collider.material_slots):
+                collider.data.materials.clear()
+                changed = True
+        return changed
     wanted = [slot.material for slot in obj.material_slots if slot.material]
     if not wanted:
         return False                # у самого меша материала нет - чинить нечем

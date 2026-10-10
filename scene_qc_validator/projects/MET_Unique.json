@@ -574,7 +574,7 @@
           "int_param_2": 0,
           "string_param_1": "^(UCX|MCDCX|UBX|USP|UCP)_",
           "string_param_2": "",
-          "bool_param_1": true,
+          "bool_param_1": false,
           "bool_param_2": true
         }
       ]
@@ -1151,7 +1151,7 @@
           "int_param_2": 0,
           "string_param_1": "^(UCX|MCDCX|UBX|USP|UCP)_",
           "string_param_2": "",
-          "bool_param_1": true,
+          "bool_param_1": false,
           "bool_param_2": true
         }
       ]
@@ -1728,7 +1728,7 @@
           "int_param_2": 0,
           "string_param_1": "^(UCX|MCDCX|UBX|USP|UCP)_",
           "string_param_2": "",
-          "bool_param_1": true,
+          "bool_param_1": false,
           "bool_param_2": true
         }
       ]
