@@ -277,6 +277,17 @@ def _texel_text(obj, number, map_px, per_tile=False):
     return text
 
 
+def _uv_names_norm(raw):
+    """«UV1|map1,UV2|map2» -> «UV1 или map1, UV2 или map2» - чтобы колонка нормы
+    читалась требованием, а не настройкой."""
+    slots = []
+    for slot in str(raw).split(","):
+        names = [name.strip() for name in slot.split("|") if name.strip()]
+        if names:
+            slots.append(" или ".join(names))
+    return ", ".join(slots) if slots else str(raw)
+
+
 def _channels(pattern, fallback="во всех каналах"):
     """«^UV3$» -> «UV3», «^(UV1|UV2)$» -> «UV1 и UV2», «.+» -> «во всех каналах».
 
@@ -441,7 +452,7 @@ def _rows(obj, settings):
     # --- развёртка
     out.append(("UV-каналов", _uv_text(mesh), state("uv_missing", "uv_set_count", "uv_set_names"),
                 "имена: %s, не больше %s"
-                % (state.param("uv_set_names", "string_param_1", "—"),
+                % (_uv_names_norm(state.param("uv_set_names", "string_param_1", "—")),
                    state.param("uv_set_count", "int_param_1", "—")),
                 _n(len(mesh.uv_layers)) if mesh.uv_layers else "нет"))
     tile = state("uv_single_tile")

@@ -318,6 +318,11 @@ def _t_set_names(v):
     if kind == "extra":
         return ("Канал %d «%s» лишний: проект ждёт %s"
                 % (v.get("slot", 0), v.get("uv", ""), ", ".join(v.get("expected", ()))))
+    allowed = list(v.get("allowed") or ())
+    if len(allowed) > 1:
+        return ("Канал %d назван «%s», ожидается «%s» или «%s»"
+                % (v.get("slot", 0), v.get("uv", ""), allowed[0],
+                   "» или «".join(allowed[1:])))
     return ("Канал %d назван «%s», ожидается «%s»"
             % (v.get("slot", 0), v.get("uv", ""), v.get("want", "")))
 
