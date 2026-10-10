@@ -141,6 +141,21 @@ def _percent(value):
         return "—"
 
 
+def _uv_label(obj, number):
+    """Имя канала по его номеру: «UV2», «map2» - как он назван у этого меша.
+
+    В разборе есть строки, которые меряют ОДИН канал: паддинг, плотность
+    паковки, тайлы UDIM. Без имени канала «57.4%» непонятно к чему относится -
+    у меша их три (денис, 2026-10-10). Берём настоящее имя слоя, а не «UV%d»:
+    у MET канал законно может называться map2.
+    """
+    layers = getattr(getattr(obj, "data", None), "uv_layers", None)
+    index = max(0, (number or 1) - 1)
+    if layers and index < len(layers):
+        return layers[index].name
+    return "UV%d" % (index + 1)
+
+
 def _packing_density(obj, number=1):
     """Плотность паковки канала. Считает растеризацией, поэтому через try:
     разбор не должен падать из-за строки, которую можно и не показать."""
@@ -485,7 +500,7 @@ def _rows(obj, settings):
     if gap is not None:
         size = gap.int_param_1 or 2048
         measured, why = _padding_gap(obj, gap.int_param_2 or 1, size)
-        out.append(("Паддинг при паковке",
+        out.append(("Паддинг при паковке %s" % _uv_label(obj, gap.int_param_2 or 1),
                     why if measured is None
                     else "~%g px при карте %s" % (round(measured), _n(size)),
                     # не измерили - значит сказать нечего. Зелёная галочка здесь
@@ -496,7 +511,8 @@ def _rows(obj, settings):
     # плотность текселя: UV1 показываем всегда (правила нет, норма зависит от
     # плана ассета), судимый канал - строкой с вердиктом
     size = state.param("uv_texel_density", "int_param_1", 2048) or 2048
-    out.append(("Плотность текселя UV1", _texel_text(obj, 1, size, per_tile=True), INFO,
+    out.append(("Плотность текселя %s" % _uv_label(obj, 1),
+                _texel_text(obj, 1, size, per_tile=True), INFO,
                 "правила нет: норма зависит от плана ассета"))
     judged = state.item("uv_texel_density")
     if judged is not None:
@@ -507,25 +523,41 @@ def _rows(obj, settings):
             value, _collapsed = px_per_m(obj, number, size)
         except Exception as error:                  # noqa: BLE001
             print("[Scene QC Validator] плотность текселя %s: %s" % (obj.name, error))
-        out.append(("Плотность текселя UV%d" % number,
+        out.append(("Плотность текселя %s" % _uv_label(obj, number),
                     "—" if value is None else "%d px/м" % round(value),
                     state("uv_texel_density"),
                     "%g px/м при карте %s ±%g%%"
                     % (judged.float_param_1 or 1024.0, _n(size),
                        (judged.float_param_2 or 0.15) * 100.0)))
-    density, _per_tile = _packing_density(obj, state.param("uv_packing_density",
-                                                           "int_param_2", 1))
+    pack_channel = state.param("uv_packing_density", "int_param_2", 1)
+    density, _per_tile = _packing_density(obj, pack_channel)
     if density is not None:
-        out.append(("Плотность паковки", "%.1f%%" % (density * 100.0),
+        out.append(("Плотность паковки %s" % _uv_label(obj, pack_channel),
+                    "%.1f%%" % (density * 100.0),
                     state("uv_packing_density"),
                     "не меньше %s"
                     % _percent(state.param("uv_packing_density", "float_param_1", 0.7))))
-    tiles = _udim_tiles(obj, state.param("uv_udim_shell_in_tile", "int_param_2", 1))
+    tile_channel = state.param("uv_udim_shell_in_tile", "int_param_2", 1)
+    tiles = _udim_tiles(obj, tile_channel)
     if tiles:
-        out.append(("UDIM-тайлы", ", ".join(str(t) for t in tiles),
+        # Норма - только из включённых проверок. У MET набор тайлов квадратом
+        # 2x2 / 3x3 / 4x4, поэтому «подряд с 1001» и «каждый заполнен» там
+        # выключены, и писать их значило бы обещать правило, по которому никто
+        # не судит (денис, 2026-10-10).
+        parts = []
+        if state("uv_udim_shell_in_tile") != DIM:
+            parts.append("шелл целиком в своём тайле")
+        if state("uv_udim_tile_set") != DIM:
+            parts.append("подряд с 1001")
+        if state("uv_udim_tile_fill") != DIM:
+            parts.append("каждый заполнен")
+        if state("uv_shifted_duplicate") != DIM:
+            parts.append("без копий со сдвигом на тайл")
+        out.append(("UDIM-тайлы %s" % _uv_label(obj, tile_channel),
+                    ", ".join(str(t) for t in tiles),
                     state("uv_udim_shell_in_tile", "uv_udim_tile_set",
                           "uv_udim_tile_fill", "uv_shifted_duplicate"),
-                    "подряд с 1001, каждый заполнен",
+                    ", ".join(parts),
                     str(len(tiles))))
     elif state.item("uv_udim_shell_in_tile") is not None:
         # тайл один - строку всё равно показываем: иначе четыре UDIM-проверки
