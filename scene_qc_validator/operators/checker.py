@@ -146,18 +146,45 @@ def _set_mapping_tiling(material, tiling):
     _tag_checker_update(material)
 
 
+def _settings():
+    return getattr(bpy.context.scene, "sqc_settings", None)
+
+
+def uv_set_number():
+    """The panel's "UV set" number, shared with the UV overlays."""
+    settings = _settings()
+    return getattr(settings, "overlap_visual_uv_set_number", 1) if settings else 1
+
+
+def _reapply_to_worn_checkers(tiling, number):
+    """Rebuild the checker UVs on every mesh currently wearing a checker."""
+    for obj in bpy.data.objects:
+        if obj.type != 'MESH':
+            continue
+        backup = _read_backup(obj)
+        if backup:
+            _apply_checker_uv(obj, tiling, backup, number)
+
+
 def update_uv_checker_tiling(tiling):
     for checker_type, info in CHECKER_TYPES.items():
         material = bpy.data.materials.get(info["material"])
         if material and _checker_tiling_node(material) is None:
             material = _checker_material(checker_type, tiling)
         _set_mapping_tiling(material, tiling)
-    for obj in bpy.data.objects:
-        if obj.type != 'MESH':
-            continue
-        backup = _read_backup(obj)
-        if backup:
-            _apply_checker_uv(obj, tiling, backup)
+    _reapply_to_worn_checkers(tiling, uv_set_number())
+
+
+def update_uv_checker_uv_set(number):
+    """Point a checker already on the mesh at another UV set.
+
+    The artist changes "UV set" to compare channels, so the checker follows it
+    the way Show Overlaps does. Until 1.23.9 it stayed on whatever channel was
+    active when it was switched on, and the field looked broken.
+    """
+    settings = _settings()
+    tiling = getattr(settings, "uv_checker_tiling", 1.0) if settings else 1.0
+    _reapply_to_worn_checkers(tiling, number)
 
 
 def _checker_material(checker_type, tiling):
@@ -242,15 +269,34 @@ def _restore_active_uv(obj, backup):
         obj.data.uv_layers.active_index = active_index
 
 
-def _apply_checker_uv(obj, tiling, backup):
+def source_uv_layer(obj, number):
+    """The UV layer the checker copies, and whether it is the one asked for.
+
+    The number is the panel's "UV set": one-based, counted the way Show
+    Overlaps counts it. The checker's own `SQC_UV_Checker_Tiling` layer stays
+    out of the count - it is added on top of the artist's channels, and
+    counting it would shift every number by one the moment the checker went on.
+
+    A mesh without that many channels falls back to its first one and says so
+    through ``exact=False``, rather than refusing: the same call also carries
+    tiling changes, and the caller reports the substitution.
+    """
+    layers = [
+        layer for layer in obj.data.uv_layers
+        if layer.name != CHECKER_UV_NAME
+    ]
+    if not layers:
+        return None, True
+    index = max(0, (number or 1) - 1)
+    if index < len(layers):
+        return layers[index], True
+    return layers[0], False
+
+
+def _apply_checker_uv(obj, tiling, backup, number):
     if not obj.data.uv_layers:
         return False
-    source_name = backup.get("active_uv_name", "")
-    source = obj.data.uv_layers.get(source_name) if source_name else None
-    if source is None:
-        source = obj.data.uv_layers.active
-    if source and source.name == CHECKER_UV_NAME:
-        source = next((layer for layer in obj.data.uv_layers if layer.name != CHECKER_UV_NAME), None)
+    source, _exact = source_uv_layer(obj, number)
     if source is None:
         return False
 
@@ -284,7 +330,7 @@ def _restore_materials(obj, backup):
         del obj[BACKUP_PROP]
 
 
-def _assign_checker(obj, checker_type, material, backup=None):
+def _assign_checker(obj, checker_type, material, backup=None, number=1):
     backup = backup or _write_backup(obj, checker_type)
     if len(obj.material_slots) == 0:
         obj.data.materials.append(material)
@@ -292,7 +338,9 @@ def _assign_checker(obj, checker_type, material, backup=None):
         for index in range(len(obj.material_slots)):
             obj.material_slots[index].material = material
     backup["checker_type"] = checker_type
-    _apply_checker_uv(obj, material.get("sqc_uv_checker_tiling", 1.0), backup)
+    _apply_checker_uv(
+        obj, material.get("sqc_uv_checker_tiling", 1.0), backup, number,
+    )
     obj[BACKUP_PROP] = json.dumps(backup)
 
 
@@ -331,9 +379,11 @@ class SQC_OT_toggle_uv_checker(Operator):
 
         mode_snapshot = _switch_to_object_mode(context)
         tiling = context.scene.sqc_settings.uv_checker_tiling
+        number = context.scene.sqc_settings.overlap_visual_uv_set_number
         checker_mat = _checker_material(self.checker_type, tiling)
         restored = 0
         applied = 0
+        short = 0
 
         try:
             for obj in targets:
@@ -342,8 +392,13 @@ class SQC_OT_toggle_uv_checker(Operator):
                     _restore_materials(obj, backup)
                     restored += 1
                 else:
-                    _assign_checker(obj, self.checker_type, checker_mat, backup)
+                    _, exact = source_uv_layer(obj, number)
+                    _assign_checker(
+                        obj, self.checker_type, checker_mat, backup, number,
+                    )
                     applied += 1
+                    if not exact:
+                        short += 1
         finally:
             _restore_mode(context, mode_snapshot)
 
@@ -355,4 +410,12 @@ class SQC_OT_toggle_uv_checker(Operator):
             self.report({'INFO'}, f"Applied checker to {applied} object(s)")
         else:
             self.report({'INFO'}, f"Restored {restored} object(s)")
+        if short:
+            # Said out loud: the checker would be showing a channel the artist
+            # did not ask for, and a silent substitution in a QC tool is a lie.
+            self.report(
+                {'WARNING'},
+                f"UV set {number} is missing on {short} object(s) - "
+                "showing UV set 1 there",
+            )
         return {'FINISHED'}

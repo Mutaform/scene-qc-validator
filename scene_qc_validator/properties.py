@@ -76,6 +76,13 @@ def _update_overlap_visual_uv_set(self, context):
             "[Scene QC Validator] Overlap UV set update failed: "
             f"{ex}"
         )
+    try:
+        from . import operators
+        operators.update_uv_checker_uv_set(
+            self.overlap_visual_uv_set_number,
+        )
+    except Exception as ex:
+        print(f"[Scene QC Validator] UV checker UV set update failed: {ex}")
 
 
 def _refresh_padding_visual(self, context):
@@ -351,7 +358,8 @@ class SQC_Settings(PropertyGroup):
     overlap_visual_uv_set_number: IntProperty(
         name="UV Set",
         description=(
-            "One-based UV set number used by Show Overlaps"
+            "One-based UV set number used by Show Overlaps, Show Padding "
+            "and the UV Checker"
         ),
         default=1,
         min=1,
