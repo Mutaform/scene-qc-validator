@@ -1,4 +1,3 @@
-import bpy
 from bpy.types import UIList
 
 from .. import checks as checks_mod

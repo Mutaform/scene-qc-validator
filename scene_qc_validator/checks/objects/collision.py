@@ -49,14 +49,6 @@ DEFAULT_TOLERANCE = 0.001           # метр: ниже этого вмятин
 SHOW_EDGES = 40                     # сколько рёбер выделять по нажатию
 
 
-def _prefix_pattern(item):
-    text = (getattr(item, "string_param_1", "") or "").strip() or DEFAULT_PREFIX
-    try:
-        return re.compile(text)
-    except re.error:
-        return re.compile(DEFAULT_PREFIX)
-
-
 def _skips(item, name):
     """Меш, которому коллизия не нужна: регексом в настройках проверки."""
     text = (getattr(item, "string_param_2", "") or "").strip()

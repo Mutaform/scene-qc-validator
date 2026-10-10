@@ -36,7 +36,6 @@ import hmac
 import http.server
 import json
 import secrets
-import socket
 import sys
 import threading
 import time

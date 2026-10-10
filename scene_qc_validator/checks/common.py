@@ -1,3 +1,9 @@
+# Импорты здесь - часть экспорта, а не личная нужда этого файла: __all__
+# внизу собирает всё из globals(), а модули проверок делают
+# `from ..common import *`. На `mathutils` отсюда живут collision,
+# pivot_center, pivot_world_origin и unapplied_transform - сами они его не
+# импортируют. Так что «неиспользуемый» импорт тут убирать нельзя: проверки
+# упадут на NameError только в момент запуска.
 import re
 import bmesh
 import bpy
@@ -44,10 +50,6 @@ def _write_bmesh(obj, bm):
     bm.free()
 
 
-def _mesh_objects(objects):
-    return [o for o in objects if o.type == 'MESH']
-
-
 def _parse_name_list(text):
     return [t.strip() for t in text.split(",") if t.strip()]
 
@@ -81,11 +83,6 @@ def _object_project_name(obj):
     base = _clean_asset_name(obj.name)
     prefix = "SK" if obj.type == 'ARMATURE' or base.lower().startswith(("sk_", "skel", "skeleton", "rig")) else "SM"
     return _unique_id_name(bpy.data.objects, f"{prefix}_{base}", obj)
-
-
-def _material_project_name(mat):
-    base = _clean_asset_name(mat.name)
-    return _unique_id_name(bpy.data.materials, f"M_{base}", mat)
 
 
 def _world_scale(obj, enabled=True):

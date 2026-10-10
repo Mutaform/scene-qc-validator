@@ -57,10 +57,6 @@ def is_factory_project(name):
     return name in bundled_project_names()
 
 
-def is_factory_preset(name):
-    return is_factory_project(name)
-
-
 def project_path(name):
     return os.path.join(_projects_dir(), f"{_safe_name(name)}.json")
 
@@ -165,12 +161,6 @@ def _apply_checks(data, checks_collection):
         c.bool_param_2 = entry.get("bool_param_2", c.bool_param_2)
 
 
-def project_ignore_objects(project_name):
-    """Regex of object names this project never validates (collisions, proxies)."""
-    data = _read_project(project_name)
-    return (data or {}).get("ignore_objects", "")
-
-
 def load_stage(project_name, stage_name, checks_collection, settings=None):
     data = _read_project(project_name)
     if not data:
@@ -201,16 +191,6 @@ def save_project(project_name, stage_name, checks_collection, ignore_objects=Non
             stage["checks"] = checks
             return _write_project(data)
     data["stages"].append({"name": stage_name, "checks": checks})
-    return _write_project(data)
-
-
-def copy_factory_project_as(project_name, new_name):
-    data = _read_project(project_name)
-    new_name = new_name.strip()
-    if not data or not new_name or is_factory_project(new_name):
-        return False
-    data = json.loads(json.dumps(data))
-    data["name"] = new_name
     return _write_project(data)
 
 
@@ -282,10 +262,6 @@ def ensure_default_project(checks_collection):
     return names[0] if names else ""
 
 
-def list_presets():
-    return list_projects()
-
-
 def load_preset(name, checks_collection, settings=None):
     stages = project_stage_names(name)
     if not stages:
@@ -307,7 +283,3 @@ def export_preset_file(filepath, name, checks_collection):
 
 def import_preset_file(filepath, checks_collection):
     return import_project_file(filepath)
-
-
-def ensure_default_preset(checks_collection):
-    ensure_default_project(checks_collection)

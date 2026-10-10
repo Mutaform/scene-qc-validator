@@ -48,7 +48,7 @@ from .mapping.no_hard_edge_on_uv_borders import (
     check_no_hard_edge_on_uv_borders, fix_no_hard_edge_on_uv_borders,
 )
 from .mapping.random_sharp import check_random_sharp, fix_random_sharp
-from .mapping.overlapped_uv import check_uv_overlap, fix_uv_overlap
+from .mapping.overlapped_uv import check_uv_overlap
 from .mapping.padding import check_padding
 from .mapping.unaligned_uv_edges import (
     check_unaligned_uv_edges, fix_unaligned_uv_edges,

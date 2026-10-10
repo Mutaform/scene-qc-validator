@@ -1,8 +1,6 @@
 import json
 import re
 
-import bpy
-
 from .. import checks as checks_mod
 from .. import presets as presets_mod
 
@@ -308,28 +306,6 @@ def _run_validation_check(
         if check_item.severity == 'FAIL' and not result.muted:
             any_fail = True
     return any_fail
-
-
-def _select_only(context, objects):
-    previous_active = context.view_layer.objects.active
-    previous_selection = list(context.selected_objects)
-    for obj in previous_selection:
-        obj.select_set(False)
-    for obj in objects:
-        obj.select_set(True)
-    context.view_layer.objects.active = objects[0] if objects else None
-    return previous_active, previous_selection
-
-
-def _restore_selection(context, snapshot):
-    previous_active, previous_selection = snapshot
-    for obj in context.selected_objects:
-        obj.select_set(False)
-    for obj in previous_selection:
-        if context.scene.objects.get(obj.name):
-            obj.select_set(True)
-    if previous_active and context.scene.objects.get(previous_active.name):
-        context.view_layer.objects.active = previous_active
 
 
 def run_validation_logic(context, targets=None):

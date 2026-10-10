@@ -32,7 +32,6 @@
 """
 
 import math
-import re
 
 from ..common import *
 from .overlapped_uv import _uv_islands_from_faces, _uv_polygon_area
@@ -42,11 +41,6 @@ TILE_COLUMNS = 10          # сетка UDIM: 10 тайлов в ряд, 1001..1
 
 def tile_number(u_tile, v_tile):
     return 1001 + u_tile + TILE_COLUMNS * v_tile
-
-
-def tile_origin(number):
-    index = number - 1001
-    return index % TILE_COLUMNS, index // TILE_COLUMNS
 
 
 class Island:
