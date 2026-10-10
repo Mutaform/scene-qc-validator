@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.23.3
+
+### Fixed
+
+- **The padding check could hang Blender on an asset with many shells.** To
+  keep stacked shells from counting as neighbours it compared every pair of
+  islands up front - O(n squared), with two entries per pair kept in memory.
+  On the project's shelf (117 shells) that is 6 800 comparisons and invisible;
+  on a mesh with 19 600 shells it was 192 million, thirteen minutes, and a
+  matching pile of memory. Measured, not guessed.
+  The question is now asked one pair at a time, and only for the candidate
+  that the neighbour search has already picked as the closest - that is a
+  handful of pairs per shell instead of all of them. Same answers: the three
+  reference meshes still read 4, 16 and 40 px, and a shell stacked on another
+  is still not its neighbour. The 19 600-shell mesh went from 797 seconds to
+  14.7.
+
 ## 1.23.2
 
 ### Changed
