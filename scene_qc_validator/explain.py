@@ -45,6 +45,7 @@ CODES = {
     "geo_concave_faces":    "вогнутые грани",
     "geo_duplicate_faces":  "задвоенные грани",
     "geo_loose":            "болтающаяся геометрия",
+    "geo_flipped_normals":  "вывернутые нормали",
     "geo_animation_keys":   "анимационные ключи",
     # --- объект
     "tr_unapplied":         "трансформация не применена",
@@ -52,6 +53,7 @@ CODES = {
     "tr_pivot_center":      "пивот не в центре габарита",
     "tr_pivot_bottom":      "пивот не внизу",
     "nm_object_pattern":    "имя объекта не по шаблону",
+    "nm_name_characters":   "в имени пробел или кириллица",
     "obj_nanite_closed_geometry": "открытая геометрия для Nanite",
     # --- развёртка
     "uv_missing":           "нет UV-развёртки",
@@ -96,6 +98,7 @@ FIX = {
     "geo_concave_faces":    (AUTO, "триангулировать вогнутые грани"),
     "geo_duplicate_faces":  (AUTO, "удалить дубликаты, оставив по одной грани"),
     "geo_loose":            (AUTO, "удалить вершины и рёбра без граней"),
+    "geo_flipped_normals":  (AUTO, "развернуть грани наружу (Recalculate Outside)"),
     "geo_animation_keys":   (AUTO, "очистить анимационные данные объекта, меша и шейп-кейсов"),
     "tr_unapplied":         (AUTO, "применить перечисленное (Apply). Поворот 90° и масштаб 0.01 - "
                                    "это след импорта FBX из Maya"),
@@ -104,6 +107,9 @@ FIX = {
                                    "геометрией - на экране ничего не шевельнётся"),
     "tr_pivot_center":      (MANUAL, "Object → Set Origin → Origin to Geometry. Если по проекту пивот "
                                      "стоит иначе (у ARDENA - внизу, Z = 0), выключить проверку в этапе"),
+    "nm_name_characters":   (BUTTON, "«Исправить» у этой строки перепишет имя: уберёт пробелы "
+                                     "и заменит кириллические буквы на латинские. Буква без "
+                                     "латинского двойника остаётся - её менять не на что"),
     "nm_object_pattern":    (BUTTON, "«Исправить» у этой строки знает только студийную схему: "
                                      "переименует в «SM_<имя>» (скелетные - «SK_»). У проекта своя "
                                      "схема - переименовывать руками"),
@@ -404,6 +410,48 @@ def _t_missing_material(v):
 
 
 
+def _t_name_characters(v):
+    """Показать сам символ и его место: иначе имя выглядит правильным."""
+    parts = []
+    spaces = v.get("spaces") or []
+    if spaces:
+        parts.append("%s на %s %s"
+                     % (_n(len(spaces), "лишний пробел", "лишних пробела",
+                           "лишних пробелов"),
+                        "позиции" if len(spaces) == 1 else "позициях",
+                        ", ".join(str(p) for p in spaces)))
+    twins = v.get("twins") or []
+    if twins:
+        parts.append("кириллица, выглядит как латиница: %s"
+                     % ", ".join("«%s» на %s (это «%s»)" % (char, place, latin)
+                                 for place, char, latin in twins))
+    other = v.get("other") or []
+    if other:
+        parts.append("не латиница: %s"
+                     % ", ".join("«%s» на %s" % (char, place)
+                                 for place, char in other))
+    tail = (" Правильно: «%s»" % v.get("want")) if v.get("want") else ""
+    return ("В имени %s «%s» %s.%s"
+            % (v.get("what", "объекта"), v.get("name", ""), "; ".join(parts), tail))
+
+
+def _t_flipped(v):
+    """Два разных повода: шов между гранями и оболочка наизнанку."""
+    if v.get("kind") == "inside_out":
+        tail = (" (у объекта отрицательный масштаб - в движке он приедет "
+                "вывернутым)" if v.get("mirrored") else "")
+        shells = v.get("shells", 0)
+        head = ("Замкнутая оболочка вывернута наизнанку" if shells == 1
+                else "%s вывернуты наизнанку"
+                     % _n(shells, "замкнутая оболочка", "замкнутые оболочки",
+                          "замкнутых оболочек"))
+        return ("%s: нормали смотрят внутрь, %s%s"
+                % (head, _faces(v.get("faces", 0)), tail))
+    return ("Грани смотрят в разные стороны: %s, где соседние грани развёрнуты "
+            "друг против друга (%s)"
+            % (_edges(v.get("edges", 0)), _faces(v.get("faces", 0))))
+
+
 def _t_texel(v):
     """Плотность текселя: во сколько раз развёртка разошлась с нормой.
 
@@ -482,6 +530,7 @@ TEXT = {
     "geo_duplicate_faces": lambda v: "%s %s: дубль на тех же вершинах"
                                      % (_faces(v.get("faces", 0)),
                                         _verb(v.get("faces", 0), "задвоена", "задвоены")),
+    "geo_flipped_normals": _t_flipped,
     "geo_loose":           _t_loose,
     "geo_animation_keys":  lambda v: "Анимационные данные на: %s"
                                      % ", ".join(_SOURCES.get(s, s) for s in v.get("sources", ())),
@@ -495,6 +544,7 @@ TEXT = {
                                       % (abs(v.get("offset_cm", 0)),
                                          "выше" if v.get("above") else "ниже",
                                          v.get("tolerance_cm", 0.1))),
+    "nm_name_characters":  _t_name_characters,
     "nm_object_pattern":   lambda v: "Имя «%s» не подходит под шаблон «%s»"
                                      % (v.get("name", ""), v.get("pattern", "")),
     "obj_nanite_closed_geometry": _t_nanite,

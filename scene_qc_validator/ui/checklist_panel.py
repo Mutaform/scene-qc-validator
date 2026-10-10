@@ -256,6 +256,10 @@ class SQC_PT_checklist(Panel):
                 "float_param_2",
                 text="Rectilinear Ratio",
             )
+        elif cid == "nm_name_characters":
+            sub.prop(item, "bool_param_1", text="Check Material Names")
+        elif cid == "geo_flipped_normals":
+            sub.prop(item, "bool_param_1", text="Skip Open Shells")
         elif cid == "uv_texel_density":
             sub.prop(item, "int_param_2", text="UV Set (1 = first)")
             sub.prop(item, "float_param_1", text="Pixels Per Metre")

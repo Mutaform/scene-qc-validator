@@ -10,6 +10,7 @@ from .mesh.concave_faces import check_concave_faces, fix_concave_faces
 from .mesh.duplicate_faces import check_duplicate_faces, fix_duplicate_faces
 from .mesh.loose_geometry import check_loose_geometry, fix_loose_geometry
 from .mesh.animation import check_animation_keys, fix_animation_keys
+from .mesh.flipped_normals import check_flipped_normals, fix_flipped_normals
 
 from .objects.unapplied_transform import (
     check_unapplied_transform, fix_unapplied_transform,
@@ -19,6 +20,9 @@ from .objects.pivot_world_origin import (
 )
 from .objects.pivot_center import check_pivot_center
 from .objects.pivot_bottom import check_pivot_bottom, fix_pivot_bottom
+from .objects.name_characters import (
+    check_name_characters, fix_name_characters,
+)
 from .objects.object_name_pattern import (
     check_object_name_pattern, fix_object_name_pattern,
 )
@@ -112,6 +116,12 @@ CHECK_DEFINITIONS = [
          description="Faces sharing the same vertex set",
          run=check_duplicate_faces, fix=fix_duplicate_faces, can_fix=True,
          fix_is_destructive=True),
+    dict(id="geo_flipped_normals", label="Flipped Normals", category='GEOMETRY',
+         description="Faces wound against their neighbours, and closed shells that are inside out: in the engine both are holes in the model",
+         run=check_flipped_normals, fix=fix_flipped_normals, can_fix=True,
+         fix_is_destructive=False,
+         bool_param_1=False),
+
     dict(id="geo_loose", label="Loose Geometry", category='GEOMETRY',
          description="Vertices or edges not part of any face",
          run=check_loose_geometry, fix=fix_loose_geometry, can_fix=True,
@@ -217,6 +227,12 @@ CHECK_DEFINITIONS = [
          run=check_pivot_bottom, fix=fix_pivot_bottom, can_fix=True,
          fix_is_destructive=False,
          float_param_1=0.001),
+
+    dict(id="nm_name_characters", label="Name Characters", category='NAMING',
+         description="Names must not carry spaces or look-alike Cyrillic letters: the engine will not find such an asset",
+         run=check_name_characters, fix=fix_name_characters, can_fix=True,
+         fix_is_destructive=False,
+         bool_param_1=True),
 
     dict(id="nm_object_pattern", label="Object Name Pattern", category='NAMING',
          description="Object name must match a regex pattern",

@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.21.0
+
+### Added
+
+- **Flipped normals** (`geo_flipped_normals`). In the engine a flipped face is
+  a hole: you see straight through the model and the bake over it is rubbish.
+  Two separate faults, found in two different ways and worded apart, because
+  they are fixed differently:
+  - *Faces wound against each other* - found topologically, no heuristics: on
+    a correctly oriented surface two faces walk their shared edge in opposite
+    directions. Works on open and closed shells alike.
+  - *A closed shell inside out* - normals consistent but pointing in. That
+    cannot be seen topologically, so it takes the signed volume, and only
+    closed shells are judged: an open one has no "inside" and any answer would
+    be invented. The volume is taken with the world sign, so an object with a
+    negative scale reads as inverted - it will arrive in the engine that way
+    and the artist cannot see it in Blender.
+  - The autofix is Recalculate Outside, which is exactly what the finding
+    says it will do, plus a flip afterwards when the matrix is mirrored.
+- **Spaces and Cyrillic look-alikes in names** (`nm_name_characters`), for the
+  object and its materials. `S_TAR_DK_Estate_GuestRoom_ Bed_01` and
+  `S_TAR_DK_Estаte_GuestRoom_Bеd_01` both look right and are not: the second
+  has a Cyrillic "а" and "е", drawn the same as the Latin ones but different
+  characters, so the engine does not find the asset by name. The name pattern
+  check rejects them too, but it says "does not match the pattern" and the
+  guessing starts there. This one gives the position, the character and its
+  Latin twin, and its button rewrites the name. A letter without a twin
+  (ж, ы) stays in the finding: there is nothing to replace it with. A name
+  already taken is not overwritten - Blender would append `.001` and trade one
+  fault for another - and the page says so instead of "nothing to fix".
+
+### Changed
+
+- ARDENA: both on as errors at every stage.
+
 ## 1.20.0
 
 Three things the engine-side checker caught and this one did not, ported with

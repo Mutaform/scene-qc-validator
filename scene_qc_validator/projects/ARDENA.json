@@ -136,6 +136,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "geo_flipped_normals",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "tr_unapplied",
           "enabled": true,
           "severity": "FAIL",
@@ -417,6 +430,19 @@
           "int_param_1": 0,
           "int_param_2": 0,
           "string_param_1": "^S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}$|^(?:UCX|UBX|USP|UCP)_S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}(?:_\\d+)?$",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "nm_name_characters",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true
@@ -674,6 +700,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "geo_flipped_normals",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "tr_unapplied",
           "enabled": true,
           "severity": "FAIL",
@@ -955,6 +994,19 @@
           "int_param_1": 0,
           "int_param_2": 0,
           "string_param_1": "^S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}$|^(?:UCX|UBX|USP|UCP)_S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}(?:_\\d+)?$",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "nm_name_characters",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true
@@ -1212,6 +1264,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "geo_flipped_normals",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "tr_unapplied",
           "enabled": true,
           "severity": "FAIL",
@@ -1493,6 +1558,19 @@
           "int_param_1": 0,
           "int_param_2": 0,
           "string_param_1": "^S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}$|^(?:UCX|UBX|USP|UCP)_S_(?:GBL|CZKA|TAT|DAN|RKP|TAR|ESP)_[A-Za-z0-9_]+_\\d{2}(?:_\\d+)?$",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "nm_name_characters",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true

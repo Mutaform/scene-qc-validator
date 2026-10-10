@@ -382,6 +382,9 @@ def _rows(obj, settings):
     topology = state("geo_non_manifold")
     out.append(("Топология", _verdict(topology, "non manifold", "чисто"),
                 topology, "норма: без non manifold"))
+    normals = state("geo_flipped_normals")
+    out.append(("Нормали", _verdict(normals, "вывернуты", "наружу"), normals,
+                "все грани наружу, замкнутые оболочки не наизнанку"))
     degenerate = state("geo_zero_area", "geo_zero_length",
                        "geo_duplicate_faces", "geo_loose")
     out.append(("Вырожденная геометрия",
