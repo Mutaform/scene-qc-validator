@@ -129,6 +129,29 @@ def _serialize_checks(checks_collection):
     ]
 
 
+PARAM_SLOTS = ("float_param_1", "float_param_2", "int_param_1", "int_param_2",
+               "string_param_1", "string_param_2", "bool_param_1", "bool_param_2")
+
+
+def _registry_defaults(check_id):
+    """Умолчания проверки из реестра - то, чем должен быть пустой слот.
+
+    Пресет, в котором ключа нет, обязан получить именно их. Раньше такой слот
+    оставался с тем, что лежало в нём от ПРОШЛОГО загруженного проекта: в
+    Mutaform_Default нет `string_param_2` у имени материала, и после работы с
+    ARDENA туда перетекал её шаблон `MI_{asset}` - студийный ассет начинало
+    чинить в клиентское имя (найдено 2026-10-10). Касается любого слота, не
+    только этого.
+    """
+    from . import checks as checks_mod
+
+    definition = next(
+        (d for d in checks_mod.CHECK_DEFINITIONS if d["id"] == check_id), None)
+    if definition is None:
+        return {}
+    return {slot: definition[slot] for slot in PARAM_SLOTS if slot in definition}
+
+
 def _apply_checks(data, checks_collection):
     lookup = {c.check_id: c for c in checks_collection}
     for entry in data.get("checks", []):
@@ -145,20 +168,30 @@ def _apply_checks(data, checks_collection):
         legacy_float_params = LEGACY_FLOAT_PARAMS.get(c.check_id, {})
         c.enabled = entry.get("enabled", c.enabled)
         c.severity = entry.get("severity", c.severity)
-        float_param_1 = entry.get("float_param_1", c.float_param_1)
+        # Пресет, где ключа нет, получает умолчание реестра, а не остаток от
+        # прошлого проекта - см. _registry_defaults.
+        defaults = _registry_defaults(c.check_id)
+
+        def taken(slot):
+            if slot in entry:
+                return entry[slot]
+            if slot in defaults:
+                return defaults[slot]
+            return getattr(c, slot)
+
+        float_param_1 = taken("float_param_1")
         if "float_param_1" in legacy_float_params:
             old, new = legacy_float_params["float_param_1"]
             if abs(float_param_1 - old) < 1e-7:
                 float_param_1 = new
         c.float_param_1 = float_param_1
-        c.float_param_2 = entry.get("float_param_2", c.float_param_2)
-        c.int_param_1 = entry.get("int_param_1", c.int_param_1)
-        c.int_param_2 = entry.get("int_param_2", c.int_param_2)
-        c.string_param_1 = entry.get("string_param_1", c.string_param_1)
-        # Projects written before this slot existed simply keep their default.
-        c.string_param_2 = entry.get("string_param_2", c.string_param_2)
-        c.bool_param_1 = entry.get("bool_param_1", c.bool_param_1)
-        c.bool_param_2 = entry.get("bool_param_2", c.bool_param_2)
+        c.float_param_2 = taken("float_param_2")
+        c.int_param_1 = taken("int_param_1")
+        c.int_param_2 = taken("int_param_2")
+        c.string_param_1 = taken("string_param_1")
+        c.string_param_2 = taken("string_param_2")
+        c.bool_param_1 = taken("bool_param_1")
+        c.bool_param_2 = taken("bool_param_2")
 
 
 def load_stage(project_name, stage_name, checks_collection, settings=None):

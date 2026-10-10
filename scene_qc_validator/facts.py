@@ -278,14 +278,17 @@ def _texel_text(obj, number, map_px, per_tile=False):
 
 
 def _uv_names_norm(raw):
-    """«UV1|map1,UV2|map2» -> «UV1 или map1, UV2 или map2» - чтобы колонка нормы
-    читалась требованием, а не настройкой."""
-    slots = []
-    for slot in str(raw).split(","):
-        names = [name.strip() for name in slot.split("|") if name.strip()]
+    """«UV1,UV2,UV3|map1,map2,map3» -> «UV1, UV2, UV3 или map1, map2, map3».
+
+    Чтобы колонка нормы читалась требованием, а не настройкой. Вертикальная
+    черта разделяет целые схемы: меш называется по одной из них, но по одной.
+    """
+    schemes = []
+    for scheme in str(raw).split("|"):
+        names = [name.strip() for name in scheme.split(",") if name.strip()]
         if names:
-            slots.append(" или ".join(names))
-    return ", ".join(slots) if slots else str(raw)
+            schemes.append(", ".join(names))
+    return " или ".join(schemes) if schemes else str(raw)
 
 
 def _channels(pattern, fallback="во всех каналах"):

@@ -101,6 +101,10 @@ def fix_material_name(obj, item, result):
 
     # Pass 2: rename each remaining material to its QC-compliant name.
     template = item.string_param_2.strip()
+    pattern = item.string_param_1 or DEFAULT_MATERIAL_PATTERN
+    if pattern == LEGACY_MATERIAL_PATTERN:
+        pattern = DEFAULT_MATERIAL_PATTERN
+    allowed = _parse_name_list(pattern)
     for slot in obj.material_slots:
         mat = slot.material
         if not mat:
@@ -117,6 +121,23 @@ def fix_material_name(obj, item, result):
                 return fixed
         if target_name is None:
             target_name = _material_qc_name(mat)
+        # Имя, которое не пройдёт ЭТУ ЖЕ проверку, - не починка.
+        #
+        # `_material_qc_name` строит студийное `m_<имя>`, и пока у проекта не
+        # было своего шаблона, этого хватало. У проекта со своим правилом
+        # (MET: `^MI_<уровень>_…`) та же запасная ветка переименовывала
+        # `MI_GKZ_Sphinx_PapierMache_01_Wood` в `m_mi_gkz_sphinx_papiermache` -
+        # имя, которое проверка отвергает следующим же прогоном, а художник
+        # остаётся без исходного (денис, 2026-10-10). Теперь кандидат
+        # сверяется с шаблоном проекта, и не подошедший материал не трогаем:
+        # пусть находка останется и его переименуют руками.
+        #
+        # У ARDENA шаблон `MI_{asset}` даёт имя, которое её же регэксп
+        # принимает, у студийного пресета - `m_…` под студийный регэксп:
+        # там ничего не меняется.
+        if allowed and not any(_material_allowed(target_name, token)
+                               for token in allowed):
+            continue
         if mat.name != target_name:
             mat.name = target_name
             fixed = True
