@@ -236,6 +236,13 @@ class SQC_PT_checklist(Panel):
             depress=(active_checker == 'LINE'),
         )
         op.checker_type = 'LINE'
+        # Fixed narrow cell, or the turn toggle would take a third of the row
+        # from the two buttons that actually put a checker on the mesh.
+        turn = row.row(align=True)
+        turn.ui_units_x = 2.0
+        turn.prop(
+            s, "uv_checker_rotated", text="", icon='FILE_REFRESH', toggle=True,
+        )
 
         row = layout.row(align=True)
         row.prop(

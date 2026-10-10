@@ -16,7 +16,7 @@ from .checklist import (
 from .checker import (
     SQC_OT_toggle_uv_checker,
     update_uv_checker_tiling,
-    update_uv_checker_uv_set,
+    refresh_uv_checker,
 )
 from .fix import SQC_OT_fix_all, SQC_OT_fix_result
 from .preset_files import (

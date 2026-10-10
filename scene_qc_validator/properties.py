@@ -78,11 +78,17 @@ def _update_overlap_visual_uv_set(self, context):
         )
     try:
         from . import operators
-        operators.update_uv_checker_uv_set(
-            self.overlap_visual_uv_set_number,
-        )
+        operators.refresh_uv_checker()
     except Exception as ex:
         print(f"[Scene QC Validator] UV checker UV set update failed: {ex}")
+
+
+def _update_uv_checker_rotation(self, context):
+    try:
+        from . import operators
+        operators.refresh_uv_checker()
+    except Exception as ex:
+        print(f"[Scene QC Validator] UV checker rotation update failed: {ex}")
 
 
 def _refresh_padding_visual(self, context):
@@ -391,6 +397,17 @@ class SQC_Settings(PropertyGroup):
         soft_max=20.0,
         precision=2,
         update=_update_uv_checker_tiling,
+    )
+
+    uv_checker_rotated: BoolProperty(
+        name="Turn Checker 90°",
+        description=(
+            "Lay the checker across the other way. Pressed turns it a quarter "
+            "turn, released leaves it as it comes - mainly for the line "
+            "checker, whose stripes only read one direction at a time"
+        ),
+        default=False,
+        update=_update_uv_checker_rotation,
     )
 
 

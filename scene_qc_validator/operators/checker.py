@@ -156,14 +156,38 @@ def uv_set_number():
     return getattr(settings, "overlap_visual_uv_set_number", 1) if settings else 1
 
 
-def _reapply_to_worn_checkers(tiling, number):
+def checker_rotated():
+    """Whether the panel's quarter-turn toggle is pressed."""
+    settings = _settings()
+    return bool(getattr(settings, "uv_checker_rotated", False)) if settings else False
+
+
+def _checker_tiling():
+    settings = _settings()
+    return getattr(settings, "uv_checker_tiling", 1.0) if settings else 1.0
+
+
+def _reapply_to_worn_checkers(tiling, number, rotated):
     """Rebuild the checker UVs on every mesh currently wearing a checker."""
     for obj in bpy.data.objects:
         if obj.type != 'MESH':
             continue
         backup = _read_backup(obj)
         if backup:
-            _apply_checker_uv(obj, tiling, backup, number)
+            _apply_checker_uv(obj, tiling, backup, number, rotated)
+
+
+def refresh_uv_checker():
+    """Re-copy the checker UVs from whatever the panel says right now.
+
+    Used by the controls that only change how the artist's layout is copied
+    into SQC_UV_Checker_Tiling - "UV set" and the quarter turn - and leave the
+    material alone. Tiling goes through update_uv_checker_tiling instead,
+    because the material nodes carry that value too.
+    """
+    _reapply_to_worn_checkers(
+        _checker_tiling(), uv_set_number(), checker_rotated(),
+    )
 
 
 def update_uv_checker_tiling(tiling):
@@ -172,19 +196,7 @@ def update_uv_checker_tiling(tiling):
         if material and _checker_tiling_node(material) is None:
             material = _checker_material(checker_type, tiling)
         _set_mapping_tiling(material, tiling)
-    _reapply_to_worn_checkers(tiling, uv_set_number())
-
-
-def update_uv_checker_uv_set(number):
-    """Point a checker already on the mesh at another UV set.
-
-    The artist changes "UV set" to compare channels, so the checker follows it
-    the way Show Overlaps does. Until 1.23.9 it stayed on whatever channel was
-    active when it was switched on, and the field looked broken.
-    """
-    settings = _settings()
-    tiling = getattr(settings, "uv_checker_tiling", 1.0) if settings else 1.0
-    _reapply_to_worn_checkers(tiling, number)
+    _reapply_to_worn_checkers(tiling, uv_set_number(), checker_rotated())
 
 
 def _checker_material(checker_type, tiling):
@@ -293,7 +305,26 @@ def source_uv_layer(obj, number):
     return layers[0], False
 
 
-def _apply_checker_uv(obj, tiling, backup, number):
+def _turned(flat, tiling):
+    """The layout given a quarter turn about the middle of its own bounds.
+
+    Turning the UVs is how the texture turns: the viewport reads the checker
+    channel directly in Solid shading, so a rotation node in the material
+    would only show up in Material Preview. The turn is taken about the centre
+    of the layout rather than the UV origin so the islands stay where they
+    were - with a repeating texture the difference is invisible, but it keeps
+    a mesh packed far from the origin from flying off.
+    """
+    us, vs = flat[0::2], flat[1::2]
+    cu = (min(us) + max(us)) * 0.5
+    cv = (min(vs) + max(vs)) * 0.5
+    out = [0.0] * len(flat)
+    out[0::2] = [(cu + (v - cv)) * tiling for v in vs]
+    out[1::2] = [(cv - (u - cu)) * tiling for u in us]
+    return out
+
+
+def _apply_checker_uv(obj, tiling, backup, number, rotated=False):
     if not obj.data.uv_layers:
         return False
     source, _exact = source_uv_layer(obj, number)
@@ -303,8 +334,15 @@ def _apply_checker_uv(obj, tiling, backup, number):
     checker = obj.data.uv_layers.get(CHECKER_UV_NAME)
     if checker is None:
         checker = obj.data.uv_layers.new(name=CHECKER_UV_NAME, do_init=False)
-    for src_loop, checker_loop in zip(source.data, checker.data):
-        checker_loop.uv = src_loop.uv * tiling
+    # foreach, not a Python loop over the loops: this runs on every tick of
+    # the tiling slider, and the bed in the test scene has 44 908 of them.
+    flat = [0.0] * (len(source.data) * 2)
+    source.data.foreach_get("uv", flat)
+    if rotated:
+        flat = _turned(flat, tiling)
+    elif tiling != 1.0:
+        flat = [value * tiling for value in flat]
+    checker.data.foreach_set("uv", flat)
     obj.data.uv_layers.active = checker
     try:
         checker.active_render = True
@@ -330,7 +368,9 @@ def _restore_materials(obj, backup):
         del obj[BACKUP_PROP]
 
 
-def _assign_checker(obj, checker_type, material, backup=None, number=1):
+def _assign_checker(
+    obj, checker_type, material, backup=None, number=1, rotated=False,
+):
     backup = backup or _write_backup(obj, checker_type)
     if len(obj.material_slots) == 0:
         obj.data.materials.append(material)
@@ -340,6 +380,7 @@ def _assign_checker(obj, checker_type, material, backup=None, number=1):
     backup["checker_type"] = checker_type
     _apply_checker_uv(
         obj, material.get("sqc_uv_checker_tiling", 1.0), backup, number,
+        rotated,
     )
     obj[BACKUP_PROP] = json.dumps(backup)
 
@@ -380,6 +421,7 @@ class SQC_OT_toggle_uv_checker(Operator):
         mode_snapshot = _switch_to_object_mode(context)
         tiling = context.scene.sqc_settings.uv_checker_tiling
         number = context.scene.sqc_settings.overlap_visual_uv_set_number
+        rotated = context.scene.sqc_settings.uv_checker_rotated
         checker_mat = _checker_material(self.checker_type, tiling)
         restored = 0
         applied = 0
@@ -395,6 +437,7 @@ class SQC_OT_toggle_uv_checker(Operator):
                     _, exact = source_uv_layer(obj, number)
                     _assign_checker(
                         obj, self.checker_type, checker_mat, backup, number,
+                        rotated,
                     )
                     applied += 1
                     if not exact:
