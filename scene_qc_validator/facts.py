@@ -370,28 +370,15 @@ def _uv_names_norm(raw):
         names = [name.strip() for name in scheme.split(",") if name.strip()]
         if names:
             schemes.append(", ".join(names))
-    return " или ".join(schemes) if schemes else str(raw)
+    # только первая схема: вторая - то же самое другими словами, и в норме от
+    # неё больше шума, чем пользы (денис, 2026-10-11). Найдётся канал, названный
+    # по второй схеме, - проверка его примет и промолчит
+    return schemes[0] if schemes else str(raw)
 
 
 def _channels(pattern, fallback="во всех каналах", join=" и "):
-    """«^UV3$» -> «UV3», «^(UV1|UV2)$» -> «UV1 и UV2», «.+» -> «во всех каналах».
-
-    В колонке нормы стоит правило, по которому судят, и художник читает его
-    глазами. Регексп он читать не обязан: «канал ^UV3$ без наложений» - это
-    отписка, а не правило.
-    """
-    text = (pattern or "").strip()
-    if not text or text in (".+", ".*", "^.+$", "^.*$"):
-        return fallback
-    core = text.lstrip("^").rstrip("$")
-    if core.startswith("(") and core.endswith(")"):
-        core = core[1:-1]
-    names = [part for part in core.split("|") if part]
-    if names and all(re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names):
-        if len(names) == 1:
-            return names[0]
-        return ", ".join(names[:-1]) + join + names[-1]
-    return text                     # что-то сложное - показываем как есть
+    """Имя канала словами. Разбор один на всех - он в `explain.channels`."""
+    return explain.channels(pattern, fallback, join)
 
 
 def _uv_text(mesh):

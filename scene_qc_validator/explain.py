@@ -327,12 +327,49 @@ def _t_set_names(v):
             % (v.get("slot", 0), v.get("uv", ""), v.get("want", "")))
 
 
+def _one_channel(names):
+    """Это разные написания ОДНОГО канала или разные каналы?
+
+    «UV1» и «map1» - один канал, названный двумя способами; «UV1» и «UV2» -
+    два канала. Отличаем по цифре в конце: у одного канала она общая.
+    """
+    tails = {re.sub(r"^\D+", "", name) for name in names}
+    return len(tails) == 1 and all(tails)
+
+
+def channels(pattern, fallback="во всех каналах", join=" и "):
+    """«^UV3$» -> «UV3», «^(UV1|UV2)$» -> «UV1 и UV2», «.+» -> fallback.
+
+    Художник читает правило глазами, и регексп в тексте - отписка, а не
+    правило. Несколько написаний одного канала сводим к первому: «канал UV1 или
+    map1» пишет про один канал так, будто их два (денис, 2026-10-11). Разные
+    каналы перечисляем все - там это и правда список.
+
+    Живёт здесь, а не в `facts`: этим пользуются и текст находки, и колонка
+    нормы, а `facts` и так импортирует `explain`.
+    """
+    text = (pattern or "").strip()
+    if not text or text in (".+", ".*", "^.+$", "^.*$"):
+        return fallback
+    core = text.lstrip("^").rstrip("$")
+    if core.startswith("(") and core.endswith(")"):
+        core = core[1:-1]
+    names = [part for part in core.split("|") if part]
+    if names and all(re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names):
+        if len(names) == 1 or _one_channel(names):
+            return names[0]
+        return ", ".join(names[:-1]) + join + names[-1]
+    return text                     # что-то сложное - показываем как есть
+
+
 def _t_overlap(v):
     if v.get("error"):
         return "Проверку наложений не удалось выполнить: %s" % v["error"]
     if v.get("regex") is not None:
-        return ("Ни один канал не подходит под «%s»; у меша %s"
-                % (v["regex"], _uv_list(v.get("uvs", ()))))
+        # регэксп художнику не читается: называем канал, который ждали
+        return ("У меша нет канала %s; есть %s"
+                % (channels(v["regex"], "для наложений"),
+                   _uv_list(v.get("uvs", ()))))
     where = " внутри UDIM 1001" if v.get("udim_only") else ""
     islands = v.get("islands") or 0
     if islands == 1:
