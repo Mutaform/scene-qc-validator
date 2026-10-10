@@ -247,7 +247,7 @@
           "float_param_2": 0.0,
           "int_param_1": 0,
           "int_param_2": 0,
-          "string_param_1": "",
+          "string_param_1": "^(UV1|map1)$",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true
@@ -818,13 +818,13 @@
         },
         {
           "check_id": "uv_single_tile",
-          "enabled": false,
-          "severity": "FAIL",
+          "enabled": true,
+          "severity": "INFO",
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
           "int_param_2": 0,
-          "string_param_1": "",
+          "string_param_1": "^(UV1|map1)$",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true
@@ -1395,13 +1395,13 @@
         },
         {
           "check_id": "uv_single_tile",
-          "enabled": false,
-          "severity": "FAIL",
+          "enabled": true,
+          "severity": "INFO",
           "float_param_1": 0.001,
           "float_param_2": 0.0,
           "int_param_1": 0,
           "int_param_2": 0,
-          "string_param_1": "",
+          "string_param_1": "^(UV1|map1)$",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true
@@ -1720,7 +1720,7 @@
         },
         {
           "check_id": "col_material",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,

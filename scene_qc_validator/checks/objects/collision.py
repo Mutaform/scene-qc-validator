@@ -367,7 +367,15 @@ def check_collision_convex(obj, item):
 
 
 def check_collision_material(obj, item):
-    """На коллизии должен стоять тот же материал, что и на меше."""
+    """На коллизии должен стоять материал меша.
+
+    Материалов у меша может быть несколько: у MET на одном ассете законно
+    живут MI_..._Wood, MI_..._PapierMache и MI_..._Metal. Коллизия - выпуклая
+    оболочка, на ней один материал, и требовать от неё весь список значило бы
+    не пройти никогда. Поэтому условие - ПОДМНОЖЕСТВО: материалы коллизии
+    должны быть среди материалов меша. У ассета с одним материалом (ARDENA) это
+    то же самое, что прежняя точная сверка.
+    """
     if _is_collider(obj, item) or _skips(item, obj.name):
         return []
     wanted = [slot.material.name for slot in obj.material_slots if slot.material]
@@ -375,6 +383,8 @@ def check_collision_material(obj, item):
     issues = []
     for collider in mine:
         here = [slot.material.name for slot in collider.material_slots if slot.material]
+        if here and wanted and set(here) <= set(wanted):
+            continue
         if here == wanted:
             continue
         if not here:
@@ -384,8 +394,9 @@ def check_collision_material(obj, item):
             message = ("the mesh has no material, %s carries %s"
                        % (collider.name, ", ".join(here)))
         else:
-            message = ("%s carries %s, the mesh carries %s"
-                       % (collider.name, ", ".join(here), ", ".join(wanted)))
+            message = ("%s carries %s, which the mesh does not: it carries %s"
+                       % (collider.name, ", ".join(sorted(set(here) - set(wanted))),
+                          ", ".join(wanted)))
         issues.append({
             "message": message,
             "element_ref": "obj:%s" % collider.name,
