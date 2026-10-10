@@ -6,7 +6,7 @@ from .review_scene_panel import SQC_PT_scene_review
 from .checklist_panel import SQC_PT_checklist
 from .results_panel import SQC_PT_results
 from . import header
-from .header import SQC_PT_header_menu
+from .header import SQC_PT_header_menu, SQC_PT_header_menu_met
 
 
 CLASSES = (
@@ -18,6 +18,7 @@ CLASSES = (
     SQC_PT_checklist,
     SQC_PT_results,
     SQC_PT_header_menu,
+    SQC_PT_header_menu_met,
 )
 
 
