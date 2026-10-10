@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.22.0
+
+### Added
+
+- **The salute, taken from ARDENA Tools as it stands.** A clean report now
+  celebrates the way the engine-side report does: the "принято" tile shakes
+  harder and harder, glows, bursts into sparks, and two confetti cannons fire
+  from the bottom corners. I had written my own first and it came out
+  different; there is no reason for two studio tools to celebrate differently,
+  so `JS_PARTY` and its styles are copied verbatim. With them comes their
+  restraint: the salute plays once, only on a fresh report (the page compares
+  its own timestamp with the clock, so a report opened later or forwarded to
+  someone stays quiet), and never when the system asks for reduced motion.
+- **A static mesh must carry no modifiers, shape keys or vertex groups**
+  (`obj_extra_data`). The engine gets the file, not the viewport: a modifier
+  is a promise of geometry that is not in it, and shape keys and vertex groups
+  are leftovers of rigging. It matters for this tool too - every measurement
+  here is taken from the base mesh, so an unapplied Mirror or Subdivision
+  makes the triangle count, the texel density and the padding describe
+  something other than what ships. What to forbid is a list in the settings,
+  like the transform check. No autofix on purpose: applying a modifier changes
+  the geometry, removing one loses work, and a shape key goes without return.
+  On in ARDENA from 03_MP_UVs - at blockout Mirror and Array are normal work.
+- The breakdown gained a "Вертекс-группы" row, and "Модификаторы" and
+  "Шейп-кейсы" are now judged instead of being shown for information.
+
+### Fixed
+
+- **The scrollbar under the summary table was white in a dark report.** Now it
+  is in the page's own tone.
+- **A card in "Подробно" broke into two columns.** The clean-report line I
+  added took the class `clean`, which already marks an object card with no
+  findings (`body.only-bad details.clean`), and `display:flex` from my rule
+  turned those cards into flex containers. The new line is `allgood` now.
+
 ## 1.21.3
 
 ### Added

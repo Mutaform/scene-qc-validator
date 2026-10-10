@@ -62,6 +62,20 @@ body.only-bad tr.clean,body.only-bad details.clean{display:none}
 .sub b{color:var(--txt);font-weight:600}
 .tiles{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 18px;min-width:128px}
+/* не «clean»: этим классом уже помечены карточки объектов без находок
+   (body.only-bad details.clean), и display:flex ломал им вёрстку */
+.allgood{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:var(--ok)}
+.allgood span{font-weight:400;color:var(--dim);font-size:13px}
+/* Полоса прокрутки в общем тоне страницы: белая в тёмном отчёте - как дырка */
+*{scrollbar-color:#3a3b42 var(--bg);scrollbar-width:thin}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#3a3b42;border-radius:5px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#4a4b55}
+canvas.fx{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:50}
+.tile.pulse{animation:pulse 1.3s ease-out}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(95,194,126,.55);border-color:var(--ok)}
+                 100%{box-shadow:0 0 0 26px rgba(95,194,126,0);border-color:var(--line)}}
 .tile.apart{margin-left:auto}
 .tile.apart b{font-size:22px}
 .tile b{display:block;font-size:26px;font-weight:600;line-height:1.15}
@@ -156,7 +170,7 @@ button.act.row{margin:0;padding:2px 10px;font-weight:600}
 .part h2{font-size:12px;letter-spacing:1px;color:var(--acc);margin:0;text-transform:uppercase}
 .why{color:var(--dim);font:12px "Segoe UI",sans-serif;margin-left:12px}
 .foot{color:var(--dim);font-size:12px;margin-top:10px}
-@media print{body{background:#fff;color:#000}.asset{background:#fff;border-color:#ccc}}
+@media print{canvas.fx{display:none}body{background:#fff;color:#000}.asset{background:#fff;border-color:#ccc}}
 """
 
 
@@ -369,6 +383,12 @@ def _note(doc):
                                              _e(action.get("text", "")))
 
 
+def _is_clean(doc):
+    """Повод для салюта: ни ошибок, ни замечаний, и ничего не отклонено."""
+    return bool(doc["objects"]) and not (doc["errors"] or doc["warnings"]
+                                         or doc["rejected"])
+
+
 def _tiles(doc):
     return ("<div class='tiles'>"
             "<div class='tile ok'><b>%d</b><span>принято</span></div>"
@@ -509,6 +529,185 @@ document.addEventListener('change',function(e){
 });
 """
 
+# Салют: плитка «принято» трясётся всё сильнее и раскаляется, взрывается искрами, следом два залпа
+# конфетти из нижних углов окна. Играет один раз на свежем отчёте, где всё принято и нет ни одного
+# замечания (data-party ставит редактор, см. party()). Отчёт, открытый позже или пересланный, не салютует: страница
+# сверяет своё время с часами.
+# Рисуется на двух холстах поверх страницы, мышь они не перехватывают: на одном искры (старый
+# кадр гаснет - остаётся след), на другом конфетти (кадр стирается целиком).
+JS_PARTY = """
+(function(){
+var cvA=null,cvB=null,ctxA,ctxB,ctx,W=0,H=0,U=1,items=[],queue=[],raf=null,last=0,t=0,done={};
+var GOLD=[42,45,66],GREEN=[139,45,57],WHITE=[40,20,94];
+var PAPER=['#C9B489','#5fc27e','#7aa2f7','#ff6b5e','#e6e6e8','#e8b23a'];
+function R(a,b){return a+Math.random()*(b-a);}
+function hsla(c,a){return 'hsla('+c[0]+','+c[1]+'%,'+c[2]+'%,'+a+')';}
+function size(){
+  var d=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;U=Math.min(W,H)/900;
+  cvA.width=cvB.width=W*d;cvA.height=cvB.height=H*d;
+  ctxA.setTransform(d,0,0,d,0,0);ctxB.setTransform(d,0,0,d,0,0);
+}
+function setup(){
+  if(cvA)return;
+  cvA=document.createElement('canvas');cvB=document.createElement('canvas');
+  cvA.className=cvB.className='fx';
+  document.body.appendChild(cvA);document.body.appendChild(cvB);
+  ctxA=cvA.getContext('2d');ctxB=cvB.getContext('2d');ctx=ctxA;
+  window.addEventListener('resize',size);size();
+}
+function at(ms,fn){queue.push({at:ms,fn:fn});queue.sort(function(a,b){return a.at-b.at;});}
+function spark(x,y,vx,vy,o){
+  return {x:x,y:y,px:x,py:y,vx:vx,vy:vy,life:o.life,max:o.life,c:o.c,w:o.w,g:o.g,d:o.d,
+    step:function(k){
+      this.px=this.x;this.py=this.y;
+      var dd=Math.pow(this.d,k);
+      this.vx*=dd;this.vy=this.vy*dd+this.g*U*k;
+      this.x+=this.vx*k;this.y+=this.vy*k;this.life-=k;
+      return this.life>0;
+    },
+    draw:function(){
+      ctx.strokeStyle=hsla(this.c,Math.min(1,this.life/this.max*1.7));ctx.lineWidth=this.w;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(this.px,this.py);ctx.lineTo(this.x,this.y);ctx.stroke();
+    }};
+}
+function flash(x,y,r,c,life){
+  return {life:life,step:function(k){this.life-=k;return this.life>0;},
+    draw:function(){
+      var a=this.life/life,g=ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,hsla(c,0.55*a));g.addColorStop(1,hsla(c,0));
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill();
+    }};
+}
+function burst(x,y,n,speed,o){
+  if(!o.dark)items.push(flash(x,y,speed*14,o.c,10));
+  for(var i=0;i<n;i++){
+    var a=Math.random()*6.2832,v=speed*(Math.random()<0.7?R(0.85,1):R(0.25,0.8));
+    items.push(spark(x,y,Math.cos(a)*v,Math.sin(a)*v,
+      {life:R(o.life*0.75,o.life*1.15),c:Math.random()<o.mix?WHITE:o.c,w:o.w,g:o.g,d:o.d}));
+  }
+}
+function ring(x,y,c,r1){
+  var p=0;
+  return {step:function(k){p+=k/22;return p<1;},
+    draw:function(){
+      var e=1-(1-p)*(1-p);
+      ctx.strokeStyle=hsla(c,0.7*(1-p));ctx.lineWidth=5*(1-p)+1;
+      ctx.beginPath();ctx.arc(x,y,r1*e,0,6.2832);ctx.stroke();
+    }};
+}
+function piece(x,y,vx,vy){
+  var w=R(6,10),h=R(9,15),rot=R(0,6.28),vr=R(-0.25,0.25),ph=R(0,6.28),vph=R(0.12,0.3);
+  var col=PAPER[Math.floor(Math.random()*PAPER.length)];
+  return {flat:true,step:function(k){
+      var d=Math.pow(0.985,k);vx*=d;vy=vy*d+0.22*U*k;
+      x+=(vx+Math.sin(ph)*0.9)*k;y+=vy*k;rot+=vr*k;ph+=vph*k;
+      return y<H+40;
+    },
+    draw:function(){
+      ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(1,Math.cos(ph));
+      ctx.fillStyle=col;ctx.fillRect(-w/2,-h/2,w,h);ctx.restore();
+    }};
+}
+function cannon(side,n){
+  for(var i=0;i<n;i++){
+    var a=(side<0?R(-78,-38):R(-142,-102))*Math.PI/180,v=R(13,27)*U;
+    items.push(piece(side<0?-10:W+10,H+10,Math.cos(a)*v,Math.sin(a)*v));
+  }
+}
+function wipe(){ctxA.globalCompositeOperation='source-over';ctxA.clearRect(0,0,W,H);ctxB.clearRect(0,0,W,H);}
+function tick(dt){
+  var k=dt/16.667;t+=dt;
+  while(queue.length&&queue[0].at<=t)queue.shift().fn();
+  ctxA.globalCompositeOperation='destination-out';
+  ctxA.fillStyle='rgba(0,0,0,'+(1-Math.pow(0.78,k))+')';ctxA.fillRect(0,0,W,H);
+  ctxA.globalCompositeOperation='lighter';
+  ctxB.clearRect(0,0,W,H);
+  var alive=[];
+  for(var i=0;i<items.length;i++)if(items[i].step(k))alive.push(items[i]);
+  items=alive;
+  for(var j=0;j<items.length;j++){ctx=items[j].flat?ctxB:ctxA;items[j].draw();}
+}
+function frame(now){
+  var dt=Math.min(now-last,50);last=now;tick(dt);
+  if(items.length||queue.length){raf=requestAnimationFrame(frame);}else{wipe();raf=null;}
+}
+function party(seek){
+  var page=document.getElementById('root'),tile=page&&page.querySelector('.tile.ok');
+  if(!tile)return;
+  setup();
+  if(raf)cancelAnimationFrame(raf);
+  items=[];queue=[];t=0;last=performance.now();wipe();
+  var r=tile.getBoundingClientRect();
+  if(r.bottom<0||r.top>H){window.scrollTo(0,0);r=tile.getBoundingClientRect();}
+  var x=r.left+r.width/2,y=r.top+r.height/2,T=1500,ph=0;
+  tile.style.position='relative';tile.style.zIndex='5';tile.style.transition='none';
+  function boom(){
+    tile.style.transform='scale(1.45)';tile.style.filter='brightness(2.4)';
+    at(t+40,function(){
+      tile.style.transition='transform .5s cubic-bezier(.2,1.7,.4,1),filter .5s,box-shadow .7s';
+      tile.style.transform='';tile.style.filter='';tile.style.boxShadow='';
+      void tile.offsetWidth;tile.classList.add('pulse');
+    });
+    at(t+900,function(){tile.style.cssText='';});
+    items.push(flash(x,y,190*U,WHITE,9));
+    items.push(ring(x,y,GREEN,240*U));
+    burst(x,y,46,15*U,{c:WHITE,life:26,mix:1,g:0.06,d:0.94,w:2.2,dark:1});
+    burst(x,y,120,10.5*U,{c:GREEN,life:62,mix:0.2,g:0.11,d:0.965,w:2});
+    at(t+90,function(){burst(x,y,70,6.5*U,{c:GOLD,life:52,mix:0,g:0.11,d:0.965,w:1.6});});
+    var q=0;
+    items.push({step:function(k){
+        q+=k/18;
+        if(q>=1){page.style.transform='';return false;}
+        var a=(1-q)*(1-q)*8;
+        page.style.transform='translate('+R(-a,a).toFixed(1)+'px,'+R(-a,a).toFixed(1)+'px)';
+        return true;
+      },draw:function(){}});
+    at(t+300,function(){cannon(-1,130);cannon(1,130);});
+    at(t+850,function(){cannon(-1,110);cannon(1,110);});
+  }
+  items.push({step:function(k){
+      var p=Math.min(t/T,1),a=p*p;
+      ph+=k*(0.7+p*2.6);
+      var dx=Math.sin(ph*1.9)*a*8+R(-1,1)*a*4,dy=Math.cos(ph*2.3)*a*5+R(-1,1)*a*3,
+          rot=Math.sin(ph*1.3)*a*4+R(-1,1)*a*1.5,sc=1+0.2*p*p*p;
+      tile.style.transform='translate('+dx.toFixed(1)+'px,'+dy.toFixed(1)+'px) rotate('+rot.toFixed(2)+'deg) scale('+sc.toFixed(3)+')';
+      tile.style.boxShadow='0 0 '+(6+50*a).toFixed(0)+'px '+(1+12*a).toFixed(0)+'px rgba(95,194,126,'+(0.12+0.8*a).toFixed(2)+')';
+      tile.style.borderColor='#5fc27e';tile.style.filter='brightness('+(1+0.9*a).toFixed(2)+')';
+      if(Math.random()<a*0.8*k){
+        var ang=Math.random()*6.2832,v=R(2,5.5)*U;
+        items.push(spark(x+Math.cos(ang)*r.width*0.5,y+Math.sin(ang)*r.height*0.5,Math.cos(ang)*v,Math.sin(ang)*v,
+          {life:R(14,26),c:Math.random()<0.4?WHITE:GREEN,w:1.5,g:0.09,d:0.96}));
+      }
+      if(p>=1){boom();return false;}
+      return true;
+    },draw:function(){}});
+  // seek - показать эффект на заданной миллисекунде, без анимации: для снимков при проверке
+  if(seek){while(t<seek)tick(16.667);}else{raf=requestAnimationFrame(frame);}
+}
+function check(){
+  var root=document.getElementById('root');
+  if(!root||root.getAttribute('data-party')!=='1')return;
+  var key=root.getAttribute('data-time')||'';
+  if(done[key])return;
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var age=Date.now()-new Date(key).getTime();
+  if(!(age>-5000&&age<90000))return;
+  done[key]=1;
+  if(document.visibilityState==='visible'&&document.hasFocus()){party();return;}
+  var vis=function(){if(document.visibilityState==='visible'&&document.hasFocus())go();};
+  var go=function(){
+    window.removeEventListener('focus',go);document.removeEventListener('visibilitychange',vis);
+    var r=document.getElementById('root');
+    if(r&&r.getAttribute('data-time')===key&&r.getAttribute('data-party')==='1')party();
+  };
+  window.addEventListener('focus',go);document.addEventListener('visibilitychange',vis);
+}
+window.metParty=party;window.metPartyCheck=check;
+check();
+})();
+"""
+
 JS_LIVE = """
 (function(){
 var L=__LIVE__,root=document.getElementById('root'),rev=root.getAttribute('data-rev');
@@ -536,7 +735,12 @@ function swap(){
     if(!n)return;
     var m=opened();
     root.innerHTML=n.innerHTML;rev=n.getAttribute('data-rev');msg=null;syncAll();
+    // время и признак салюта - у корня страницы: переносим их с новой версии
+    // и спрашиваем, не пора ли
     root.setAttribute('data-time',n.getAttribute('data-time')||'');
+    if(n.getAttribute('data-party'))root.setAttribute('data-party','1');
+    else root.removeAttribute('data-party');
+    if(window.metPartyCheck)window.metPartyCheck();
     var d=root.querySelectorAll('details[data-k]');
     for(var i=0;i<d.length;i++){var k=d[i].getAttribute('data-k');if(k in m)d[i].open=m[k];}
   });
@@ -621,8 +825,9 @@ def render(doc, live=None):
     out = ["<!doctype html><html lang='ru'><meta charset='utf-8'>",
            "<title>Mutaform: Scene Quality Control</title>",
            "<style>%s</style><body>" % CSS,
-           "<div id='root'%s data-time='%s'>" % (
-               (" data-rev='%s'" % _e(live["rev"])) if live else "", _e(doc["time"])),
+           "<div id='root'%s data-time='%s'%s>" % (
+               (" data-rev='%s'" % _e(live["rev"])) if live else "", _e(doc["time"]),
+               " data-party='1'" if _is_clean(doc) else ""),
            "<div class='head'>%s<div class='div'></div>"
            "<h1>Scene <span>Quality Control</span></h1>"
            "<label class='all' title='Выключите, чтобы остались только объекты с находками "
@@ -644,7 +849,10 @@ def render(doc, live=None):
                 + _problems(doc, SEVERITY_WARNING, "w", "Замечания", live))
     out.append("<h2 class='sec'>Что исправить</h2><div class='card'>%s%s</div>"
                % (_how(doc, live),
-                  problems or "<span class='ok'>✓ Ошибок и замечаний нет</span>"))
+                  problems or
+                  ("<div class='allgood'>🎉 Чисто: ассет прошёл все проверки"
+                   "<span>%d из %d, ни одного замечания</span></div>"
+                   % (doc.get("checks_passed", 0), doc.get("checks_ran", 0)))))
 
     table = _table(doc)
     if table:
@@ -668,6 +876,7 @@ def render(doc, live=None):
             "<div class='veilhint'>Blender работает — окно обновится само</div>"
             "</div></div>")
     out.append("<script>%s</script>" % JS_VIEW)
+    out.append("<script>%s</script>" % JS_PARTY)
     if live:
         out.append("<script>%s</script>" % JS_LIVE.replace(
             "__LIVE__", json.dumps({"port": live["port"], "token": live["token"]})))

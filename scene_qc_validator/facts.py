@@ -295,6 +295,13 @@ def _modifiers_text(obj):
     return ", ".join(names) if names else "нет"
 
 
+def _vertex_groups_text(obj):
+    names = [g.name for g in obj.vertex_groups]
+    if not names:
+        return "нет"
+    return "%d: %s" % (len(names), ", ".join(names[:4]))
+
+
 def _shape_keys_text(obj):
     keys = getattr(obj.data, "shape_keys", None)
     if keys is None or not keys.key_blocks:
@@ -395,8 +402,12 @@ def _rows(obj, settings):
     out.append(("Вырожденная геометрия",
                 _verdict(degenerate, "есть", "нет"), degenerate,
                 "норма: 0 — нулевые площади и длины, дубли, болтающееся"))
-    out.append(("Модификаторы", _modifiers_text(obj), INFO))
-    out.append(("Шейп-кейсы", _shape_keys_text(obj), INFO))
+    extra = state("obj_extra_data")
+    norm = ("на статик-меше их быть не должно"
+            if state.item("obj_extra_data") is not None else "")
+    out.append(("Модификаторы", _modifiers_text(obj), extra, norm))
+    out.append(("Шейп-кейсы", _shape_keys_text(obj), extra, norm))
+    out.append(("Вертекс-группы", _vertex_groups_text(obj), extra, norm))
     has_colors = bool(getattr(mesh, "color_attributes", None))
     out.append(("Vertex Color", _vertex_color_text(obj, mesh),
                 state("vc_missing", "vc_id_values"),

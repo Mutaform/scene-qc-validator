@@ -20,6 +20,7 @@ from .objects.pivot_world_origin import (
 )
 from .objects.pivot_center import check_pivot_center
 from .objects.pivot_bottom import check_pivot_bottom, fix_pivot_bottom
+from .objects.extra_data import check_extra_data
 from .objects.name_characters import (
     check_name_characters, fix_name_characters,
 )
@@ -221,6 +222,11 @@ CHECK_DEFINITIONS = [
          run=check_nanite_closed_geometry, fix=None, can_fix=False,
          float_param_1=1.0, bool_param_1=True,
          string_param_1=r"^(UCX|UBX|USP|UCP)_"),
+
+    dict(id="obj_extra_data", label="Extra Object Data", category='GEOMETRY',
+         description="A static mesh must carry no modifiers, shape keys or vertex groups: the engine gets the file, not the viewport",
+         run=check_extra_data, fix=None, can_fix=False,
+         string_param_1="modifiers,shape_keys,vertex_groups"),
 
     dict(id="tr_pivot_bottom", label="Pivot At Bottom", category='TRANSFORM',
          description="The lowest point of the mesh must sit at the pivot: an ARDENA asset stands on the floor",

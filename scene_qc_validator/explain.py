@@ -46,6 +46,7 @@ CODES = {
     "geo_duplicate_faces":  "задвоенные грани",
     "geo_loose":            "болтающаяся геометрия",
     "geo_flipped_normals":  "вывернутые нормали",
+    "obj_extra_data":       "лишние данные на меше",
     "geo_animation_keys":   "анимационные ключи",
     # --- объект
     "tr_unapplied":         "трансформация не применена",
@@ -99,6 +100,11 @@ FIX = {
     "geo_duplicate_faces":  (AUTO, "удалить дубликаты, оставив по одной грани"),
     "geo_loose":            (AUTO, "удалить вершины и рёбра без граней"),
     "geo_flipped_normals":  (AUTO, "развернуть грани наружу (Recalculate Outside)"),
+    # автофикса нет намеренно: применить модификатор - изменить геометрию,
+    # удалить - потерять работу, а шейп-кейс удаляется без возврата
+    "obj_extra_data":       (MANUAL, "применить или снять модификаторы, удалить шейп-кейсы и "
+                                     "вертекс-группы: статик-мешу они не нужны, а замеры "
+                                     "валидатора идут по базовому мешу"),
     "geo_animation_keys":   (AUTO, "очистить анимационные данные объекта, меша и шейп-кейсов"),
     "tr_unapplied":         (AUTO, "применить перечисленное (Apply). Поворот 90° и масштаб 0.01 - "
                                    "это след импорта FBX из Maya"),
@@ -435,6 +441,25 @@ def _t_name_characters(v):
             % (v.get("what", "объекта"), v.get("name", ""), "; ".join(parts), tail))
 
 
+_EXTRA_WORDS = {
+    "modifiers": ("модификатор", "модификатора", "модификаторов"),
+    "shape_keys": ("шейп-кейс", "шейп-кейса", "шейп-кейсов"),
+    "vertex_groups": ("вертекс-группа", "вертекс-группы", "вертекс-групп"),
+}
+
+
+def _t_extra_data(v):
+    """Что именно осталось на меше и как оно называется."""
+    parts = []
+    for kind in ("modifiers", "shape_keys", "vertex_groups"):
+        names = v.get(kind) or []
+        if not names:
+            continue
+        parts.append("%s (%s)" % (_n(len(names), *_EXTRA_WORDS[kind]),
+                                  ", ".join(names[:4])))
+    return "На статик-меше осталось: %s" % "; ".join(parts)
+
+
 def _t_flipped(v):
     """Два разных повода: шов между гранями и оболочка наизнанку."""
     if v.get("kind") == "inside_out":
@@ -534,6 +559,7 @@ TEXT = {
                                      % (_faces(v.get("faces", 0)),
                                         _verb(v.get("faces", 0), "задвоена", "задвоены")),
     "geo_flipped_normals": _t_flipped,
+    "obj_extra_data":      _t_extra_data,
     "geo_loose":           _t_loose,
     "geo_animation_keys":  lambda v: "Анимационные данные на: %s"
                                      % ", ".join(_SOURCES.get(s, s) for s in v.get("sources", ())),

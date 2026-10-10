@@ -256,6 +256,9 @@ class SQC_PT_checklist(Panel):
                 "float_param_2",
                 text="Rectilinear Ratio",
             )
+        elif cid == "obj_extra_data":
+            sub.prop(item, "string_param_1",
+                     text="What To Forbid (modifiers,shape_keys,vertex_groups)")
         elif cid == "nm_name_characters":
             sub.prop(item, "bool_param_1", text="Check Material Names")
         elif cid == "geo_flipped_normals":

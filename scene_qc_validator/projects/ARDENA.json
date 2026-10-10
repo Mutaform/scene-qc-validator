@@ -149,6 +149,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "obj_extra_data",
+          "enabled": false,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "modifiers,shape_keys,vertex_groups",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "tr_unapplied",
           "enabled": true,
           "severity": "FAIL",
@@ -713,6 +726,19 @@
           "bool_param_2": true
         },
         {
+          "check_id": "obj_extra_data",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "modifiers,shape_keys,vertex_groups",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
           "check_id": "tr_unapplied",
           "enabled": true,
           "severity": "FAIL",
@@ -1272,6 +1298,19 @@
           "int_param_1": 0,
           "int_param_2": 0,
           "string_param_1": "",
+          "string_param_2": "",
+          "bool_param_1": true,
+          "bool_param_2": true
+        },
+        {
+          "check_id": "obj_extra_data",
+          "enabled": true,
+          "severity": "FAIL",
+          "float_param_1": 0.0,
+          "float_param_2": 0.0,
+          "int_param_1": 0,
+          "int_param_2": 0,
+          "string_param_1": "modifiers,shape_keys,vertex_groups",
           "string_param_2": "",
           "bool_param_1": true,
           "bool_param_2": true
