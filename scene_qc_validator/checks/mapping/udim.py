@@ -298,6 +298,16 @@ def check_udim_tile_fill(obj, item):
 # ----------------------------------------------------------- сдвинутый дубль
 
 
+def _fraction(value, digits):
+    """Дробная часть координаты: у шеллов, сдвинутых на целые тайлы, она одна.
+
+    Округление до `digits` задаёт ширину корзины, а 0.9999 и 0.0001 - это одна
+    и та же доля по разные стороны целого, поэтому единица сводится к нулю.
+    """
+    rest = round(value - math.floor(value), digits)
+    return 0.0 if abs(rest) >= 1.0 or rest == 0 else rest
+
+
 def check_shifted_duplicate(obj, item):
     """Шелл - копия другого, сдвинутая на целое число тайлов.
 
@@ -326,8 +336,15 @@ def check_shifted_duplicate(obj, item):
         islands = islands_of(obj, layer, tolerance)
         buckets = {}
         for island in islands:
+            # Дробная часть угла - часть ключа. Сдвиг на ЦЕЛОЕ число тайлов её
+            # не меняет, поэтому у копии она та же, а у случайно похожего шелла
+            # другая. Без этого пары перебирались все подряд и отсеивались уже
+            # внутри: на меше с 19 600 шеллами одной формы выходило 192
+            # миллиона проверок и полторы минуты (замерено 2026-10-10), хотя ни
+            # одна пара подойти не могла.
             key = (len(island.faces), round(island.area, digits),
-                   round(island.width, digits), round(island.height, digits))
+                   round(island.width, digits), round(island.height, digits),
+                   _fraction(island.umin, digits), _fraction(island.vmin, digits))
             buckets.setdefault(key, []).append(island)
 
         sizes = {number: len(group) for number, group in _tiles_used(islands).items()}

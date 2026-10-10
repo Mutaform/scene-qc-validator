@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.23.5
+
+### Fixed
+
+- **The shifted-duplicate check no longer compares every pair of lookalike
+  shells.** It bucketed islands by shape and then walked all pairs inside a
+  bucket, throwing most of them away on the "is the offset a whole number of
+  tiles" test. On a mesh with 19 600 shells of one shape that was 192 million
+  comparisons and a minute and a half, with not one pair able to pass.
+  The offset test now lives in the bucket key: a shell shifted by whole tiles
+  keeps the fractional part of its corner, so copies land in one bucket and
+  strangers never meet. Same answers on all seven UDIM reference cases - the
+  shifted duplicate is still found, the wholly copied tile is still not a
+  finding - and the heavy mesh went from 95 seconds to 3.4.
+
 ## 1.23.4
 
 ### Changed
