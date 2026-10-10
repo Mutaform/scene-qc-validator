@@ -225,12 +225,23 @@ def _enabled_checks(settings):
 
 
 def _flush_edit_mesh(obj):
-    """Write an object's live edit data back into its Mesh datablock.
+    """Переписать открытую правку обратно в меш - ради проверок, читающих obj.data.
 
-    Checks read `obj.data`, which an open Edit Mode leaves behind: its UV
-    layers report zero entries against a full loop count, so a mesh the artist
-    happens to be editing fails checks it actually passes. Flushing costs one
-    copy per validated object and keeps Edit Mode open.
+    ЧТО ДЕЛАЕТ: синхронизирует геометрию - вершины, рёбра, грани. Замерено на
+    Blender 5.2: растворяю ребро, не выходя из Edit Mode, `obj.data.polygons`
+    показывает прежние 4 грани, и проверка n-гонов находит ноль; после этого
+    вызова - 3 грани, и находка на месте. На этом держатся четыре проверки,
+    которые читают `obj.data`, а не bmesh: geo_ngons, geo_loose, mat_missing,
+    tr_pivot_center. Убрать вызов - они начнут врать молча.
+
+    ЧЕГО НЕ ДЕЛАЕТ: не наполняет массивы атрибутов. UV-каналы и цвет в режиме
+    правки отдают нулевую длину независимо от него - на живом ассете 44 908
+    лупов и `len(uv_layers["UV1"].data) == 0` после успешного вызова. Поэтому
+    всё, что читает UV или цвет, ходит через `checks/common._read_bmesh`, а не
+    надеется сюда. Прежняя редакция этой докстроки утверждала обратное и ввела
+    бы в заблуждение любого, кто напишет новую проверку на `obj.data`.
+
+    Цена - одна копия меша на объект за прогон; режим правки остаётся открытым.
     """
     if obj.mode == 'EDIT':
         try:

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.23.6
+
+### Changed
+
+- **`_flush_edit_mesh` now says what it actually does.** Its docstring claimed
+  the flush repairs UV layers in Edit Mode. It does not, and has not since
+  1.18.3: attribute arrays read as empty whatever you flush, which is exactly
+  why `checks/common._read_bmesh` exists. What the flush does repair is the
+  geometry, and four checks that read `obj.data` rather than bmesh - ngons,
+  loose geometry, missing material, pivot centred - are honest in Edit Mode
+  only because of it. Both halves are now written down, with the measurement
+  behind them, so the next check written against `obj.data` does not repeat
+  the UV mistake. Comments only; no behaviour changed.
+
 ## 1.23.5
 
 ### Fixed
