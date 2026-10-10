@@ -448,15 +448,15 @@ def _rows(obj, settings):
     judged = _channels(state.param("uv_single_tile", "string_param_1", ".+"),
                        "все каналы")
     out.append(("Шеллы в 0-1", _verdict(tile, "выходят за квадрат", "внутри"), tile,
-                ("%s: шеллы не выходят за квадрат 0-1" % judged
+                ("канал %s не должен выходить за квадрат 0-1" % judged
                  if judged != "все каналы"
-                 else "ни один канал не выходит за квадрат 0-1")))
+                 else "ни один канал не должен выходить за квадрат 0-1")))
     overlap = state("uv_overlap")
     watched = _channels(state.param("uv_overlap", "string_param_1", ".+"))
     out.append(("UV overlap", _verdict(overlap, "есть", "нет"), overlap,
-                ("в канале %s шеллы не лежат друг на друге" % watched
+                ("в канале %s наложений быть не должно" % watched
                  if watched != "во всех каналах"
-                 else "ни в одном канале шеллы не лежат друг на друге")))
+                 else "наложений не должно быть ни в одном канале")))
     gap = state.item("uv_padding_gap")
     if gap is not None:
         size = gap.int_param_1 or 2048

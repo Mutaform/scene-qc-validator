@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.23.2
+
+### Changed
+
+- **The norm column states a requirement, not a fact.** "в канале UV3 шеллы не
+  лежат друг на друге" read as a claim that they do not - while they do, which
+  is why the finding is there. Now: "в канале UV3 наложений быть не должно",
+  and "канал UV2 не должен выходить за квадрат 0-1".
+
 ## 1.23.1
 
 ### Changed
