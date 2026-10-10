@@ -136,6 +136,8 @@ details.asset:not([open]){padding-top:12px;padding-bottom:12px}
 .prob .code{color:var(--dim);font:11px ui-monospace,Consolas,monospace;margin-left:8px}
 .prob.e li>b:last-of-type{color:var(--err)} .prob.w li>b:last-of-type{color:var(--warn)}
 .meas{color:var(--dim);font:11px ui-monospace,Consolas,monospace;margin:1px 0 0}
+.facts tr.sec td{padding:14px 0 4px;color:var(--dim);font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:0}
+.facts tr.sec:first-child td{padding-top:0}
 /* Занавес на время починки. Blender на тяжёлом ассете думает секунды, и без
    него страница выглядит так, будто кнопку не нажали: ничего не меняется, а
    строка состояния мелкая и внизу. */
@@ -475,6 +477,11 @@ def _facts_table(doc, name, live=None):
     rows = doc.get("facts", {}).get(name) or []
     out = []
     for label, value, state, why, _short, action in rows:
+        if label is None:
+            # заголовок раздела: пустая подпись, название во втором поле
+            out.append("<tr class='sec'><td class='k' colspan='3'>%s</td></tr>"
+                       % _e(value))
+            continue
         # серое без пояснения читается как «забыли проверить»; говорим прямо
         tail = NO_RULE if state is None else ""
         if state is None and value in ("—", "", None):

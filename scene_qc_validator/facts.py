@@ -141,6 +141,58 @@ def _percent(value):
         return "—"
 
 
+def _section(title):
+    """Заголовок раздела внутри разбора.
+
+    Подпись у такой строки пустая, во втором поле - название раздела: по
+    пустой подписи отчёт её и узнаёт. Разделы те же, что в коде ниже были
+    комментариями, и тот же порядок: объект, геометрия, развёртка, материал,
+    коллизии. Двадцать с лишним строк подряд читать глазами невозможно
+    (денис, 2026-10-10).
+    """
+    return (None, title, None, "", "", None)
+
+
+def _uv_number(obj, pattern):
+    """Номер канала, который судит проверка с регэкспом, или 0 - если любой.
+
+    Нужен порядку строк: раздел «Развёртка» идёт по каналам подряд, и строке
+    надо знать, к какому она относится.
+    """
+    layers = getattr(getattr(obj, "data", None), "uv_layers", None) or ()
+    text = (pattern or "").strip()
+    if not text or text in (".+", ".*", "^.+$", "^.*$"):
+        return 0
+    try:
+        rule = re.compile(text)
+    except re.error:
+        return 0
+    for index, layer in enumerate(layers, start=1):
+        if rule.match(layer.name):
+            return index
+    return 0
+
+
+def _uv_matching(obj, pattern, fallback=""):
+    """Имена каналов меша, подходящих под регэксп проверки.
+
+    Нужно подписи строки: «UV overlap ✓нет» на меше с тремя каналами читается
+    как «наложений нет нигде», а проверка смотрела один канал - на остальных
+    стакинг может быть законным и быть (денис, 2026-10-10). Берём настоящие
+    имена слоёв, а не то, что написано в регэкспе: канал может называться map3.
+    """
+    layers = getattr(getattr(obj, "data", None), "uv_layers", None) or ()
+    text = (pattern or "").strip()
+    if not text or text in (".+", ".*", "^.+$", "^.*$"):
+        return fallback
+    try:
+        rule = re.compile(text)
+    except re.error:
+        return fallback
+    names = [layer.name for layer in layers if rule.match(layer.name)]
+    return ", ".join(names) if names else fallback
+
+
 def _uv_label(obj, number):
     """Имя канала по его номеру: «UV2», «map2» - как он назван у этого меша.
 
@@ -417,6 +469,7 @@ def _rows(obj, settings):
     out = []
 
     # --- объект
+    out.append(_section("Объект"))
     out.append(("Имя", obj.name,
                 state("nm_object_pattern", "nm_name_characters"),
                 "как %s, без пробелов и кириллицы"
@@ -441,6 +494,7 @@ def _rows(obj, settings):
                 "на статичном ассете ключей быть не должно"))
 
     # --- геометрия
+    out.append(_section("Геометрия"))
     out.append(("Треугольников", _n(tris), INFO))
     out.append(("Граней / вершин", "%s / %s" % (_n(faces), _n(len(mesh.vertices))), INFO))
     out.append(("N-гонов", _n(sum(1 for p in mesh.polygons if len(p.vertices) > 4)),
@@ -469,6 +523,144 @@ def _rows(obj, settings):
     out.append(("Модификаторы", _modifiers_text(obj), extra, norm))
     out.append(("Шейп-кейсы", _shape_keys_text(obj), extra, norm))
     out.append(("Вертекс-группы", _vertex_groups_text(obj), extra, norm))
+    if state.item("obj_nanite_closed_geometry") is not None:
+        # про геометрию, а не про развёртку - стояла в UV-разделе по привычке
+        nanite = state("obj_nanite_closed_geometry")
+        out.append(("Геометрия для Nanite",
+                    _verdict(nanite, "есть открытый край", "закрыта"), nanite,
+                    "открытые оболочки утоплены в соседнюю геометрию"))
+
+    # --- развёртка
+    #
+    # Строки идут по каналам подряд: сначала всё про первый, потом про второй
+    # и так далее (денис, 2026-10-10). До этого они шли в порядке проверок, и
+    # на меше с тремя каналами получалось «паддинг UV2, тексель UV1, тексель
+    # UV3, паковка UV2» - читать невозможно. Канал 0 - это строки про
+    # развёртку вообще, они идут первыми. Сортировка устойчивая, поэтому
+    # внутри одного канала порядок остаётся тем, в котором строки собраны.
+    out.append(_section("Развёртка"))
+    uv_rows = []
+    uv_rows.append((0, ("UV-каналов", _uv_text(mesh),
+                        state("uv_missing", "uv_set_count", "uv_set_names"),
+                        "имена: %s, не больше %s"
+                        % (_uv_names_norm(state.param("uv_set_names", "string_param_1", "—")),
+                           state.param("uv_set_count", "int_param_1", "—")),
+                        _n(len(mesh.uv_layers)) if mesh.uv_layers else "нет")))
+    if state.item("uv_unaligned_edges") is not None:
+        # строки нет вовсе, если проверки нет в этапе: у ARDENA это правило не
+        # используется, и прочерк в разборе только вызывал вопросы (денис)
+        uv_rows.append((0, ("Границы шеллов",
+                            _verdict(state("uv_unaligned_edges"), "завалены", "ровные"),
+                            state("uv_unaligned_edges"),
+                            "у шеллов, задуманных прямыми, границы ровно по горизонтали "
+                            "и вертикали (допуск %s°)"
+                            % state.param("uv_unaligned_edges", "float_param_1", 0.1))))
+
+    tile = state("uv_single_tile")
+    tile_pattern = state.param("uv_single_tile", "string_param_1", ".+")
+    judged = _channels(tile_pattern, "все каналы")
+    tile_where = _uv_matching(obj, tile_pattern)
+    uv_rows.append((_uv_number(obj, tile_pattern),
+                    ("Шеллы в 0-1" + (" " + tile_where if tile_where else ""),
+                     _verdict(tile, "выходят за квадрат", "внутри"), tile,
+                     ("канал %s не должен выходить за квадрат 0-1" % judged
+                      if judged != "все каналы"
+                      else "ни один канал не должен выходить за квадрат 0-1"))))
+
+    overlap = state("uv_overlap")
+    overlap_pattern = state.param("uv_overlap", "string_param_1", ".+")
+    watched = _channels(overlap_pattern, join=" или ")
+    # В подписи - канал, который и правда судили: на остальных каналах стакинг
+    # может быть разрешён, и «UV overlap: нет» без имени канала читается шире,
+    # чем проверка смотрела.
+    overlap_where = _uv_matching(obj, overlap_pattern)
+    uv_rows.append((_uv_number(obj, overlap_pattern),
+                    ("UV overlap" + (" " + overlap_where if overlap_where else ""),
+                     _verdict(overlap, "есть", "нет"), overlap,
+                     ("в канале %s наложений быть не должно" % watched
+                      if watched != "во всех каналах"
+                      else "наложений не должно быть ни в одном канале"))))
+
+    gap = state.item("uv_padding_gap")
+    if gap is not None:
+        size = gap.int_param_1 or 2048
+        channel = gap.int_param_2 or 1
+        measured, why = _padding_gap(obj, channel, size)
+        uv_rows.append((channel,
+                        ("Паддинг при паковке %s" % _uv_label(obj, channel),
+                         why if measured is None
+                         else "~%g px при карте %s" % (round(measured), _n(size)),
+                         # не измерили - значит сказать нечего. Зелёная галочка
+                         # здесь читалась бы как «проверено и в порядке»
+                         INFO if measured is None else state("uv_padding_gap"),
+                         "норма по ТЗ %g-%g px"
+                         % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0))))
+
+    # плотность текселя: первый канал показываем всегда (правила нет, норма
+    # зависит от плана ассета), судимый канал - строкой с вердиктом
+    size = state.param("uv_texel_density", "int_param_1", 2048) or 2048
+    uv_rows.append((1, ("Плотность текселя %s" % _uv_label(obj, 1),
+                        _texel_text(obj, 1, size, per_tile=True), INFO,
+                        "правила нет: норма зависит от плана ассета")))
+    judged_item = state.item("uv_texel_density")
+    if judged_item is not None:
+        number = judged_item.int_param_2 or 3
+        value, _collapsed = (None, 0.0)
+        try:
+            from .checks.mapping.texel_density import px_per_m
+            value, _collapsed = px_per_m(obj, number, size)
+        except Exception as error:                  # noqa: BLE001
+            print("[Scene QC Validator] плотность текселя %s: %s" % (obj.name, error))
+        uv_rows.append((number,
+                        ("Плотность текселя %s" % _uv_label(obj, number),
+                         "—" if value is None else "%d px/м" % round(value),
+                         state("uv_texel_density"),
+                         "%g px/м при карте %s ±%g%%"
+                         % (judged_item.float_param_1 or 1024.0, _n(size),
+                            (judged_item.float_param_2 or 0.15) * 100.0))))
+
+    pack_channel = state.param("uv_packing_density", "int_param_2", 1)
+    density, _per_tile = _packing_density(obj, pack_channel)
+    if density is not None:
+        uv_rows.append((pack_channel,
+                        ("Плотность паковки %s" % _uv_label(obj, pack_channel),
+                         "%.1f%%" % (density * 100.0),
+                         state("uv_packing_density"),
+                         "не меньше %s"
+                         % _percent(state.param("uv_packing_density",
+                                                "float_param_1", 0.7)))))
+
+    tile_channel = state.param("uv_udim_shell_in_tile", "int_param_2", 1)
+    tiles = _udim_tiles(obj, tile_channel)
+    # Норма - только из включённых проверок. У MET набор тайлов квадратом
+    # 2x2 / 3x3 / 4x4, поэтому «подряд с 1001» и «каждый заполнен» там
+    # выключены, и писать их значило бы обещать правило, по которому никто не
+    # судит (денис, 2026-10-10).
+    udim_norm = ", ".join(
+        part for part, check in (
+            ("шелл целиком в своём тайле", "uv_udim_shell_in_tile"),
+            ("подряд с 1001", "uv_udim_tile_set"),
+            ("каждый заполнен", "uv_udim_tile_fill"),
+            ("без копий со сдвигом на тайл", "uv_shifted_duplicate"),
+        ) if state(check) != DIM)
+    udim_state = state("uv_udim_shell_in_tile", "uv_udim_tile_set",
+                       "uv_udim_tile_fill", "uv_shifted_duplicate")
+    if tiles:
+        uv_rows.append((tile_channel,
+                        ("UDIM-тайлы %s" % _uv_label(obj, tile_channel),
+                         ", ".join(str(t) for t in tiles), udim_state,
+                         udim_norm, str(len(tiles)))))
+    elif state.item("uv_udim_shell_in_tile") is not None:
+        # тайл один - строку всё равно показываем: иначе четыре UDIM-проверки
+        # судят ассет молча, и в разборе их не видно
+        uv_rows.append((tile_channel,
+                        ("UDIM-тайлы %s" % _uv_label(obj, tile_channel),
+                         "один, 1001", udim_state, udim_norm, "1")))
+
+    out.extend(row for _channel, row in sorted(uv_rows, key=lambda pair: pair[0]))
+
+    # --- материал
+    out.append(_section("Материал"))
     has_colors = bool(getattr(mesh, "color_attributes", None))
     out.append(("Vertex Color", _vertex_color_text(obj, mesh),
                 state("vc_missing", "vc_id_values"),
@@ -476,113 +668,6 @@ def _rows(obj, settings):
                 % state.param("vc_id_values", "int_param_1", 2),
                 None,
                 ("Посмотреть", "show_vc") if has_colors else None))
-
-    # --- развёртка
-    out.append(("UV-каналов", _uv_text(mesh), state("uv_missing", "uv_set_count", "uv_set_names"),
-                "имена: %s, не больше %s"
-                % (_uv_names_norm(state.param("uv_set_names", "string_param_1", "—")),
-                   state.param("uv_set_count", "int_param_1", "—")),
-                _n(len(mesh.uv_layers)) if mesh.uv_layers else "нет"))
-    tile = state("uv_single_tile")
-    judged = _channels(state.param("uv_single_tile", "string_param_1", ".+"),
-                       "все каналы")
-    out.append(("Шеллы в 0-1", _verdict(tile, "выходят за квадрат", "внутри"), tile,
-                ("канал %s не должен выходить за квадрат 0-1" % judged
-                 if judged != "все каналы"
-                 else "ни один канал не должен выходить за квадрат 0-1")))
-    overlap = state("uv_overlap")
-    watched = _channels(state.param("uv_overlap", "string_param_1", ".+"), join=" или ")
-    out.append(("UV overlap", _verdict(overlap, "есть", "нет"), overlap,
-                ("в канале %s наложений быть не должно" % watched
-                 if watched != "во всех каналах"
-                 else "наложений не должно быть ни в одном канале")))
-    gap = state.item("uv_padding_gap")
-    if gap is not None:
-        size = gap.int_param_1 or 2048
-        measured, why = _padding_gap(obj, gap.int_param_2 or 1, size)
-        out.append(("Паддинг при паковке %s" % _uv_label(obj, gap.int_param_2 or 1),
-                    why if measured is None
-                    else "~%g px при карте %s" % (round(measured), _n(size)),
-                    # не измерили - значит сказать нечего. Зелёная галочка здесь
-                    # читалась бы как «проверено и в порядке»
-                    INFO if measured is None else state("uv_padding_gap"),
-                    "норма по ТЗ %g-%g px"
-                    % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
-    # плотность текселя: UV1 показываем всегда (правила нет, норма зависит от
-    # плана ассета), судимый канал - строкой с вердиктом
-    size = state.param("uv_texel_density", "int_param_1", 2048) or 2048
-    out.append(("Плотность текселя %s" % _uv_label(obj, 1),
-                _texel_text(obj, 1, size, per_tile=True), INFO,
-                "правила нет: норма зависит от плана ассета"))
-    judged = state.item("uv_texel_density")
-    if judged is not None:
-        number = judged.int_param_2 or 3
-        value, _collapsed = (None, 0.0)
-        try:
-            from .checks.mapping.texel_density import px_per_m
-            value, _collapsed = px_per_m(obj, number, size)
-        except Exception as error:                  # noqa: BLE001
-            print("[Scene QC Validator] плотность текселя %s: %s" % (obj.name, error))
-        out.append(("Плотность текселя %s" % _uv_label(obj, number),
-                    "—" if value is None else "%d px/м" % round(value),
-                    state("uv_texel_density"),
-                    "%g px/м при карте %s ±%g%%"
-                    % (judged.float_param_1 or 1024.0, _n(size),
-                       (judged.float_param_2 or 0.15) * 100.0)))
-    pack_channel = state.param("uv_packing_density", "int_param_2", 1)
-    density, _per_tile = _packing_density(obj, pack_channel)
-    if density is not None:
-        out.append(("Плотность паковки %s" % _uv_label(obj, pack_channel),
-                    "%.1f%%" % (density * 100.0),
-                    state("uv_packing_density"),
-                    "не меньше %s"
-                    % _percent(state.param("uv_packing_density", "float_param_1", 0.7))))
-    tile_channel = state.param("uv_udim_shell_in_tile", "int_param_2", 1)
-    tiles = _udim_tiles(obj, tile_channel)
-    if tiles:
-        # Норма - только из включённых проверок. У MET набор тайлов квадратом
-        # 2x2 / 3x3 / 4x4, поэтому «подряд с 1001» и «каждый заполнен» там
-        # выключены, и писать их значило бы обещать правило, по которому никто
-        # не судит (денис, 2026-10-10).
-        parts = []
-        if state("uv_udim_shell_in_tile") != DIM:
-            parts.append("шелл целиком в своём тайле")
-        if state("uv_udim_tile_set") != DIM:
-            parts.append("подряд с 1001")
-        if state("uv_udim_tile_fill") != DIM:
-            parts.append("каждый заполнен")
-        if state("uv_shifted_duplicate") != DIM:
-            parts.append("без копий со сдвигом на тайл")
-        out.append(("UDIM-тайлы %s" % _uv_label(obj, tile_channel),
-                    ", ".join(str(t) for t in tiles),
-                    state("uv_udim_shell_in_tile", "uv_udim_tile_set",
-                          "uv_udim_tile_fill", "uv_shifted_duplicate"),
-                    ", ".join(parts),
-                    str(len(tiles))))
-    elif state.item("uv_udim_shell_in_tile") is not None:
-        # тайл один - строку всё равно показываем: иначе четыре UDIM-проверки
-        # судят ассет молча, и в разборе их не видно
-        out.append(("UDIM-тайлы", "один, 1001",
-                    state("uv_udim_shell_in_tile", "uv_udim_tile_set",
-                          "uv_udim_tile_fill", "uv_shifted_duplicate"),
-                    "подряд с 1001, каждый заполнен", "1"))
-    # строки нет вовсе, если проверки нет в этапе: у ARDENA это правило не
-    # используется, и прочерк в разборе только вызывал вопросы (денис)
-    if state.item("uv_unaligned_edges") is not None:
-        out.append(("Границы шеллов",
-                    _verdict(state("uv_unaligned_edges"), "завалены", "ровные"),
-                    state("uv_unaligned_edges"),
-                    "у шеллов, задуманных прямыми, границы ровно по горизонтали "
-                    "и вертикали (допуск %s°)"
-                    % state.param("uv_unaligned_edges", "float_param_1", 0.1)))
-
-    nanite = state("obj_nanite_closed_geometry")
-    if state.item("obj_nanite_closed_geometry") is not None:
-        out.append(("Геометрия для Nanite",
-                    _verdict(nanite, "есть открытый край", "закрыта"), nanite,
-                    "открытые оболочки утоплены в соседнюю геометрию"))
-
-    # --- материал
     # «не больше N» пишем, только когда лимит и правда задан: у проекта, где
     # материалов на меше может быть сколько нужно, эта проверка выключена, и
     # строка «не больше —» была бы требованием, которого нет (денис, 2026-10-10)
@@ -596,6 +681,7 @@ def _rows(obj, settings):
                 _n(len(obj.material_slots)) if obj.material_slots else "нет"))
 
     # --- коллизии
+    out.append(_section("Коллизии"))
     out.append(("Коллизии", _collisions_text(obj, state),
                 state("col_missing", "col_name", "col_convex", "col_material"),
                 "UCX_<имя меша> или UCX_<имя меша>_NN, выпуклые"
