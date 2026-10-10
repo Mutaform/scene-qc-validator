@@ -694,14 +694,18 @@ function check(){
   var age=Date.now()-new Date(key).getTime();
   if(!(age>-5000&&age<90000))return;
   done[key]=1;
-  if(document.visibilityState==='visible'&&document.hasFocus()){party();return;}
-  var vis=function(){if(document.visibilityState==='visible'&&document.hasFocus())go();};
-  var go=function(){
-    window.removeEventListener('focus',go);document.removeEventListener('visibilitychange',vis);
+  // Фокус не спрашиваем (денис, 2026-10-10): отчёт часто лежит на втором
+  // мониторе, работа идёт в Blender, и ждать клика по странице - значит не
+  // салютовать никогда. Достаточно, чтобы окно было ВИДНО: в скрытой вкладке
+  // браузер всё равно душит анимацию, и салют прошёл бы впустую.
+  if(document.visibilityState==='visible'){party();return;}
+  var vis=function(){
+    if(document.visibilityState!=='visible')return;
+    document.removeEventListener('visibilitychange',vis);
     var r=document.getElementById('root');
     if(r&&r.getAttribute('data-time')===key&&r.getAttribute('data-party')==='1')party();
   };
-  window.addEventListener('focus',go);document.addEventListener('visibilitychange',vis);
+  document.addEventListener('visibilitychange',vis);
 }
 window.metParty=party;window.metPartyCheck=check;
 check();

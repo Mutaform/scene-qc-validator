@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.23.0
+
+### Changed
+
+- **Texel density is asked of every shell, not of the mesh.** The rule is
+  1024 px/m on UV3 for each shell without exception (denis), and a median
+  cannot see a breach of it: an asset whose median is exactly 1024 may have
+  half a wall at half the density, which the bake shows at once. Each shell is
+  now measured whole - the square root of its UV area over its world area,
+  which is the scale it was laid out at - and the finding says how many shells
+  are off and how far: "1 шелл из 54 не по норме 1024 px/м: 512 px/м".
+  Clicking it selects the twenty worst in the UV editor. The old mesh-wide
+  reading stays behind the "Judge Every Shell" switch.
+- **The salute no longer waits for the window to be focused.** The report
+  often sits on a second monitor while the work happens in Blender, and
+  waiting for a click on the page meant never celebrating. Being visible is
+  enough; a hidden tab still waits, because the browser throttles animation
+  there and the salute would be spent on nothing.
+
 ## 1.22.0
 
 ### Added
