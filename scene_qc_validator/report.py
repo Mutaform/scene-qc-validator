@@ -451,12 +451,14 @@ def _problem_list(doc, name, severity, css, title, live=None):
         if finding["object"] != name or finding["severity"] != severity or finding["muted"]:
             continue
         label = explain.label(finding["code"], finding["label"])
-        # машинный замер - под русским текстом, но только если он другой:
-        # у проверки без сборщика текста это одна и та же строка
-        meas = ("<div class='meas'>%s</div>" % _e(finding["message"])
-                if finding["message"] and finding["message"] != finding["text"] else "")
-        rows.append("<li><b>%s</b>: %s<span class='code'>%s</span>%s%s</li>"
-                    % (_e(label), _e(finding["text"]), _e(finding["code"]), meas,
+        # Машинное сообщение на страницу не идёт (денис, 2026-10-10). Оно
+        # английское и с регэкспами: «Object name 'X' does not match pattern
+        # '^SM_(?:SHD|GKZ)_[A-Za-z0-9_]+...'». Художнику это не читается и чинить
+        # по нему нечего, а русская строка выше говорит то же самое словами и с
+        # примером. В JSON отчёта поле остаётся - там оно и нужно, чтобы
+        # сравнивать прогоны между собой.
+        rows.append("<li><b>%s</b>: %s<span class='code'>%s</span>%s</li>"
+                    % (_e(label), _e(finding["text"]), _e(finding["code"]),
                        _fix_line(finding["code"], finding["values"], finding["can_fix"])))
     if not rows:
         return ""
@@ -475,6 +477,13 @@ def _facts_table(doc, name, live=None):
     for label, value, state, why, _short, action in rows:
         # серое без пояснения читается как «забыли проверить»; говорим прямо
         tail = NO_RULE if state is None else ""
+        if state is None and value in ("—", "", None):
+            # у невыключенной строки в значении стоит прочерк, и рядом с
+            # «правила нет» он склеивался в «—правила нет». Прочерк тут лишний:
+            # «правила нет» и есть всё, что можно сказать
+            value = ""
+        elif tail:
+            tail = " " + tail
         if state in (facts_mod.WARN, facts_mod.BAD) and why:
             tail = "<span class='why'>%s</span>" % _e(why)
         mark = ("<span class='m'>%s</span>" % _MARK[state]) if state in _MARK else ""

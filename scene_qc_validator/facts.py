@@ -29,6 +29,8 @@
 import math
 import re
 
+from . import explain
+
 OK = "ok"
 WARN = "warn"
 BAD = "bad"
@@ -253,7 +255,13 @@ def _bottom_text(obj):
 
 
 def _texel_text(obj, number, map_px, per_tile=False):
-    """«2.4 px/см» или «1001 - 2.4, 1002 - 1.9»: плотность канала для разбора."""
+    """«1024 px/м» или «1001 - 1041, 1002 - 1040»: плотность канала для разбора.
+
+    В px/м, а не в px/см (денис, 2026-10-10): в этих же единицах написана норма
+    в ТЗ («1024 px/м»), в этих же её спрашивает чекер движка, и в этих же о ней
+    говорит находка. Три единицы на одну величину на одной странице - лишний
+    повод ошибиться.
+    """
     try:
         from .checks.mapping.texel_density import px_per_cm
         value, collapsed = px_per_cm(obj, number, map_px, per_tile=per_tile)
@@ -264,14 +272,15 @@ def _texel_text(obj, number, map_px, per_tile=False):
         if not value:
             return "—"
         if len(value) == 1:
-            text = "%.2f px/см" % list(value.values())[0]
+            text = "%s px/м" % _n(round(list(value.values())[0] * 100))
         else:
-            text = ", ".join("%s - %.2f" % (tile if tile > 0 else "вне сетки", density)
-                             for tile, density in sorted(value.items())) + " px/см"
+            text = ", ".join(
+                "%s - %s" % (tile if tile > 0 else "вне сетки", _n(round(density * 100)))
+                for tile, density in sorted(value.items())) + " px/м"
     else:
         if value is None:
             return "—"
-        text = "%.2f px/см" % value
+        text = "%s px/м" % _n(round(value * 100))
     if collapsed > 0.01:
         text += " (схлопнуто %.0f%% площади)" % (collapsed * 100.0)
     return text
@@ -291,7 +300,7 @@ def _uv_names_norm(raw):
     return " или ".join(schemes) if schemes else str(raw)
 
 
-def _channels(pattern, fallback="во всех каналах"):
+def _channels(pattern, fallback="во всех каналах", join=" и "):
     """«^UV3$» -> «UV3», «^(UV1|UV2)$» -> «UV1 и UV2», «.+» -> «во всех каналах».
 
     В колонке нормы стоит правило, по которому судят, и художник читает его
@@ -308,7 +317,7 @@ def _channels(pattern, fallback="во всех каналах"):
     if names and all(re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names):
         if len(names) == 1:
             return names[0]
-        return ", ".join(names[:-1]) + " и " + names[-1]
+        return ", ".join(names[:-1]) + join + names[-1]
     return text                     # что-то сложное - показываем как есть
 
 
@@ -395,8 +404,9 @@ def _rows(obj, settings):
     # --- объект
     out.append(("Имя", obj.name,
                 state("nm_object_pattern", "nm_name_characters"),
-                "шаблон: %s, без пробелов и кириллицы"
-                % state.param("nm_object_pattern", "string_param_1", "—")))
+                "как %s, без пробелов и кириллицы"
+                % explain.pattern_norm(
+                    state.param("nm_object_pattern", "string_param_1", "—"))))
     moved = _transform_text(obj)
     out.append(("Трансформация", moved, state("tr_unapplied"), "должна быть применена",
                 "применена" if moved == "применена" else "не применена"))
@@ -466,7 +476,7 @@ def _rows(obj, settings):
                  if judged != "все каналы"
                  else "ни один канал не должен выходить за квадрат 0-1")))
     overlap = state("uv_overlap")
-    watched = _channels(state.param("uv_overlap", "string_param_1", ".+"))
+    watched = _channels(state.param("uv_overlap", "string_param_1", ".+"), join=" или ")
     out.append(("UV overlap", _verdict(overlap, "есть", "нет"), overlap,
                 ("в канале %s наложений быть не должно" % watched
                  if watched != "во всех каналах"
@@ -541,16 +551,21 @@ def _rows(obj, settings):
                     "открытые оболочки утоплены в соседнюю геометрию"))
 
     # --- материал
+    # «не больше N» пишем, только когда лимит и правда задан: у проекта, где
+    # материалов на меше может быть сколько нужно, эта проверка выключена, и
+    # строка «не больше —» была бы требованием, которого нет (денис, 2026-10-10)
+    limit = state.param("mat_material_count", "int_param_1", None)
+    name_norm = "имя как %s" % explain.pattern_norm(
+        state.param("mat_material_name", "string_param_1", "—"))
     out.append(("Материалы", _materials_text(obj),
                 state("mat_missing", "mat_material_count", "mat_material_name"),
-                "не больше %s, имя по шаблону %s"
-                % (state.param("mat_material_count", "int_param_1", "—"),
-                   state.param("mat_material_name", "string_param_1", "—")),
+                ("не больше %s, %s" % (limit, name_norm)
+                 if state("mat_material_count") != DIM and limit else name_norm),
                 _n(len(obj.material_slots)) if obj.material_slots else "нет"))
 
     # --- коллизии
     out.append(("Коллизии", _collisions_text(obj, state),
                 state("col_missing", "col_name", "col_convex", "col_material"),
-                "UCX_<имя меша> или UCX_<имя меша>_NN, выпуклые, "
-                "с материалом меша"))
+                "UCX_<имя меша> или UCX_<имя меша>_NN, выпуклые"
+                + (", с материалом меша" if state("col_material") != DIM else "")))
     return out

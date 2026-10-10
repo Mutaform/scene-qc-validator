@@ -152,8 +152,32 @@ def _registry_defaults(check_id):
     return {slot: definition[slot] for slot in PARAM_SLOTS if slot in definition}
 
 
+def _reset_to_registry(c):
+    """Вернуть проверку к умолчаниям: как на свежей сцене, до всяких пресетов.
+
+    Нужно тем проверкам, которых в файле пресета нет вовсе. Такие есть:
+    `Mutaform_Default.json` перечисляет 27 проверок из 44 - он написан раньше,
+    чем появились остальные. Раньше `_apply_checks` их просто не трогал, и они
+    оставались с настройками ПРОШЛОГО загруженного проекта: после ARDENA
+    студийный чеклист считал плотность по её каналу и её порогу, о чём нигде не
+    было сказано (найдено 2026-10-10).
+
+    Сброс именно к умолчаниям, а не выключение: на свежей сцене все проверки
+    включены, и студийный пресет сегодня их так и прогоняет - с умолчаниями
+    реестра. Выключить их значило бы молча поменять то, что проект проверяет.
+    """
+    for slot in ("enabled", "severity") + PARAM_SLOTS:
+        try:
+            setattr(c, slot, c.bl_rna.properties[slot].default)
+        except (KeyError, AttributeError, TypeError):
+            pass
+    for slot, value in _registry_defaults(c.check_id).items():
+        setattr(c, slot, value)
+
+
 def _apply_checks(data, checks_collection):
     lookup = {c.check_id: c for c in checks_collection}
+    listed = set()
     for entry in data.get("checks", []):
         c = lookup.get(entry.get("check_id"))
         if not c:
@@ -192,6 +216,12 @@ def _apply_checks(data, checks_collection):
         c.string_param_2 = taken("string_param_2")
         c.bool_param_1 = taken("bool_param_1")
         c.bool_param_2 = taken("bool_param_2")
+        listed.add(c.check_id)
+
+    # Чего в файле нет - к умолчаниям, а не к остаткам прошлого проекта.
+    for c in checks_collection:
+        if c.check_id not in listed:
+            _reset_to_registry(c)
 
 
 def load_stage(project_name, stage_name, checks_collection, settings=None):

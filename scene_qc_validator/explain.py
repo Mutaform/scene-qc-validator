@@ -18,6 +18,8 @@
 неприятностям на бейке» - нет.
 """
 
+import re
+
 # --- вид починки (те же четыре, что в ARDENA Tools)
 AUTO = "auto"       # снимает кнопка «Исправить» в отчёте или Fix в панели
 BUTTON = "button"   # отдельная кнопка: правка заметная, сама собой не делается
@@ -157,11 +159,8 @@ FIX = {
                                      "значения ничего не разделяет - слоёв должно быть минимум два"),
     "mat_missing":          (AUTO, "создать материал по правилу проекта и закрыть им пустые слоты"),
     "mat_material_count":   (MANUAL, "свести к разрешённому числу и удалить пустые слоты"),
-    "mat_material_name":    (BUTTON, "«Исправить» у этой строки схлопнет дубли «.001» обратно "
-                                     "на родителя и переименует по шаблону проекта - если проект "
-                                     "его задал. Без шаблона имя не угадать, и материал остаётся "
-                                     "как есть: переименовать руками. Общая кнопка «Исправить "
-                                     "автоматически» переименованием не занимается"),
+    "mat_material_name":    (BUTTON, "кнопка схлопнет дубли «.001» и переименует, если правило "
+                                     "задаёт имя; иначе переименовать руками"),
     # --- коллизии
     "col_missing":          (MANUAL, "сделать коллизию и назвать «UCX_<имя меша>» или "
                                      "«UCX_<имя меша>_01»"),
@@ -428,6 +427,153 @@ def _t_missing_material(v):
 
 
 
+# --- шаблон имени словами ----------------------------------------------------
+#
+# В находке художник видел сам регэксп: «не подходит под шаблон
+# «^SM_(?:SHD|GKZ|MSR|TAR|TAT)_[A-Za-z0-9_]+_\d{2}[a-z]?_[1-9]\d*$»». Прочитать
+# это нельзя, и чинить по нему - тоже (денис, 2026-10-10). Поэтому разбираем
+# шаблон на куски и показываем ПРИМЕР правильного имени плюс список кодов.
+#
+# Разбор знает ровно те куски, из которых наши генераторы пресетов складывают
+# шаблоны. Встретив незнакомое, функция возвращает None, и текст честно
+# откатывается к прежнему виду с регэкспом - лучше некрасиво, чем неверно.
+
+_PATTERN_PIECES = (
+    # (регэксп куска, что подставить в пример, как назвать словами)
+    (r"\[A-Za-z0-9_\]\+", "Name", None),
+    (r"\[A-Za-z\]\[A-Za-z0-9\]\*", "Part", None),
+    (r"\[A-Za-z0-9\]\+", "Part", None),
+    (r"\\d\{2\}", "01", None),
+    (r"\[a-z\]\?", "", "можно букву варианта: 01a"),
+    (r"\[1-9\]\\d\*", "1", None),
+    (r"\\d\+", "1", None),
+)
+
+_ALTERNATIVES = re.compile(r"^\((?:\?:)?([A-Za-z0-9_|]+)\)(?![?*])")
+_OPTIONAL_GROUP = re.compile(r"^\(\?:([^()]+)\)([?*])")
+_LITERAL = re.compile(r"^[A-Za-z0-9_]+")
+
+
+def _split_branches(pattern):
+    """Разбить шаблон по «|» верхнего уровня, не трогая «|» внутри скобок."""
+    branches, depth, start = [], 0, 0
+    for index, char in enumerate(pattern):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+        elif char == "|" and depth == 0:
+            branches.append(pattern[start:index])
+            start = index + 1
+    branches.append(pattern[start:])
+    return [b for b in branches if b]
+
+
+def _walk(pattern, codes, notes):
+    """Пример имени по куску шаблона, или None, если встретилось незнакомое."""
+    example = ""
+    rest = pattern
+    while rest:
+        if rest[0] in "^$":
+            rest = rest[1:]
+            continue
+        found = _ALTERNATIVES.match(rest)
+        if found:
+            options = found.group(1).split("|")
+            codes.extend(options)
+            example += options[0]
+            rest = rest[found.end():]
+            continue
+        found = _OPTIONAL_GROUP.match(rest)
+        if found:
+            inner = _walk(found.group(1), codes, notes)
+            if inner is None:
+                return None
+            notes.append("необязательно: %s" % inner if inner else "")
+            rest = rest[found.end():]
+            continue
+        for piece, sample, note in _PATTERN_PIECES:
+            found = re.match(piece, rest)
+            if found:
+                example += sample
+                if note:
+                    notes.append(note)
+                rest = rest[found.end():]
+                break
+        else:
+            found = _LITERAL.match(rest)
+            if not found:
+                return None
+            example += found.group(0)
+            rest = rest[found.end():]
+    return example
+
+
+def pattern_example(pattern):
+    """(пример имени, коды, пометки) по шаблону - или None, если не разобрали.
+
+    Пример строится по первой ветке: у имён объектов вторая ветка - коллизия,
+    и показывать художнику её как образец имени меша незачем.
+    """
+    if not pattern:
+        return None
+    branches = _split_branches(pattern.strip())
+    codes, notes = [], []
+    example = _walk(branches[0], codes, notes)
+    if not example:
+        return None
+    return example, codes, [note for note in notes if note]
+
+
+def pattern_norm(pattern):
+    """Шаблон для колонки нормы: «MI_SHD_Name_01, код один из SHD, GKZ…».
+
+    Коротко, без «вид имени» и без пояснений про необязательные куски: в
+    колонке нормы нужен образец, а подробности - в самой находке. Не разобрали
+    шаблон - отдаём как есть: соврать хуже, чем показать регэксп.
+    """
+    parsed = pattern_example(pattern)
+    if parsed is None:
+        return pattern
+    example, codes, _notes = parsed
+    if len(codes) > 1:
+        return "%s, код один из: %s" % (example, ", ".join(codes))
+    return example
+
+
+def _pattern_sentence(pattern):
+    """«Пример: MI_SHD_Name_01. Код уровня - один из SHD, GKZ…» или None."""
+    parsed = pattern_example(pattern)
+    if parsed is None:
+        return None
+    example, codes, notes = parsed
+    out = "вид имени: %s" % example
+    if len(codes) > 1:
+        out += " (вместо %s - один из: %s)" % (codes[0], ", ".join(codes))
+    if notes:
+        out += "; " + "; ".join(notes)
+    return out
+
+
+def _t_object_pattern(v):
+    name = v.get("name", "")
+    pattern = v.get("pattern", "")
+    words = _pattern_sentence(pattern)
+    if words:
+        return "Имя «%s» не по правилу проекта - %s" % (name, words)
+    return "Имя «%s» не подходит под шаблон «%s»" % (name, pattern)
+
+
+def _t_material_name(v):
+    names = ", ".join(v.get("names", ()))
+    allowed = list(v.get("allowed", ()))
+    words = _pattern_sentence(allowed[0]) if len(allowed) == 1 else None
+    if words:
+        return "Имя материала не по правилу проекта: %s - %s" % (names, words)
+    return ("Имена не по шаблону: %s. Ожидается %s"
+            % (names, ", ".join("«%s»" % a for a in allowed) or "?"))
+
+
 def _t_name_characters(v):
     """Показать сам символ и его место: иначе имя выглядит правильным."""
     parts = []
@@ -599,8 +745,7 @@ TEXT = {
                                          "выше" if v.get("above") else "ниже",
                                          v.get("tolerance_cm", 0.1))),
     "nm_name_characters":  _t_name_characters,
-    "nm_object_pattern":   lambda v: "Имя «%s» не подходит под шаблон «%s»"
-                                     % (v.get("name", ""), v.get("pattern", "")),
+    "nm_object_pattern":   _t_object_pattern,
     "obj_nanite_closed_geometry": _t_nanite,
     "uv_missing":          lambda v: "У меша нет ни одного UV-канала",
     "uv_set_count":        lambda v: "%s при %s: лишние - %s"
@@ -673,9 +818,7 @@ TEXT = {
                                         _n(v.get("max", 0), "допустимом", "допустимых",
                                            "допустимых"),
                                         ", ".join(v.get("names", ()))),
-    "mat_material_name":   lambda v: "Имена не по шаблону: %s. Ожидается %s"
-                                     % (", ".join(v.get("names", ())),
-                                        ", ".join("«%s»" % a for a in v.get("allowed", ())) or "?"),
+    "mat_material_name":   _t_material_name,
 }
 
 

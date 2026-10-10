@@ -85,7 +85,7 @@
         },
         {
           "check_id": "geo_concave_faces",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
@@ -176,7 +176,7 @@
         },
         {
           "check_id": "tr_world_origin",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.001,
           "float_param_2": 0.0,
@@ -662,7 +662,7 @@
         },
         {
           "check_id": "geo_concave_faces",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
@@ -753,7 +753,7 @@
         },
         {
           "check_id": "tr_world_origin",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.001,
           "float_param_2": 0.0,
@@ -1239,7 +1239,7 @@
         },
         {
           "check_id": "geo_concave_faces",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.0,
           "float_param_2": 0.0,
@@ -1330,7 +1330,7 @@
         },
         {
           "check_id": "tr_world_origin",
-          "enabled": false,
+          "enabled": true,
           "severity": "FAIL",
           "float_param_1": 0.001,
           "float_param_2": 0.0,
