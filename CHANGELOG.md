@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.23.1
+
+### Changed
+
+- **The breakdown no longer shows a regex where a rule belongs.** "канал ^UV3$
+  без наложений" is a note to a developer; the row now reads "в канале UV3
+  шеллы не лежат друг на друге", and the 0-1 row likewise. A pattern listing
+  several channels turns into "UV1 и UV2"; `.+` becomes "ни в одном канале".
+  Anything the translator does not recognise is still shown as written.
+- The overlap row is called "UV overlap" (denis), and the padding norm says
+  "норма по ТЗ 8-16 px" - without the words it ran into the measured value.
+
 ## 1.23.0
 
 ### Changed

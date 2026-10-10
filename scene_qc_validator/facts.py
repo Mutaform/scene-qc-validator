@@ -27,6 +27,7 @@
 """
 
 import math
+import re
 
 OK = "ok"
 WARN = "warn"
@@ -276,6 +277,27 @@ def _texel_text(obj, number, map_px, per_tile=False):
     return text
 
 
+def _channels(pattern, fallback="во всех каналах"):
+    """«^UV3$» -> «UV3», «^(UV1|UV2)$» -> «UV1 и UV2», «.+» -> «во всех каналах».
+
+    В колонке нормы стоит правило, по которому судят, и художник читает его
+    глазами. Регексп он читать не обязан: «канал ^UV3$ без наложений» - это
+    отписка, а не правило.
+    """
+    text = (pattern or "").strip()
+    if not text or text in (".+", ".*", "^.+$", "^.*$"):
+        return fallback
+    core = text.lstrip("^").rstrip("$")
+    if core.startswith("(") and core.endswith(")"):
+        core = core[1:-1]
+    names = [part for part in core.split("|") if part]
+    if names and all(re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names):
+        if len(names) == 1:
+            return names[0]
+        return ", ".join(names[:-1]) + " и " + names[-1]
+    return text                     # что-то сложное - показываем как есть
+
+
 def _uv_text(mesh):
     names = [uv.name for uv in mesh.uv_layers]
     if not names:
@@ -423,13 +445,18 @@ def _rows(obj, settings):
                    state.param("uv_set_count", "int_param_1", "—")),
                 _n(len(mesh.uv_layers)) if mesh.uv_layers else "нет"))
     tile = state("uv_single_tile")
+    judged = _channels(state.param("uv_single_tile", "string_param_1", ".+"),
+                       "все каналы")
     out.append(("Шеллы в 0-1", _verdict(tile, "выходят за квадрат", "внутри"), tile,
-                "каналы %s внутри 0-1"
-                % state.param("uv_single_tile", "string_param_1", ".+")))
+                ("%s: шеллы не выходят за квадрат 0-1" % judged
+                 if judged != "все каналы"
+                 else "ни один канал не выходит за квадрат 0-1")))
     overlap = state("uv_overlap")
-    out.append(("Наложения", _verdict(overlap, "есть", "нет"), overlap,
-                "канал %s без наложений"
-                % state.param("uv_overlap", "string_param_1", ".+")))
+    watched = _channels(state.param("uv_overlap", "string_param_1", ".+"))
+    out.append(("UV overlap", _verdict(overlap, "есть", "нет"), overlap,
+                ("в канале %s шеллы не лежат друг на друге" % watched
+                 if watched != "во всех каналах"
+                 else "ни в одном канале шеллы не лежат друг на друге")))
     gap = state.item("uv_padding_gap")
     if gap is not None:
         size = gap.int_param_1 or 2048
@@ -440,7 +467,8 @@ def _rows(obj, settings):
                     # не измерили - значит сказать нечего. Зелёная галочка здесь
                     # читалась бы как «проверено и в порядке»
                     INFO if measured is None else state("uv_padding_gap"),
-                    "%g-%g px" % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
+                    "норма по ТЗ %g-%g px"
+                    % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
     # плотность текселя: UV1 показываем всегда (правила нет, норма зависит от
     # плана ассета), судимый канал - строкой с вердиктом
     size = state.param("uv_texel_density", "int_param_1", 2048) or 2048
