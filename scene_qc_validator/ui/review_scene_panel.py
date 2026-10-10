@@ -1,12 +1,6 @@
-import json
-
 from bpy.types import Panel
 
 from .. import operators as operators_mod
-from . import icons
-
-
-CHECKER_BACKUP_PROP = "_sqc_uv_checker_backup"
 
 
 def _material_usage_for_scope(context):
@@ -28,25 +22,6 @@ def _material_usage_for_scope(context):
                 entry["objects"].add(obj.name)
                 seen_on_object.add(mat.name)
     return targets, [materials[name] for name in sorted(materials.keys(), key=str.casefold)]
-
-
-def _active_checker_type(context):
-    checker_types = set()
-    targets = [obj for obj in context.selected_objects if obj.type == 'MESH']
-    if not targets and context.object and context.object.type == 'MESH':
-        targets = [context.object]
-    for obj in targets:
-        raw = obj.get(CHECKER_BACKUP_PROP)
-        if not raw:
-            continue
-        try:
-            backup = json.loads(raw)
-        except (TypeError, json.JSONDecodeError):
-            continue
-        checker_type = backup.get("checker_type")
-        if checker_type:
-            checker_types.add(checker_type)
-    return checker_types.pop() if len(checker_types) == 1 else ""
 
 
 class SQC_PT_scene_review(Panel):
@@ -110,23 +85,3 @@ class SQC_PT_scene_review(Panel):
                     icon='INFO',
                 )
 
-        layout.separator()
-        checker = layout.box()
-        checker.label(text="UV Checker", icon='TEXTURE')
-        checker.prop(s, "uv_checker_tiling", slider=True)
-        active_checker = _active_checker_type(context)
-        row = checker.row(align=True)
-        op = row.operator(
-            "sqc.toggle_uv_checker",
-            text="Square Checker",
-            icon_value=icons.icon_id("checker_grid"),
-            depress=(active_checker == 'SQUARE'),
-        )
-        op.checker_type = 'SQUARE'
-        op = row.operator(
-            "sqc.toggle_uv_checker",
-            text="Line Checker",
-            icon_value=icons.icon_id("checker_lines"),
-            depress=(active_checker == 'LINE'),
-        )
-        op.checker_type = 'LINE'

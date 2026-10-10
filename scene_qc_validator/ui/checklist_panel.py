@@ -1,7 +1,11 @@
+import json
+
 from bpy.types import Panel
 
 from .. import checks as checks_mod
 from .. import presets as presets_mod
+from ..operators.checker import BACKUP_PROP as CHECKER_BACKUP_PROP
+from . import icons
 
 
 def _stage_button_text(stage_name):
@@ -22,6 +26,31 @@ def _reviewed_material_name(context):
     if not material or context.mode != 'EDIT_MESH':
         return ""
     return material
+
+
+def _active_checker_type(context):
+    """The checker currently worn: 'SQUARE', 'LINE', or "" when they differ.
+
+    Reads the backup the checker operator leaves on each selected mesh (the
+    active one when nothing is selected). Two different checkers in the
+    selection answer "": depressing both buttons would be a lie.
+    """
+    checker_types = set()
+    targets = [obj for obj in context.selected_objects if obj.type == 'MESH']
+    if not targets and context.object and context.object.type == 'MESH':
+        targets = [context.object]
+    for obj in targets:
+        raw = obj.get(CHECKER_BACKUP_PROP)
+        if not raw:
+            continue
+        try:
+            backup = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        checker_type = backup.get("checker_type")
+        if checker_type:
+            checker_types.add(checker_type)
+    return checker_types.pop() if len(checker_types) == 1 else ""
 
 
 def _overlay_toggle_row(
@@ -96,95 +125,117 @@ class SQC_PT_checklist(Panel):
         ignore = layout.row(align=True)
         ignore.prop(s, "ignore_objects_regex", text="", icon='CANCEL')
 
-        # Any stage whose name ends in "_UVs" is a UV stage, whatever the
-        # project calls its meshes: Mutaform's own "03_LP_UVs", ARDENA's
-        # "03_MP_UVs", or a client's "_HP_UVs".
-        if s.active_stage_name.endswith("_UVs"):
-            from ..operators.overlap_visual import is_overlap_review_active
-            from ..operators.padding_visual import is_padding_review_active
-            from ..operators.texel_density_visual import (
-                is_texel_density_review_active,
-            )
+        # The UV review tools are drawn on every stage of every project.
+        # They used to appear only when the stage name ended in "_UVs", which
+        # made a tool's availability depend on what a project happened to call
+        # its stages - "03_LP_UVs" here, "03_MP_UVs" there, anything at a
+        # client. An artist opens a layout while fixing geometry or judging a
+        # texture just as often as during the UV stage.
+        from ..operators.overlap_visual import is_overlap_review_active
+        from ..operators.padding_visual import is_padding_review_active
+        from ..operators.texel_density_visual import (
+            is_texel_density_review_active,
+        )
 
-            overlap_controls = _overlay_toggle_row(
-                layout, s, "overlap_visual_use_material_scope",
-                "sqc.toggle_overlap_visual", "Show Overlaps", 'HIDE_OFF',
-                is_overlap_review_active(),
-            )
-            overlap_controls.label(text="UV set")
-            overlap_controls.prop(
-                s, "overlap_visual_uv_set_number", text="",
-            )
+        overlap_controls = _overlay_toggle_row(
+            layout, s, "overlap_visual_use_material_scope",
+            "sqc.toggle_overlap_visual", "Show Overlaps", 'HIDE_OFF',
+            is_overlap_review_active(),
+        )
+        overlap_controls.label(text="UV set")
+        overlap_controls.prop(
+            s, "overlap_visual_uv_set_number", text="",
+        )
 
-            padding_item = next(
-                (
-                    item for item in s.checks
-                    if item.check_id == "uv_padding"
-                ),
-                None,
+        padding_item = next(
+            (
+                item for item in s.checks
+                if item.check_id == "uv_padding"
+            ),
+            None,
+        )
+        padding_controls = _overlay_toggle_row(
+            layout, s, "padding_visual_use_material_scope",
+            "sqc.toggle_padding_visual", "Show Padding", 'MOD_UVPROJECT',
+            is_padding_review_active(),
+        )
+        if padding_item is not None:
+            # Fixed-width number block, flush right, keeps the 4096 /
+            # value fields comfortably sized instead of collapsing.
+            padding_block = padding_controls.row(align=True)
+            padding_block.ui_units_x = 8.5
+            texture_previous = padding_block.operator(
+                "sqc.step_padding_value",
+                text="",
+                icon='TRIA_LEFT',
             )
-            padding_controls = _overlay_toggle_row(
-                layout, s, "padding_visual_use_material_scope",
-                "sqc.toggle_padding_visual", "Show Padding", 'MOD_UVPROJECT',
-                is_padding_review_active(),
+            texture_previous.target = 'TEXTURE'
+            texture_previous.direction = -1
+            padding_block.prop(
+                padding_item,
+                "padding_texture_input",
+                text="",
             )
-            if padding_item is not None:
-                # Fixed-width number block, flush right, keeps the 4096 /
-                # value fields comfortably sized instead of collapsing.
-                padding_block = padding_controls.row(align=True)
-                padding_block.ui_units_x = 8.5
-                texture_previous = padding_block.operator(
-                    "sqc.step_padding_value",
-                    text="",
-                    icon='TRIA_LEFT',
-                )
-                texture_previous.target = 'TEXTURE'
-                texture_previous.direction = -1
-                padding_block.prop(
-                    padding_item,
-                    "padding_texture_input",
-                    text="",
-                )
-                texture_next = padding_block.operator(
-                    "sqc.step_padding_value",
-                    text="",
-                    icon='TRIA_RIGHT',
-                )
-                texture_next.target = 'TEXTURE'
-                texture_next.direction = 1
-
-                padding_previous = padding_block.operator(
-                    "sqc.step_padding_value",
-                    text="",
-                    icon='TRIA_LEFT',
-                )
-                padding_previous.target = 'PADDING'
-                padding_previous.direction = -1
-                padding_block.prop(
-                    padding_item,
-                    "padding_value_input",
-                    text="",
-                )
-                padding_next = padding_block.operator(
-                    "sqc.step_padding_value",
-                    text="",
-                    icon='TRIA_RIGHT',
-                )
-                padding_next.target = 'PADDING'
-                padding_next.direction = 1
-
-            _overlay_toggle_row(
-                layout, s, "texel_density_visual_use_material_scope",
-                "sqc.toggle_texel_density_visual", "Show Texel Density",
-                'IMAGE_DATA', is_texel_density_review_active(),
-                with_controls=False,
+            texture_next = padding_block.operator(
+                "sqc.step_padding_value",
+                text="",
+                icon='TRIA_RIGHT',
             )
+            texture_next.target = 'TEXTURE'
+            texture_next.direction = 1
 
-            reviewed = _reviewed_material_name(context)
-            if reviewed:
-                note = layout.row()
-                note.enabled = False
-                note.label(text=f"Reviewing {reviewed}", icon='MATERIAL')
+            padding_previous = padding_block.operator(
+                "sqc.step_padding_value",
+                text="",
+                icon='TRIA_LEFT',
+            )
+            padding_previous.target = 'PADDING'
+            padding_previous.direction = -1
+            padding_block.prop(
+                padding_item,
+                "padding_value_input",
+                text="",
+            )
+            padding_next = padding_block.operator(
+                "sqc.step_padding_value",
+                text="",
+                icon='TRIA_RIGHT',
+            )
+            padding_next.target = 'PADDING'
+            padding_next.direction = 1
+
+        _overlay_toggle_row(
+            layout, s, "texel_density_visual_use_material_scope",
+            "sqc.toggle_texel_density_visual", "Show Texel Density",
+            'IMAGE_DATA', is_texel_density_review_active(),
+            with_controls=False,
+        )
+
+        reviewed = _reviewed_material_name(context)
+        if reviewed:
+            note = layout.row()
+            note.enabled = False
+            note.label(text=f"Reviewing {reviewed}", icon='MATERIAL')
+
+        checker = layout.box()
+        checker.label(text="UV Checker", icon='TEXTURE')
+        checker.prop(s, "uv_checker_tiling", slider=True)
+        active_checker = _active_checker_type(context)
+        row = checker.row(align=True)
+        op = row.operator(
+            "sqc.toggle_uv_checker",
+            text="Square Checker",
+            icon_value=icons.icon_id("checker_grid"),
+            depress=(active_checker == 'SQUARE'),
+        )
+        op.checker_type = 'SQUARE'
+        op = row.operator(
+            "sqc.toggle_uv_checker",
+            text="Line Checker",
+            icon_value=icons.icon_id("checker_lines"),
+            depress=(active_checker == 'LINE'),
+        )
+        op.checker_type = 'LINE'
 
         row = layout.row(align=True)
         row.prop(
