@@ -63,40 +63,81 @@ def _tolerance(item):
     return value if value and value > 0 else DEFAULT_TOLERANCE
 
 
-def collider_name_state(collider_name, mesh_name, pattern):
-    """(моя ли это коллизия, правильно ли названа).
+def _prefixes(item):
+    """Префиксы коллизий списком - из того же регэкспа, что и всё остальное.
 
-    «Моя» - с точностью до блендеровского хвоста «.001», который дописывается
-    при дубле и при импорте поверх существующего объекта. Такой объект в Unreal
-    уже не коллизия: там в имени точка, и шаблон его не узнаёт.
+    Регэксп удобен, чтобы спросить «похоже ли это на коллизию», но опечатку
+    им не разобрать: «ucx_» и «UCXMesh» он не узнает вовсе, и меш получит
+    «нет коллизии» вместо «в имени опечатка». Поэтому вытаскиваем из него сами
+    слова: `^(UCX|UBX|USP|UCP)_` -> UCX, UBX, USP, UCP.
     """
-    match = pattern.match(collider_name)
-    if match is None:
-        return False, False
-    rest = collider_name[match.end():]
-    proper = bool(rest == mesh_name
-                  or re.fullmatch(re.escape(mesh_name) + r"_\d+", rest))
-    base = _strip_blender_numeric_suffix(rest)
-    mine = proper or bool(base == mesh_name
-                          or re.fullmatch(re.escape(mesh_name) + r"_\d+", base))
-    return mine, proper
+    text = (getattr(item, "string_param_1", "") or "").strip() or DEFAULT_PREFIX
+    found = tuple(re.findall(r"[A-Za-z]{2,}", text))
+    return tuple(p.upper() for p in found) or PREFIXES
+
+
+def collider_name_state(collider_name, mesh_name, prefixes):
+    """(моя ли коллизия, правильно ли названа, каким должно быть имя, что не так).
+
+    Опечатки, которые ловим, - ровно те, что портят импорт в Unreal:
+
+      * регистр префикса: `ucx_` движок не считает коллизией;
+      * нет разделителя: `UCXMesh_01` - тоже обычный меш;
+      * блендеровский хвост `.001` после дубля или повторного импорта.
+
+    Тело имени сверяем точно: угадывать, что художник имел в виду, нельзя -
+    `UCX_Shelf_01` рядом с мешем `Shelf_02` это не опечатка, а чужая коллизия.
+    """
+    upper = collider_name.upper()
+    for prefix in prefixes:
+        if not upper.startswith(prefix):
+            continue
+        rest = collider_name[len(prefix):]
+        case_ok = collider_name[:len(prefix)] == prefix
+        separator_ok = rest.startswith("_")
+        body = rest[1:] if separator_ok else rest
+        base = _strip_blender_numeric_suffix(body)
+        duplicate = base != body
+        if not (base == mesh_name
+                or re.fullmatch(re.escape(mesh_name) + r"_\d+", base)):
+            continue
+        want = "%s_%s" % (prefix, base)
+        reason = ("" if (case_ok and separator_ok and not duplicate)
+                  else "case" if not case_ok
+                  else "separator" if not separator_ok
+                  else "duplicate")
+        return True, not reason, want, reason
+    return False, False, "", ""
 
 
 def colliders_of(obj, item):
-    """([мои коллизии], [названные неправильно]) в порядке сцены."""
-    pattern = _prefix_pattern(item)
-    scene = bpy.context.scene
+    """([мои коллизии], [(объект, каким быть имени, что не так)])."""
+    prefixes = _prefixes(item)
     mine, wrong = [], []
-    for other in scene.objects:
+    for other in bpy.context.scene.objects:
         if other is obj or other.type != 'MESH':
             continue
-        is_mine, proper = collider_name_state(other.name, obj.name, pattern)
+        is_mine, proper, want, reason = collider_name_state(
+            other.name, obj.name, prefixes)
         if not is_mine:
             continue
         mine.append(other)
         if not proper:
-            wrong.append(other)
+            wrong.append((other, want, reason))
     return mine, wrong
+
+
+def _free_name(wanted, mesh_name, prefix_of_wanted):
+    """Свободное имя: если `wanted` занято, Blender допишет «.001» - а это
+    снова сломанная коллизия. Берём следующий номер вместо точки."""
+    if wanted not in bpy.data.objects:
+        return wanted
+    stem = re.sub(r"_\d+$", "", wanted)
+    for number in range(1, 1000):
+        candidate = "%s_%03d" % (stem, number)
+        if candidate not in bpy.data.objects:
+            return candidate
+    return wanted
 
 
 def _is_collider(obj, item):
@@ -178,12 +219,29 @@ def check_collision_name(obj, item):
         return []
     return [{
         "message": ("%d collision mesh(es) are named off the pattern: %s"
-                    % (len(wrong), ", ".join(o.name for o in wrong[:6]))),
-        "element_ref": "obj:%s" % wrong[0].name,
+                    % (len(wrong), ", ".join(o.name for o, _w, _r in wrong[:6]))),
+        "element_ref": "obj:%s" % wrong[0][0].name,
         "values": {"mesh": obj.name, "count": len(wrong),
-                   "names": [o.name for o in wrong[:6]],
+                   "names": [o.name for o, _w, _r in wrong[:6]],
+                   "wants": [w for _o, w, _r in wrong[:6]],
+                   "reasons": sorted({r for _o, _w, r in wrong}),
                    "want": "%s или %s_NN" % (obj.name, obj.name)},
     }]
+
+
+def fix_collision_name(obj, item, result):
+    """Переименовать коллизии в правильное имя: префикс заглавными, через «_»,
+    без блендеровского хвоста."""
+    if _is_collider(obj, item) or _skips(item, obj.name):
+        return False
+    _mine, wrong = colliders_of(obj, item)
+    changed = False
+    for collider, want, _reason in wrong:
+        if not want or collider.name == want:
+            continue
+        collider.name = _free_name(want, obj.name, None)
+        changed = True
+    return changed
 
 
 def check_collision_convex(obj, item):

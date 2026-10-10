@@ -18,12 +18,13 @@ from .objects.pivot_world_origin import (
     check_pivot_world_origin, fix_pivot_world_origin,
 )
 from .objects.pivot_center import check_pivot_center
+from .objects.pivot_bottom import check_pivot_bottom, fix_pivot_bottom
 from .objects.object_name_pattern import (
     check_object_name_pattern, fix_object_name_pattern,
 )
 from .objects.nanite_closed_geometry import check_nanite_closed_geometry
 from .objects.collision import (
-    check_collision_missing, check_collision_name,
+    check_collision_missing, check_collision_name, fix_collision_name,
     check_collision_convex, check_collision_material, fix_collision_material,
 )
 
@@ -36,6 +37,7 @@ from .mapping.udim import (
     check_udim_tile_fill, check_shifted_duplicate,
 )
 from .mapping.packing_density import check_packing_density
+from .mapping.texel_density import check_texel_density
 from .mapping.padding_gap import check_padding_gap
 from .mapping.no_hard_edge_on_uv_borders import (
     check_no_hard_edge_on_uv_borders, fix_no_hard_edge_on_uv_borders,
@@ -174,6 +176,12 @@ CHECK_DEFINITIONS = [
          description="A shell that is a copy of another one moved by whole tiles is a hidden overlap, not a UDIM layout",
          run=check_shifted_duplicate, fix=None, can_fix=False,
          int_param_2=1, float_param_1=0.0001),
+    dict(id="uv_texel_density", label="Texel Density", category='UV',
+         description="Texel density of the judged UV set must match the project norm, in pixels per metre",
+         run=check_texel_density, fix=None, can_fix=False,
+         int_param_1=2048, int_param_2=3,
+         float_param_1=1024.0, float_param_2=0.15),
+
     dict(id="uv_padding_gap", label="Padding Between Shells", category='UV',
          description="The typical gap between UV shells, measured in pixels of the target map, must stay within the project range",
          run=check_padding_gap, fix=None, can_fix=False,
@@ -203,6 +211,12 @@ CHECK_DEFINITIONS = [
          run=check_nanite_closed_geometry, fix=None, can_fix=False,
          float_param_1=1.0, bool_param_1=True,
          string_param_1=r"^(UCX|UBX|USP|UCP)_"),
+
+    dict(id="tr_pivot_bottom", label="Pivot At Bottom", category='TRANSFORM',
+         description="The lowest point of the mesh must sit at the pivot: an ARDENA asset stands on the floor",
+         run=check_pivot_bottom, fix=fix_pivot_bottom, can_fix=True,
+         fix_is_destructive=False,
+         float_param_1=0.001),
 
     dict(id="nm_object_pattern", label="Object Name Pattern", category='NAMING',
          description="Object name must match a regex pattern",
@@ -241,7 +255,8 @@ CHECK_DEFINITIONS = [
          string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
     dict(id="col_name", label="Collision Name", category='COLLISION',
          description="A collision mesh must be named exactly UCX_<mesh> or UCX_<mesh>_NN: the name is the only link to its mesh",
-         run=check_collision_name, fix=None, can_fix=False,
+         run=check_collision_name, fix=fix_collision_name, can_fix=True,
+         fix_is_destructive=False,
          string_param_1=r"^(UCX|UBX|USP|UCP)_", string_param_2=""),
     dict(id="col_convex", label="Collision Convex", category='COLLISION',
          description="Each collision mesh must be a closed convex hull",

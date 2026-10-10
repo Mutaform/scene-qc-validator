@@ -256,6 +256,13 @@ class SQC_PT_checklist(Panel):
                 "float_param_2",
                 text="Rectilinear Ratio",
             )
+        elif cid == "uv_texel_density":
+            sub.prop(item, "int_param_2", text="UV Set (1 = first)")
+            sub.prop(item, "float_param_1", text="Pixels Per Metre")
+            sub.prop(item, "int_param_1", text="Texture Size")
+            sub.prop(item, "float_param_2", text="Tolerance (0..1)")
+        elif cid == "tr_pivot_bottom":
+            sub.prop(item, "float_param_1", text="Tolerance (m)")
         elif cid in {"col_missing", "col_name", "col_convex", "col_material"}:
             sub.prop(item, "string_param_1", text="Collision Prefix Regex")
             sub.prop(item, "string_param_2", text="Skip Meshes Regex")

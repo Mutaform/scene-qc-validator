@@ -50,6 +50,7 @@ CODES = {
     "tr_unapplied":         "трансформация не применена",
     "tr_world_origin":      "пивот не в нуле сцены",
     "tr_pivot_center":      "пивот не в центре габарита",
+    "tr_pivot_bottom":      "пивот не внизу",
     "nm_object_pattern":    "имя объекта не по шаблону",
     "obj_nanite_closed_geometry": "открытая геометрия для Nanite",
     # --- развёртка
@@ -63,6 +64,7 @@ CODES = {
     "uv_udim_tile_fill":    "пустой UDIM-тайл",
     "uv_shifted_duplicate": "шелл сдвинут на тайл",
     "uv_packing_density":   "плотность паковки",
+    "uv_texel_density":     "плотность текселя",
     "uv_padding_gap":       "отступ между шеллами",
     "uv_padding":           "паддинг между шеллами",
     "uv_no_hard_edge_on_uv_borders": "шов без hard edge",
@@ -98,6 +100,8 @@ FIX = {
     "tr_unapplied":         (AUTO, "применить перечисленное (Apply). Поворот 90° и масштаб 0.01 - "
                                    "это след импорта FBX из Maya"),
     "tr_world_origin":      (AUTO, "перенести пивот в мировой ноль, компенсируя сдвиг геометрией"),
+    "tr_pivot_bottom":      (AUTO, "перенести пивот на низ геометрии, компенсируя сдвиг "
+                                   "геометрией - на экране ничего не шевельнётся"),
     "tr_pivot_center":      (MANUAL, "Object → Set Origin → Origin to Geometry. Если по проекту пивот "
                                      "стоит иначе (у ARDENA - внизу, Z = 0), выключить проверку в этапе"),
     "nm_object_pattern":    (BUTTON, "«Исправить» у этой строки знает только студийную схему: "
@@ -118,6 +122,8 @@ FIX = {
                                      "означает, что шелл улетел в сторону, а не что набор такой"),
     "uv_udim_tile_fill":    (MANUAL, "разложить содержимое пустого тайла по занятым или оставить "
                                      "его осознанно: лишний тайл - это лишняя текстура целиком"),
+    "uv_texel_density":     (MANUAL, "пересчитать масштаб развёртки в этом канале под норму "
+                                     "проекта - 1024 px/м при карте 2048, то есть 1 UV = 2 м"),
     "uv_packing_density":   (MANUAL, "упаковать плотнее: пустое место в развёртке - это "
                                      "оплаченные и неиспользованные тексели"),
     "uv_shifted_duplicate": (MANUAL, "разложить шелл на своё место, а не отодвигать на тайл: "
@@ -144,8 +150,11 @@ FIX = {
     # --- коллизии
     "col_missing":          (MANUAL, "сделать коллизию и назвать «UCX_<имя меша>» или "
                                      "«UCX_<имя меша>_01»"),
-    "col_name":             (MANUAL, "переименовать в «UCX_<имя меша>» или «UCX_<имя меша>_NN»: "
-                                     "по имени движок и находит коллизию"),
+    # кнопкой, а не общим автофиксом: переименование - заметная правка, и
+    # остальные переименования в этом наборе живут так же
+    "col_name":             (BUTTON, "«Исправить» у этой строки переименует коллизии правильно: "
+                                     "префикс заглавными, через «_», без блендеровского хвоста "
+                                     "«.001». Движок находит коллизию только по имени"),
     "col_convex":           (MANUAL, "собрать оболочку заново выпуклой (Convex Hull): вмятину "
                                      "движок не исправит, персонаж провалится внутрь"),
     "col_material":         (AUTO, "поставить на коллизию материал её меша"),
@@ -395,16 +404,41 @@ def _t_missing_material(v):
 
 
 
+def _t_texel(v):
+    """Плотность текселя: во сколько раз развёртка разошлась с нормой.
+
+    Больше px/м - шеллы КРУПНЕЕ: на тот же метр модели ложится больше
+    пикселей. Обратное прочтение сбивает с толку сильнее, чем помогает число.
+    """
+    scale = v.get("scale", 1) or 1
+    times = scale if scale >= 1 else (1.0 / scale)
+    return ("%s%d px/м при карте %s, норма %d ±%d%% - развёртка %s нормы в %g раза "
+            "(1 UV = %g м, нужно %g)"
+            % (_channel(v), v.get("px_m", 0), _n_plain(v.get("size", 0)),
+               v.get("want", 0), v.get("tolerance", 0),
+               "крупнее" if scale > 1 else "мельче", round(times, 2),
+               v.get("m_per_uv", 0), v.get("want_m_per_uv", 0)))
+
+
+_COLLISION_REASON = {
+    "case": "префикс не заглавными",
+    "separator": "после префикса нет «_»",
+    "duplicate": "блендеровский хвост «.001»",
+}
+
+
 def _t_collision_name(v):
-    """Имя коллизии: показать, как названо и как надо."""
+    """Имя коллизии: что именно не так и каким имя должно стать."""
     names = v.get("names") or []
+    wants = v.get("wants") or []
     count = v.get("count", len(names))
-    shown = ", ".join("«%s»" % name for name in names)
-    mesh = v.get("mesh", "")
-    head = ("Коллизия %s названа не по шаблону" % shown if count == 1
-            else "%s названы не по шаблону: %s"
-                 % (_n(count, "коллизия", "коллизии", "коллизий"), shown))
-    return "%s - ждём «UCX_%s» или «UCX_%s_NN»" % (head, mesh, mesh)
+    why = ", ".join(_COLLISION_REASON.get(r, r) for r in (v.get("reasons") or []))
+    pairs = ", ".join("«%s» → «%s»" % (name, want)
+                      for name, want in zip(names, wants)) or         ", ".join("«%s»" % name for name in names)
+    head = ("Коллизия названа не по шаблону" if count == 1
+            else "%s названы не по шаблону"
+                 % _n(count, "коллизия", "коллизии", "коллизий"))
+    return "%s (%s): %s" % (head, why or "не то имя", pairs)
 
 
 def _t_collision_convex(v):
@@ -456,6 +490,11 @@ TEXT = {
                                      % (_xyz(v.get("xyz", ())), _g(v.get("offset", 0)),
                                         _g(v.get("tolerance", 0))),
     "tr_pivot_center":     lambda v: "Пивот смещён от центра габарита на %s" % _g(v.get("offset", 0)),
+    "tr_pivot_bottom":     lambda v: ("Низ меша на %g см %s пивота, а пивот должен быть внизу "
+                                      "(допуск %g см)"
+                                      % (abs(v.get("offset_cm", 0)),
+                                         "выше" if v.get("above") else "ниже",
+                                         v.get("tolerance_cm", 0.1))),
     "nm_object_pattern":   lambda v: "Имя «%s» не подходит под шаблон «%s»"
                                      % (v.get("name", ""), v.get("pattern", "")),
     "obj_nanite_closed_geometry": _t_nanite,
@@ -483,6 +522,7 @@ TEXT = {
                                         (v.get("min", 0) or 0) * 100.0,
                                         _n(v.get("islands", 0), "остров", "острова", "островов"),
                                         _faces(v.get("faces", 0))),
+    "uv_texel_density":    _t_texel,
     "uv_packing_density":  lambda v: "%sупакован на %.1f%% при норме %.0f%% (%s%s)"
                                      % (_channel(v), (v.get("density", 0) or 0) * 100.0,
                                         (v.get("min", 0) or 0) * 100.0,

@@ -238,6 +238,44 @@ def _collisions_text(obj, state):
     return "%d: %s" % (len(mine), ", ".join(names))
 
 
+def _bottom_text(obj):
+    """«+4.2 см» - насколько низ геометрии отстоит от пивота."""
+    try:
+        from .checks.objects.pivot_bottom import bottom_offset
+        offset = bottom_offset(obj)
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] низ %s: %s" % (obj.name, error))
+        return "—"
+    if offset is None:
+        return "—"
+    return "%+g см" % round(offset * 100.0, 2)
+
+
+def _texel_text(obj, number, map_px, per_tile=False):
+    """«2.4 px/см» или «1001 - 2.4, 1002 - 1.9»: плотность канала для разбора."""
+    try:
+        from .checks.mapping.texel_density import px_per_cm
+        value, collapsed = px_per_cm(obj, number, map_px, per_tile=per_tile)
+    except Exception as error:                      # noqa: BLE001
+        print("[Scene QC Validator] плотность текселя %s: %s" % (obj.name, error))
+        return "—"
+    if per_tile:
+        if not value:
+            return "—"
+        if len(value) == 1:
+            text = "%.2f px/см" % list(value.values())[0]
+        else:
+            text = ", ".join("%s - %.2f" % (tile if tile > 0 else "вне сетки", density)
+                             for tile, density in sorted(value.items())) + " px/см"
+    else:
+        if value is None:
+            return "—"
+        text = "%.2f px/см" % value
+    if collapsed > 0.01:
+        text += " (схлопнуто %.0f%% площади)" % (collapsed * 100.0)
+    return text
+
+
 def _uv_text(mesh):
     names = [uv.name for uv in mesh.uv_layers]
     if not names:
@@ -317,10 +355,17 @@ def _rows(obj, settings):
     moved = _transform_text(obj)
     out.append(("Трансформация", moved, state("tr_unapplied"), "должна быть применена",
                 "применена" if moved == "применена" else "не применена"))
-    out.append(("Пивот", _xyz(obj.location), state("tr_world_origin", "tr_pivot_center"),
+    out.append(("Пивот", _xyz(obj.location),
+                state("tr_world_origin", "tr_pivot_center", "tr_pivot_bottom"),
                 "в нуле сцены, допуск %g"
                 % (state.param("tr_world_origin", "float_param_1", 0.001) or 0.001),
                 "в нуле" if obj.location.length < 1e-4 else "смещён"))
+    if state.item("tr_pivot_bottom") is not None:
+        out.append(("Низ относительно пивота", _bottom_text(obj),
+                    state("tr_pivot_bottom"),
+                    "низ геометрии на пивоте, допуск %g см"
+                    % ((state.param("tr_pivot_bottom", "float_param_1", 0.001) or 0.001)
+                       * 100.0)))
     out.append(("Габарит, см", _size_cm(obj), INFO))
     out.append(("Анимация", _animated(obj), state("geo_animation_keys"),
                 "на статичном ассете ключей быть не должно"))
@@ -377,6 +422,26 @@ def _rows(obj, settings):
                     # читалась бы как «проверено и в порядке»
                     INFO if measured is None else state("uv_padding_gap"),
                     "%g-%g px" % (gap.float_param_1 or 8.0, gap.float_param_2 or 16.0)))
+    # плотность текселя: UV1 показываем всегда (правила нет, норма зависит от
+    # плана ассета), судимый канал - строкой с вердиктом
+    size = state.param("uv_texel_density", "int_param_1", 2048) or 2048
+    out.append(("Плотность текселя UV1", _texel_text(obj, 1, size, per_tile=True), INFO,
+                "правила нет: норма зависит от плана ассета"))
+    judged = state.item("uv_texel_density")
+    if judged is not None:
+        number = judged.int_param_2 or 3
+        value, _collapsed = (None, 0.0)
+        try:
+            from .checks.mapping.texel_density import px_per_m
+            value, _collapsed = px_per_m(obj, number, size)
+        except Exception as error:                  # noqa: BLE001
+            print("[Scene QC Validator] плотность текселя %s: %s" % (obj.name, error))
+        out.append(("Плотность текселя UV%d" % number,
+                    "—" if value is None else "%d px/м" % round(value),
+                    state("uv_texel_density"),
+                    "%g px/м при карте %s ±%g%%"
+                    % (judged.float_param_1 or 1024.0, _n(size),
+                       (judged.float_param_2 or 0.15) * 100.0)))
     density, _per_tile = _packing_density(obj, state.param("uv_packing_density",
                                                            "int_param_2", 1))
     if density is not None:

@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.20.0
+
+Three things the engine-side checker caught and this one did not, ported with
+its own numbers so the two cannot disagree on the same asset.
+
+### Added
+
+- **Pivot at the bottom** (`tr_pivot_bottom`). The lowest point of the mesh
+  must sit at the pivot - an ARDENA asset stands on the floor. Until now only
+  the engine asked (`MESH.PIVOT.Z`, 0.1 cm), which means the error surfaced
+  after import, when the asset had already been handed over. Tolerance taken
+  from there. Measured from the vertices and not from `bound_box`: the lowest
+  corner of a rotated bounding box sits below the real geometry, and that is
+  every fresh FBX from Maya. A note rather than an error in ARDENA - the pivot
+  is sometimes placed elsewhere on purpose. Autofix moves the pivot down and
+  compensates with the geometry, so nothing shifts on screen.
+- **Texel density** (`uv_texel_density`), judged on UV3: 1024 px/m at a 2048
+  map, which is 1 UV unit = 2 m, tolerance 15%. The formula is the engine's:
+  per face, the square root of UV area over world area, then the median
+  weighted by area - the median because an asset always has a few small
+  stretched faces that drag an average, the weights because a wall matters
+  more than a bolt on it. Measured in world units, so an object scaled 0.01
+  reads its true size.
+- **UV1 texel density in the breakdown, per UDIM tile.** No rule there: the
+  norm depends on whether the asset is near, mid or far ground, and the mesh
+  cannot say which. Tiles are listed separately because their density is
+  legitimately different.
+- **Collision names with typos are now caught and fixable.** A lowercase
+  prefix (`ucx_`), a missing separator (`UCXMesh_01`) and Blender's `.001`
+  tail all stop the object from being collision in the engine - it arrives as
+  ordinary geometry. Before, such an object was not recognised as a collider
+  at all and the mesh reported "no collision" instead of naming the typo. The
+  finding now says which of the three it is and what the name should become,
+  and its button renames them. A button rather than the sweeping autofix,
+  like every other rename here, and it picks the next free number instead of
+  letting Blender append another `.001`.
+
+### Changed
+
+- ARDENA: texel density on from 03_MP_UVs as an error; the pivot note on from
+  the blockout.
+
 ## 1.19.2
 
 ### Added
