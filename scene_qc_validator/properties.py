@@ -369,11 +369,25 @@ class SQC_Settings(PropertyGroup):
 
     uv_checker_tiling: FloatProperty(
         name="Checker Tiling",
-        description="UV checker texture repeat amount",
-        default=0.25,
-        min=0.25,
+        description=(
+            "How many times the checker image repeats across the UV square. "
+            "1 shows it once; higher shrinks the squares, lower enlarges them"
+        ),
+        # The default used to sit exactly on the minimum, so the slider only
+        # ever moved one way: drag left from a fresh scene and nothing
+        # happened. 1.0 is the natural middle - the image mapped once onto the
+        # UV square - with travel on both sides.
+        #
+        # The drag range stops at 0.1 because of the textures, not caution: the
+        # square checker is an 8x8 grid and the line checker about 32 stripes,
+        # so the layout shows tiling*8 squares across. At 0.25 that is 2
+        # squares, at 0.12 it is one, and below that a single square covers
+        # everything and the mesh reads as flat white or flat black. Typed
+        # values still reach 0.01 for anyone who wants that on purpose.
+        default=1.0,
+        min=0.01,
         max=50.0,
-        soft_min=0.25,
+        soft_min=0.1,
         soft_max=20.0,
         precision=2,
         update=_update_uv_checker_tiling,
