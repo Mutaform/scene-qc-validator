@@ -12,6 +12,15 @@
 UV, ни своего пивота, и гонять по ним меш-проверки незачем). Поэтому меш сам
 ищет свои коллизии по имени и отвечает за них.
 
+Имя, переделанное целиком, по имени уже не найти - а коллизия при этом лежит
+на месте и видна глазами. Говорить про такой ассет «коллизии нет» бессмысленно
+дважды: это неправда, и починить по такой находке нечего. Поэтому объект,
+похожий на коллизию (префикс в любом регистре, с разделителем или без), но не
+принадлежащий по имени никакому мешу, считается НИЧЕЙНЫМ, и его отдают мешу,
+на котором он лежит: по пересечению габаритов, а при неясности - по похожести
+имени. Это догадка, и в тексте находки она названа догадкой - зато у художника
+есть кнопка, которая даст коллизии правильное имя.
+
 Про выпуклость. UCX - это convex hull: движок сам ничего не выпрямляет, он
 принимает оболочку как есть, и вмятина в ней означает, что персонаж провалится
 в стену. Проверяем по рёбрам, а не перебором «каждая вершина против каждой
@@ -29,6 +38,7 @@ UV, ни своего пивота, и гонять по ним меш-пров�
 десять сантиметров.
 """
 
+import difflib
 import re
 
 from ..common import *
@@ -76,6 +86,51 @@ def _prefixes(item):
     return tuple(p.upper() for p in found) or PREFIXES
 
 
+def looks_like_collider(name, prefixes):
+    """Префикс коллизии в любом регистре, с разделителем или без. '' - не она."""
+    upper = name.upper()
+    for prefix in prefixes:
+        if upper.startswith(prefix):
+            return prefix
+    return ""
+
+
+def _bounds(obj):
+    """Габарит объекта в мире: (минимум, максимум)."""
+    corners = [obj.matrix_world @ mathutils.Vector(corner)
+               for corner in obj.bound_box]
+    low = mathutils.Vector((min(c.x for c in corners), min(c.y for c in corners),
+                            min(c.z for c in corners)))
+    high = mathutils.Vector((max(c.x for c in corners), max(c.y for c in corners),
+                             max(c.z for c in corners)))
+    return low, high
+
+
+def _inside_share(collider, mesh):
+    """Какая доля габарита коллизии попадает в габарит меша: 0..1."""
+    try:
+        low_a, high_a = _bounds(collider)
+        low_b, high_b = _bounds(mesh)
+    except (ValueError, AttributeError):
+        return 0.0
+    volume = 1.0
+    overlap = 1.0
+    for axis in range(3):
+        side = max(0.0, high_a[axis] - low_a[axis])
+        volume *= side if side > 1e-9 else 1e-9
+        overlap *= max(0.0, min(high_a[axis], high_b[axis])
+                       - max(low_a[axis], low_b[axis]))
+    return min(1.0, overlap / volume) if volume > 0 else 0.0
+
+
+def _name_likeness(collider_name, mesh_name, prefixes):
+    """Похожесть имени без префикса на имя меша: 0..1."""
+    prefix = looks_like_collider(collider_name, prefixes)
+    body = collider_name[len(prefix):].lstrip("_") if prefix else collider_name
+    body = _strip_blender_numeric_suffix(body)
+    return difflib.SequenceMatcher(None, body.lower(), mesh_name.lower()).ratio()
+
+
 def collider_name_state(collider_name, mesh_name, prefixes):
     """(моя ли коллизия, правильно ли названа, каким должно быть имя, что не так).
 
@@ -110,20 +165,62 @@ def collider_name_state(collider_name, mesh_name, prefixes):
     return False, False, "", ""
 
 
+def _claimed_by_name(name, prefixes, meshes):
+    """Есть ли в сцене меш, которому это имя принадлежит по имени."""
+    for mesh in meshes:
+        if collider_name_state(name, mesh.name, prefixes)[0]:
+            return True
+    return False
+
+
+def _next_free_name(mesh_name, prefix, taken):
+    """Следующее свободное «PREFIX_<меш>_NNN»."""
+    for number in range(1, 1000):
+        candidate = "%s_%s_%03d" % (prefix, mesh_name, number)
+        if candidate not in bpy.data.objects and candidate not in taken:
+            return candidate
+    return "%s_%s" % (prefix, mesh_name)
+
+
 def colliders_of(obj, item):
     """([мои коллизии], [(объект, каким быть имени, что не так)])."""
     prefixes = _prefixes(item)
-    mine, wrong = [], []
-    for other in bpy.context.scene.objects:
-        if other is obj or other.type != 'MESH':
+    scene = bpy.context.scene
+    candidates = [o for o in scene.objects
+                  if o.type == 'MESH' and looks_like_collider(o.name, prefixes)]
+    meshes = [o for o in scene.objects
+              if o.type == 'MESH' and not looks_like_collider(o.name, prefixes)]
+
+    mine, wrong, stray = [], [], []
+    for other in candidates:
+        if other is obj:
             continue
         is_mine, proper, want, reason = collider_name_state(
             other.name, obj.name, prefixes)
-        if not is_mine:
-            continue
-        mine.append(other)
-        if not proper:
-            wrong.append((other, want, reason))
+        if is_mine:
+            mine.append(other)
+            if not proper:
+                wrong.append((other, want, reason))
+        elif not _claimed_by_name(other.name, prefixes, meshes):
+            stray.append(other)
+
+    # ничейные: отдаём тому мешу, на котором лежат. Догадка, но лучше, чем
+    # сказать «коллизии нет» про объект, который видно в сцене
+    taken = set()
+    for orphan in stray:
+        best, best_score = None, 0.0
+        for mesh in meshes:
+            share = _inside_share(orphan, mesh)
+            likeness = _name_likeness(orphan.name, mesh.name, prefixes)
+            score = max(share, likeness)
+            if score > best_score:
+                best, best_score = mesh, score
+        if best is obj and best_score >= 0.5:
+            prefix = looks_like_collider(orphan.name, prefixes)
+            want = _next_free_name(obj.name, prefix, taken)
+            taken.add(want)
+            mine.append(orphan)
+            wrong.append((orphan, want, "stray"))
     return mine, wrong
 
 
@@ -141,7 +238,9 @@ def _free_name(wanted, mesh_name, prefix_of_wanted):
 
 
 def _is_collider(obj, item):
-    return _prefix_pattern(item).match(obj.name) is not None
+    """Коллизия ли это сама - считая и кривые префиксы: с такого объекта
+    спрашивать про ЕГО коллизию незачем, он и есть коллизия."""
+    return bool(looks_like_collider(obj.name, _prefixes(item)))
 
 
 # ------------------------------------------------------------------ выпуклость

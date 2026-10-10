@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.21.1
+
+### Fixed
+
+- **A collision renamed beyond recognition was reported as missing.** Only the
+  prefix could be wrong before; rename the body - `UCX_..._GuestwewRoom_...` -
+  and no mesh claimed the object, so the asset was told it had no collision.
+  That is wrong twice over: the collision is there, in plain sight, and there
+  was nothing to fix by that finding. An object that looks like a collision
+  (prefix in any case, separator or not) but belongs to no mesh by name is now
+  treated as **stray** and handed to the mesh it sits on - by bounding box
+  overlap, and by name likeness when the boxes do not settle it. The finding
+  says outright that it was recognised by its place in the scene, and its
+  button gives it the right name. A stray that overlaps nothing and resembles
+  nothing is left alone: the mesh still reports no collision, which is then
+  true.
+- `_is_collider` now also recognises a broken prefix, so a misnamed collision
+  is no longer asked about its own collision.
+
 ## 1.21.0
 
 ### Added
